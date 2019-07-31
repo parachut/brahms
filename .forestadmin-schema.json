@@ -2418,6 +2418,20 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "pickup",
+      "type": "Boolean",
+      "defaultValue": false,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "publicUrl",
       "type": "String",
       "defaultValue": null,
@@ -3302,7 +3316,7 @@
     }, {
       "field": "stripeId",
       "type": "String",
-      "defaultValue": "0e11bce4-d667-43e3-936e-22745498a379",
+      "defaultValue": "3ea4c63f-b418-4ced-8b39-db0dbeb1e714",
       "enums": null,
       "integration": null,
       "isFilterable": true,

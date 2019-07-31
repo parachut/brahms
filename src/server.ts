@@ -76,12 +76,8 @@ const main = async () => {
     }),
   );
 
+  app.use(GQLPATH, cors());
   server.applyMiddleware({ app, path: GQLPATH });
-
-  app.use(express.static(path.join(__dirname, '..', 'public')));
-  app.use(cors());
-  app.use(bodyParser.json()); // support json encoded bodies
-  app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
   app.use(
     require('forest-express-sequelize').init({
