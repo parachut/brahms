@@ -30,7 +30,7 @@ export class Invoice extends Model<Invoice> {
 
   @Field((type) => Int)
   @Default(0)
-  @Column('Int')
+  @Column
   public total!: number;
 
   @Field()

@@ -6,7 +6,13 @@ export class ProductFilterInput {
   public id?: string;
 
   @Field((type) => String, { nullable: true })
-  public slug?: string;
+  public search?: string;
+
+  @Field((type) => String, { nullable: true })
+  public category?: string;
+
+  @Field((type) => String, { nullable: true })
+  public brand?: string;
 
   @Field((type) => Boolean, { nullable: true })
   public inStock?: boolean;

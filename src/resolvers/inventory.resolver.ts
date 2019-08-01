@@ -20,43 +20,59 @@ export default class InventoryResolver {
     @Root() inventory: Inventory,
     @Ctx() ctx: IContext,
   ): Promise<Cart> | null {
-    return Cart.findOne({
-      where: {
-        completedAt: { [Op.ne]: null },
-        userId: ctx.user.id,
-        '$inventory.id$': inventory.id,
-      },
-      include: [{ model: Inventory, as: 'inventory' }],
-    });
+    try {
+      const carts = await inventory.$get('carts', {
+        where: {
+          completedAt: { [Op.ne]: null },
+          userId: ctx.user.id,
+        },
+      });
+
+      return carts[0];
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   @FieldResolver((type) => Shipment, { nullable: true })
   async lastShipment(
-    @Root() inventory: Shipment,
+    @Root() inventory: Inventory,
     @Ctx() ctx: IContext,
   ): Promise<Shipment> | null {
-    return Shipment.findOne({
-      where: {
-        direction: ShipmentDirection.OUTBOUND,
-        userId: ctx.user.id,
-        '$inventory.id$': inventory.id,
-      },
-      include: [{ model: Inventory, as: 'inventory' }],
-    });
+    try {
+      const shipments = await inventory.$get('shipments', {
+        where: {
+          direction: ShipmentDirection.OUTBOUND,
+          userId: ctx.user.id,
+        },
+      });
+
+      console.log(shipments);
+
+      return shipments[0];
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   @FieldResolver((type) => Shipment, { nullable: true })
   async lastReturn(
-    @Root() inventory: Shipment,
+    @Root() inventory: Inventory,
     @Ctx() ctx: IContext,
   ): Promise<Shipment> | null {
-    return Shipment.findOne({
-      where: {
-        direction: ShipmentDirection.INBOUND,
-        userId: ctx.user.id,
-        '$inventory.id$': inventory.id,
-      },
-      include: [{ model: Inventory, as: 'inventory' }],
-    });
+    try {
+      const shipments = await inventory.$get('shipments', {
+        where: {
+          direction: ShipmentDirection.INBOUND,
+          userId: ctx.user.id,
+        },
+      });
+
+      console.log(shipments);
+
+      return shipments[0];
+    } catch (e) {
+      console.log(e);
+    }
   }
 }

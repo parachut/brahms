@@ -1,20 +1,18 @@
-require('dotenv').config();
-
 import Analytics from 'analytics-node';
 import { ApolloServer } from 'apollo-server-express';
-import bodyParser from 'body-parser';
 import cors from 'cors';
-import { createContext, EXPECTED_OPTIONS_KEY } from 'dataloader-sequelize';
+import { createContext } from 'dataloader-sequelize';
 import express from 'express';
 import expressJwt from 'express-jwt';
 import fs from 'fs';
-import path from 'path';
 import Redis from 'ioredis';
 import { Sequelize } from 'sequelize-typescript';
 import { buildSchema } from 'type-graphql';
 
-import { customAuthChecker } from './utils/customAuthChecker';
+require('dotenv').config();
+
 import { migrator } from './migrator';
+import { customAuthChecker } from './utils/customAuthChecker';
 
 const PORT = process.env.PORT || 4000;
 const GQLPATH = '/graphql';
@@ -59,6 +57,7 @@ const main = async () => {
       const context = {
         analytics,
         dataloaderContext,
+        sequelize,
         redis,
         req,
         user: req.user,

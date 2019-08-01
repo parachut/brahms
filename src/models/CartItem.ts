@@ -29,12 +29,12 @@ export class CartItem extends Model<CartItem> {
 
   @Field((type) => Int)
   @Default(0)
-  @Column('Int')
+  @Column
   public points!: number;
 
   @Field((type) => Int)
   @Default(0)
-  @Column('Int')
+  @Column
   public quantity!: number;
 
   @BelongsTo(() => Cart)

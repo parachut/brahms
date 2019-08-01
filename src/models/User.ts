@@ -28,6 +28,7 @@ import { Invoice } from './Invoice';
 import { Queue } from './Queue';
 import { Shipment } from './Shipment';
 import { UserIntegration } from './UserIntegration';
+import { UserVerification } from './UserVerification';
 import { UserMarketingSource } from './UserMarketingSource';
 import { UserSocialHandle } from './UserSocialHandle';
 
@@ -42,16 +43,16 @@ export class User extends Model<User> {
 
   @Field()
   @Default(1)
-  @Column('Int')
+  @Column
   public billingHour!: number;
 
   @Field({ nullable: true })
   @Column
   public businessName?: string;
 
-  @Field()
+  @Field((type) => Int)
   @Default(0)
-  @Column('Int')
+  @Column
   public contributorStep!: number;
 
   @Field()
@@ -78,7 +79,7 @@ export class User extends Model<User> {
 
   @Field((type) => Int)
   @Default(0)
-  @Column('Int')
+  @Column
   public points!: number;
 
   @Field((type) => [UserRole])
@@ -102,7 +103,7 @@ export class User extends Model<User> {
   public status!: UserStatus;
 
   @Unique
-  @Default(uuid())
+  @Default(Sequelize.literal('uuid_generate_v4()'))
   @Column
   public stripeId!: string;
 
@@ -121,6 +122,9 @@ export class User extends Model<User> {
   @HasMany(() => UserIntegration, 'userId')
   public integrations!: UserIntegration[];
 
+  @HasMany(() => UserVerification, 'userId')
+  public verifications!: UserVerification[];
+
   @HasMany(() => UserMarketingSource, 'userId')
   public marketingSources!: UserMarketingSource[];
 
@@ -128,7 +132,7 @@ export class User extends Model<User> {
   public socialHandles!: UserSocialHandle[];
 
   @Field((type) => [Inventory])
-  @HasMany(() => Inventory, { foreignKey: 'memberId', as: 'currentInventory' })
+  @HasMany(() => Inventory, { foreignKey: 'memberId' })
   currentInventory: Inventory[];
 
   @Field((type) => [Inventory])

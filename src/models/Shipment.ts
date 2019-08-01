@@ -67,7 +67,7 @@ export class Shipment extends Model<Shipment> {
   public estDeliveryDate?: Date;
 
   @Field()
-  @Column('Float')
+  @Column(DataType.FLOAT)
   public cost?: number;
 
   @Field((type) => ShipmentDirection)
@@ -85,7 +85,7 @@ export class Shipment extends Model<Shipment> {
 
   @Field()
   @Default(12)
-  @Column('Float')
+  @Column(DataType.FLOAT)
   public height!: number;
 
   @Field({ nullable: true })
@@ -98,7 +98,7 @@ export class Shipment extends Model<Shipment> {
 
   @Field()
   @Default(12)
-  @Column('Float')
+  @Column(DataType.FLOAT)
   public length!: number;
 
   @Field({ nullable: true })
@@ -138,12 +138,12 @@ export class Shipment extends Model<Shipment> {
 
   @Field()
   @Default(12)
-  @Column('Float')
+  @Column(DataType.FLOAT)
   public weight!: number;
 
   @Field()
   @Default(12)
-  @Column('Float')
+  @Column(DataType.FLOAT)
   public width!: number;
 
   @ForeignKey(() => User)
@@ -192,9 +192,10 @@ export class Shipment extends Model<Shipment> {
   @UpdatedAt
   public updatedAt!: Date;
 
+  /**
   @AfterCreate
   static async createEasyPostShipment(instance: Shipment) {
-    if (!instance.pickup) {
+    if (!instance.pickup && !instance.easyPostId) {
       const parcel = new easyPost.Parcel({
         height: instance.height,
         length: instance.length,
@@ -250,4 +251,5 @@ export class Shipment extends Model<Shipment> {
       instance.labelUrl = easyPostShipment.postage_label.label_url;
     }
   }
+   */
 }

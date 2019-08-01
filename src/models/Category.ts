@@ -44,9 +44,9 @@ export class Category extends Model<Category> {
   @Column
   public description?: string;
 
-  @Field((type) => Category)
+  @Field((type) => Category, { nullable: true })
   @BelongsTo(() => Category)
-  parent: Category;
+  public parent?: Category;
 
   @ForeignKey(() => Category)
   @Column(DataType.UUID)

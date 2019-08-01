@@ -36,7 +36,7 @@ export class Product extends Model<Product> {
   @Column
   public active!: boolean;
 
-  @Column('Float')
+  @Column(DataType.FLOAT)
   public depth?: number;
 
   @Field({ nullable: true })
@@ -47,7 +47,7 @@ export class Product extends Model<Product> {
   @Column(DataType.ARRAY(DataType.STRING(1024)))
   public features?: string[];
 
-  @Column('Float')
+  @Column(DataType.FLOAT)
   public height?: number;
 
   @Field((type) => [String], { nullable: true })
@@ -73,16 +73,16 @@ export class Product extends Model<Product> {
 
   @Field((type) => Int)
   @Default(0)
-  @Column('Int')
+  @Column
   public points!: number;
 
   @Field((type) => Int)
   @Default(0)
-  @Column('Int')
+  @Column
   public popularity!: number;
 
   @Field((type) => Int, { nullable: true })
-  @Column('Int')
+  @Column
   public shippingWeight?: number;
 
   @Field()
@@ -91,13 +91,13 @@ export class Product extends Model<Product> {
 
   @Field((type) => Int)
   @Default(0)
-  @Column('Int')
+  @Column
   public stock!: number;
 
-  @Column('Int')
+  @Column
   public weight?: number;
 
-  @Column('Int')
+  @Column
   public width?: number;
 
   @HasMany(() => File, 'productId')
@@ -122,7 +122,7 @@ export class Product extends Model<Product> {
 
   @ForeignKey(() => Category)
   @Column(DataType.UUID)
-  public categoryId!: string;
+  public categoryId?: string;
 
   @CreatedAt
   public createdAt!: Date;

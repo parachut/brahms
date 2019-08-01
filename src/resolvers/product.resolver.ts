@@ -1,4 +1,5 @@
 import { createConnectionResolver } from 'graphql-sequelize';
+import map from 'lodash/map';
 import {
   Arg,
   Authorized,
@@ -10,6 +11,8 @@ import {
   Resolver,
   Root,
 } from 'type-graphql';
+import { Op } from 'sequelize';
+import camelCase from 'lodash/camelCase';
 
 import { connectionTypes } from '../classes/connection';
 import { ProductFilterInput } from '../classes/productFilter.input';
@@ -59,10 +62,51 @@ export default class ProductResolver {
     @Info() info: any,
   ) {
     if (ctx.user) {
+      let orderBy: any = [['stock', 'DESC']];
+
+      if (sort) {
+        const splitSort = sort.split('_');
+        const direction = splitSort.pop().toLowerCase();
+        const column = camelCase(splitSort.join('_'));
+
+        orderBy = [['stock', 'DESC'], [column, direction]];
+      }
+
+      let searchIds: any = [];
+
+      if (filter.search) {
+        searchIds = await ctx.sequelize.query(
+          `
+            SELECT id
+            FROM "Products"
+            WHERE _search @@ plainto_tsquery('english', :query);
+          `,
+          {
+            model: Product,
+            replacements: { query: filter.search },
+          },
+        );
+      }
+
       const connection = createConnectionResolver({
         target: Product,
-        where: filter,
-        orderBy: sort,
+        where: (key, value) => {
+          if (value) {
+            console.log(value);
+            if (key === 'where') {
+              const where: any = {};
+              if (value.inStock) {
+                where.stock = { [Op.gt]: 0 };
+              }
+
+              if (value.search) {
+                where.id = {
+                  [Op.in]: map(searchIds, 'id'),
+                };
+              }
+            }
+          }
+        },
       });
 
       const result = await connection.resolveConnection(
@@ -72,6 +116,8 @@ export default class ProductResolver {
           after,
           last,
           before,
+          where: filter,
+          orderBy,
         },
         ctx,
         info,
@@ -88,9 +134,9 @@ export default class ProductResolver {
     return ((await product.$get<Brand>('brand')) as Brand)!;
   }
 
-  @FieldResolver((type) => Brand)
-  async categories(@Root() product: Product): Promise<Category> {
-    return ((await product.$get<Category>('category')) as Category)!;
+  @FieldResolver((type) => Category, { nullable: true })
+  async category(@Root() product: Product): Promise<Category> {
+    return (await product.$get<Category>('category')) as Category;
   }
 
   @FieldResolver()
@@ -123,5 +169,10 @@ export default class ProductResolver {
     } else {
       return [];
     }
+  }
+
+  @FieldResolver((type) => Int)
+  async total(@Root() product: Product): Promise<number> {
+    return product.$count('inventory');
   }
 }

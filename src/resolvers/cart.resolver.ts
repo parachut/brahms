@@ -44,7 +44,7 @@ export default class CartResolver {
     if (ctx.user) {
       let cart = await Cart.findOne({
         where: {
-          user: ctx.user.id,
+          userId: ctx.user.id,
           completedAt: null,
         },
       });
@@ -386,9 +386,9 @@ export default class CartResolver {
     return ((await cart.$get<Inventory>('inventory')) as Inventory[])!;
   }
 
-  @FieldResolver((type) => [CartItem])
+  @FieldResolver((type) => [CartItem], { nullable: true })
   async address(@Root() cart: Cart): Promise<Address> {
-    return ((await cart.$get<Address>('address')) as Address)!;
+    return (await cart.$get<Address>('address')) as Address;
   }
 
   @FieldResolver((type) => CartTransitTime, { nullable: true })

@@ -9,7 +9,6 @@ import {
   Model,
   PrimaryKey,
   Table,
-  UpdatedAt,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
 
@@ -17,7 +16,7 @@ import { User } from './User';
 
 @ObjectType()
 @Table
-export class Income extends Model<Income> {
+export class UserVerification extends Model<UserVerification> {
   @Field((type) => ID)
   @PrimaryKey
   @Default(Sequelize.literal('uuid_generate_v4()'))
@@ -25,45 +24,23 @@ export class Income extends Model<Income> {
   public id!: string;
 
   @Field()
-  @Default(0)
   @Column
-  public commission!: number;
+  public type!: string;
 
   @Field()
-  @Default(0)
   @Column
-  public dailyRate!: number;
+  public verified!: boolean;
 
-  @Field()
-  @Default(false)
-  @Column
-  public membership!: boolean;
-
-  @Field({ nullable: true })
-  @Column
-  public notes?: string;
-
-  @Field({ nullable: true })
-  @Column
-  public transferId?: string;
+  @Column(DataType.JSONB)
+  public meta?: any;
 
   @BelongsTo(() => User)
-  public user!: User;
+  user!: User;
 
   @ForeignKey(() => User)
   @Column(DataType.UUID)
-  public userId!: string;
-
-  @BelongsTo(() => User)
-  public member!: User;
-
-  @ForeignKey(() => User)
-  @Column(DataType.UUID)
-  public memberId!: string;
+  userId!: string;
 
   @CreatedAt
   public createdAt!: Date;
-
-  @UpdatedAt
-  public updatedAt!: Date;
 }

@@ -1,9 +1,13 @@
-import { prisma } from '@parachut/prisma';
 import EasyPost from '@easypost/api';
+import { prisma } from '@parachut/prisma';
+import Redis from 'ioredis';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import pMap from 'p-map';
+import ProgressBar from 'progress';
 import sequelize from 'sequelize';
+
+import { UserStatus } from './enums/userStatus';
 import { Address } from './models/Address';
 import { Brand } from './models/Brand';
 import { Cart } from './models/Cart';
@@ -15,17 +19,27 @@ import { Product } from './models/Product';
 import { Shipment } from './models/Shipment';
 import { User } from './models/User';
 import { UserIntegration } from './models/UserIntegration';
+import { UserVerification } from './models/UserVerification';
 import { Warehouse } from './models/Warehouse';
 
-import { UserStatus } from './enums/userStatus';
-
 const easyPost = new EasyPost(process.env.EASYPOST);
+const redis = new Redis(
+  parseInt(process.env.REDIS_PORT),
+  process.env.REDIS_HOST,
+);
 
-const concurrency = 250;
+const concurrency = 500;
 
 const moveUsers = async () => {
   const userIds: any = {};
   let users = await prisma.users({ orderBy: 'id_ASC' });
+
+  const bar = new ProgressBar('moving users [:bar] :rate/rps :percent :etas', {
+    complete: '=',
+    incomplete: ' ',
+    width: 20,
+    total: users.length,
+  });
 
   const integrations: any = await prisma.users({ orderBy: 'id_ASC' })
     .$fragment(`fragment UserIntegration on User {
@@ -53,48 +67,79 @@ const moveUsers = async () => {
         'points',
         'roles',
       ]),
+      points: user.points ? user.points : 0,
       status: UserStatus.APPROVED,
       stripeId: stripe ? stripe.value : undefined,
     });
   });
 
-  try {
-    const userModels = await pMap(
-      newUsers,
-      async (cat: User) => await User.create(cat),
-      {
-        concurrency,
-        stopOnError: true,
-      },
-    );
+  const userModels = await pMap(
+    newUsers,
+    async (cat: User) => {
+      const user = await User.create(cat);
+      bar.tick();
+      return user;
+    },
+    {
+      concurrency,
+      stopOnError: true,
+    },
+  );
 
-    console.log(users.length, userModels.length);
+  users.forEach((user, i) => {
+    if (user) {
+      const newUser = userModels.find((u) => u.email === user.email);
 
-    users.forEach((user, i) => {
-      if (user) {
-        const newUser = userModels.find((u) => u.email === user.email);
-
-        if (newUser) {
-          userIds[user.id] = newUser.get('id');
-        }
+      if (newUser) {
+        userIds[user.id] = newUser.get('id');
       }
-    });
+    }
+  });
 
-    return userIds;
-  } catch (e) {
-    console.log(e);
-  }
+  return userIds;
 };
 
 const moveUserIntegrations = async (userIds) => {
   const newIntegrations: any = [];
+  const newVerifications: any = [];
 
   const users: any = await prisma.users({ orderBy: 'id_ASC' })
-    .$fragment(`fragment UserIntegration on User {
+    .$fragment(`fragment UserIntegration234 on User {
       id
       integrations {
         key
         value
+      }
+      verifications(where: {type: JUMIO }) {
+        verified
+        type
+        jumio {
+          verificationStatus
+          idScanResults
+          idScanSource
+          idCheckDataPositions
+          idCheckDocumentValidation
+          idCheckHologram
+          idCheckMRZcode
+          idCheckMicroprint
+          idCheckSecurityFeatures
+          idCheckSignature
+          transactionDate
+          idType
+          idSubtype
+          idCountry
+          rejectReason
+          idFirstName
+          idLastName
+          idDob
+          idExpiry
+          idUsState
+          identityVerification {
+            similarity
+            validity
+            reason
+          }
+        }
       }
   } `);
 
@@ -104,13 +149,56 @@ const moveUserIntegrations = async (userIds) => {
         newIntegrations.push({
           type: integration.key,
           value: integration.value,
-          userId: user.id,
+          userId: userIds[user.id],
+        });
+      });
+
+      user.verifications.forEach((verification) => {
+        newVerifications.push({
+          type: 'INDENTITY',
+          verified: verification.verified,
+          meta: verification.jumio,
+          userId: userIds[user.id],
         });
       });
     }
   });
 
-  await UserIntegration.bulkCreate(newIntegrations, { individualHooks: true });
+  const bar = new ProgressBar(
+    'moving usermeta [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newIntegrations.length + newVerifications.length,
+    },
+  );
+
+  await pMap(
+    newIntegrations,
+    async (cat: UserIntegration) => {
+      const res = await UserIntegration.create(cat);
+      bar.tick();
+      return res;
+    },
+    {
+      concurrency,
+      stopOnError: true,
+    },
+  );
+
+  await pMap(
+    newVerifications,
+    async (cat: UserVerification) => {
+      const res = await UserVerification.create(cat);
+      bar.tick();
+      return res;
+    },
+    {
+      concurrency,
+      stopOnError: true,
+    },
+  );
 
   return true;
 };
@@ -125,9 +213,24 @@ const moveBrands = async () => {
     newBrands.push(omit(brand, ['id']));
   }
 
-  const brandModels = await pMap(newBrands, (cat: Brand) => Brand.create(cat), {
-    concurrency,
+  const bar = new ProgressBar('moving brands [:bar] :rate/rps :percent :etas', {
+    complete: '=',
+    incomplete: ' ',
+    width: 20,
+    total: newBrands.length,
   });
+
+  const brandModels = await pMap(
+    newBrands,
+    async (cat: Brand) => {
+      const res = await Brand.create(cat);
+      bar.tick();
+      return res;
+    },
+    {
+      concurrency,
+    },
+  );
 
   brands.forEach((brand, i) => {
     brandIds[brand.id] = brandModels[i].get('id');
@@ -149,9 +252,24 @@ const moveFiles = async () => {
     });
   }
 
-  const fileModels = await pMap(newFiles, (cat: File) => File.create(cat), {
-    concurrency,
+  const bar = new ProgressBar('moving files [:bar] :rate/rps :percent :etas', {
+    complete: '=',
+    incomplete: ' ',
+    width: 20,
+    total: newFiles.length,
   });
+
+  const fileModels = await pMap(
+    newFiles,
+    async (cat: File) => {
+      const res = await File.create(cat);
+      bar.tick();
+      return res;
+    },
+    {
+      concurrency,
+    },
+  );
 
   files.forEach((file, i) => {
     fileIds[file.id] = fileModels[i].get('id');
@@ -172,9 +290,23 @@ const moveWarehouses = async () => {
     });
   }
 
+  const bar = new ProgressBar(
+    'moving warehouses [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newWarehouses.length,
+    },
+  );
+
   const warehouseModels = await pMap(
     newWarehouses,
-    (cat: Warehouse) => Warehouse.create(cat),
+    async (cat: Warehouse) => {
+      const res = await Warehouse.create(cat);
+      bar.tick();
+      return res;
+    },
     {
       concurrency,
     },
@@ -205,9 +337,23 @@ const moveCategories = async () => {
     newCategories.push(omit(category, ['id']));
   }
 
+  const bar = new ProgressBar(
+    'moving categories [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newCategories.length,
+    },
+  );
+
   const categoryModels = await await pMap(
     newCategories,
-    (cat: Category) => Category.create(cat),
+    async (cat: Category) => {
+      const res = await Category.create(cat);
+      bar.tick();
+      return res;
+    },
     { concurrency },
   );
 
@@ -262,11 +408,22 @@ const moveAddresses = async (userIds) => {
     });
   });
 
+  const bar = new ProgressBar(
+    'moving addresses [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newAddresses.length,
+    },
+  );
+
   const addressModels = await pMap(
     newAddresses,
     async (cat: Address) => {
       try {
         const address = await Address.create(cat);
+        bar.tick();
         return address;
       } catch (e) {
         return null;
@@ -341,9 +498,23 @@ const moveProducts = async (brandIds, categoryIds, fileIds) => {
     });
   });
 
+  const bar = new ProgressBar(
+    'moving products [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newProducts.length,
+    },
+  );
+
   const productModels = await pMap(
     newProducts,
-    (cat: Product) => Product.create(cat),
+    async (cat: Product) => {
+      const res = await Product.create(cat);
+      bar.tick();
+      return res;
+    },
     {
       concurrency,
     },
@@ -354,6 +525,16 @@ const moveProducts = async (brandIds, categoryIds, fileIds) => {
   });
 
   const changeFiles = [];
+
+  const bar2 = new ProgressBar(
+    'updating product images [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newProducts.length,
+    },
+  );
 
   for (const _product of extraProducts) {
     for (const file of _product.images) {
@@ -370,9 +551,18 @@ const moveProducts = async (brandIds, categoryIds, fileIds) => {
     }
   }
 
-  await pMap(changeFiles, (cat: any) => File.update(cat[0], cat[1]), {
-    concurrency,
-  });
+  await pMap(
+    changeFiles,
+    async (cat: any) => {
+      await File.update(cat[0], cat[1]);
+      bar2.tick();
+
+      return true;
+    },
+    {
+      concurrency,
+    },
+  );
 
   return productIds;
 };
@@ -420,12 +610,22 @@ const moveInventory = async (productIds, userIds) => {
     });
   });
 
+  const bar = new ProgressBar(
+    'moving inventory [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newInventory.length,
+    },
+  );
+
   const inventoryModels = await pMap(
     newInventory,
     async (cat: Inventory) => {
       try {
-        console.log(cat);
         const newInventory = await Inventory.create(cat);
+        bar.tick();
         return newInventory;
       } catch (e) {
         console.log(e);
@@ -441,11 +641,21 @@ const moveInventory = async (productIds, userIds) => {
     inventoryIds[item.id] = inventoryModels[i].get('id');
   });
 
+  const bar2 = new ProgressBar(
+    'updating stock [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newInventory.length,
+    },
+  );
+
   for (const item of inventoriesExtra) {
     if (item.status === 'INWAREHOUSE') {
       await Product.update(
         {
-          stock: sequelize.literal('stock + 2'),
+          stock: sequelize.literal('stock + 1'),
         },
         {
           where: {
@@ -453,6 +663,7 @@ const moveInventory = async (productIds, userIds) => {
           },
         },
       );
+      bar2.tick();
     }
   }
 
@@ -493,7 +704,6 @@ const moveCarts = async (productIds, userIds, inventoryIds, addressIds) => {
       ...omit(cart, ['id']),
       addressId: items[i].address ? addressIds[items[i].address.id] : null,
       canceledAt: cart.deletedAt,
-      inventory: items[i].inventory.map((ii: any) => inventoryIds[ii.id]),
       points: items[i].items.reduce((r, i) => r + (i.product.points || 0), 0),
       quantity: items[i].items.reduce((r, i) => r + (i.quantity || 0), 0),
       service: cart.service ? cart.service : 'Ground',
@@ -515,21 +725,69 @@ const moveCarts = async (productIds, userIds, inventoryIds, addressIds) => {
     });
   });
 
-  const cartModels = await pMap(newCarts, (cat: Cart) => Cart.create(cat), {
-    concurrency,
+  const bar = new ProgressBar('moving carts [:bar] :rate/rps :percent :etas', {
+    complete: '=',
+    incomplete: ' ',
+    width: 20,
+    total: newCarts.length,
   });
 
-  carts.forEach((cart, i) => {
-    cartIds[cart.id] = cartModels[i].get('id');
-  });
+  const cartModels = await pMap(
+    newCarts,
+    async (cat: Cart) => {
+      const res = await Cart.create(cat);
+      bar.tick();
+      return res;
+    },
+    {
+      concurrency,
+    },
+  );
+
+  const bar2 = new ProgressBar(
+    'updating cart inventory [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newCarts.length,
+    },
+  );
+
+  let ci = 0;
+  for (const cart of carts) {
+    cartIds[cart.id] = cartModels[ci].get('id');
+    if (items[ci].inventory.length) {
+      await cartModels[ci].$set(
+        'inventory',
+        items[ci].inventory.map((ii: any) => inventoryIds[ii.id]),
+      );
+      bar2.tick();
+    }
+    ci = ci + 1;
+  }
 
   newCartItems.forEach((item, i) => {
-    item.cartId = cartIds[item._id];
+    item.cartId = cartIds[item.id];
   });
+
+  const bar3 = new ProgressBar(
+    'moving cart items [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newCarts.length,
+    },
+  );
 
   const cartItemModels = await pMap(
     newCartItems,
-    (cat: CartItem) => CartItem.create(cat),
+    async (cat: CartItem) => {
+      const res = await CartItem.create(cat);
+      bar3.tick();
+      return res;
+    },
     {
       concurrency,
     },
@@ -589,9 +847,23 @@ const moveShipments = async (
     }
   }
 
+  const bar = new ProgressBar(
+    'moving shipments [:bar] :rate/rps :percent :etas',
+    {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: newShipments.length,
+    },
+  );
+
   const shipmentModels = await pMap(
     newShipments,
-    (cat: Shipment) => Shipment.create(cat),
+    async (cat: Shipment) => {
+      const res = await Shipment.create(cat);
+      bar.tick();
+      return res;
+    },
     {
       concurrency,
     },
@@ -605,40 +877,124 @@ const moveShipments = async (
 };
 
 export const migrator = async (req, res) => {
-  console.log('start');
-  const userIds = await moveUsers();
-  console.log('user');
+  console.clear();
+  console.log('Being migration...');
+  let userIds = await redis.get('migration:userIds');
 
-  const fileIds = await moveFiles();
-  console.log('files');
-  const brandIds = await moveBrands();
-  console.log('brand');
-  const cateogryIds = await moveCategories();
-  console.log('category');
-  const productIds = await moveProducts(brandIds, cateogryIds, fileIds);
-  console.log('product');
-  const inventoryIds = await moveInventory(productIds, userIds);
-  console.log('inventory');
+  if (!userIds) {
+    userIds = await moveUsers();
+    redis.set('migration:userIds', JSON.stringify(userIds));
+    await moveUserIntegrations(userIds);
+    console.log('Users completed!');
+  } else {
+    console.log('Skipping users');
+    userIds = JSON.parse(userIds);
+  }
 
-  const addressIds = await moveAddresses(userIds);
-  console.log('address');
-  const warehouseIds = await moveWarehouses();
-  console.log('warehouse');
+  let fileIds = await redis.get('migration:fileIds');
 
-  const cartIds = await moveCarts(
-    productIds,
-    userIds,
-    inventoryIds,
-    addressIds,
-  );
-  console.log('carts');
-  const shipmentIds = await moveShipments(
-    userIds,
-    inventoryIds,
-    cartIds,
-    addressIds,
-    warehouseIds,
-  );
-  console.log('shipments');
+  if (!fileIds) {
+    fileIds = await moveFiles();
+    redis.set('migration:fileIds', JSON.stringify(fileIds));
+    console.log('Files completed!');
+  } else {
+    console.log('Skipping files');
+    fileIds = JSON.parse(fileIds);
+  }
+
+  let brandIds = await redis.get('migration:brandIds');
+
+  if (!brandIds) {
+    brandIds = await moveBrands();
+    redis.set('migration:brandIds', JSON.stringify(brandIds));
+    console.log('Brands completed!');
+  } else {
+    console.log('Skipping brands');
+    brandIds = JSON.parse(brandIds);
+  }
+
+  let cateogryIds = await redis.get('migration:cateogryIds');
+
+  if (!cateogryIds) {
+    cateogryIds = await moveCategories();
+    redis.set('migration:cateogryIds', JSON.stringify(cateogryIds));
+    console.log('Categories completed!');
+  } else {
+    console.log('Skipping categories');
+    cateogryIds = JSON.parse(cateogryIds);
+  }
+
+  let productIds = await redis.get('migration:productIds');
+
+  if (!productIds) {
+    productIds = await moveProducts(brandIds, cateogryIds, fileIds);
+    redis.set('migration:productIds', JSON.stringify(productIds));
+    console.log('Products completed!');
+  } else {
+    console.log('Skipping products');
+    productIds = JSON.parse(productIds);
+  }
+
+  let inventoryIds = await redis.get('migration:inventoryIds');
+
+  if (!inventoryIds) {
+    inventoryIds = await moveInventory(productIds, userIds);
+    redis.set('migration:inventoryIds', JSON.stringify(inventoryIds));
+    console.log('Inventory completed!');
+  } else {
+    console.log('Skipping inventory');
+    inventoryIds = JSON.parse(inventoryIds);
+  }
+
+  let addressIds = await redis.get('migration:addressIds');
+
+  if (!addressIds) {
+    addressIds = await moveAddresses(userIds);
+    redis.set('migration:addressIds', JSON.stringify(addressIds));
+    console.log('Addresses completed!');
+  } else {
+    console.log('Skipping addresses');
+    addressIds = JSON.parse(addressIds);
+  }
+
+  let warehouseIds = await redis.get('migration:warehouseIds');
+
+  if (!warehouseIds) {
+    warehouseIds = await moveWarehouses();
+    redis.set('migration:warehouseIds', JSON.stringify(warehouseIds));
+    console.log('Warehouses completed!');
+  } else {
+    console.log('Skipping warehouses');
+    warehouseIds = JSON.parse(warehouseIds);
+  }
+
+  let cartIds = await redis.get('migration:cartIds');
+
+  if (!cartIds) {
+    cartIds = await moveCarts(productIds, userIds, inventoryIds, addressIds);
+    redis.set('migration:cartIds', JSON.stringify(cartIds));
+    console.log('Carts completed!');
+  } else {
+    console.log('Skipping carts');
+    cartIds = JSON.parse(cartIds);
+  }
+
+  let shipmentIds = await redis.get('migration:shipmentIds');
+
+  if (!shipmentIds) {
+    shipmentIds = await moveShipments(
+      userIds,
+      inventoryIds,
+      cartIds,
+      addressIds,
+      warehouseIds,
+    );
+    redis.set('migration:shipmentIds', JSON.stringify(shipmentIds));
+    console.log('Shipments completed!');
+  } else {
+    console.log('Skipping shipments');
+    shipmentIds = JSON.parse(shipmentIds);
+  }
+
   res.send('done');
 };

@@ -123,20 +123,6 @@
       "inverseOf": null,
       "validations": []
     }, {
-      "field": "fullAddress",
-      "type": "String",
-      "defaultValue": null,
-      "enums": null,
-      "integration": null,
-      "isFilterable": false,
-      "isReadOnly": true,
-      "isRequired": false,
-      "isSortable": false,
-      "isVirtual": true,
-      "reference": null,
-      "inverseOf": null,
-      "validations": []
-    }, {
       "field": "id",
       "type": "String",
       "defaultValue": null,
@@ -757,6 +743,20 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "points",
+      "type": "Number",
+      "defaultValue": 0,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "product",
       "type": "String",
       "defaultValue": null,
@@ -770,6 +770,20 @@
       "reference": "Product.productId",
       "inverseOf": null,
       "relationship": "BelongsTo",
+      "validations": []
+    }, {
+      "field": "quantity",
+      "type": "Number",
+      "defaultValue": 0,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
       "validations": []
     }, {
       "field": "updatedAt",
@@ -1110,9 +1124,37 @@
     "onlyForRelationships": false,
     "paginationType": "page",
     "fields": [{
+      "field": "commission",
+      "type": "Number",
+      "defaultValue": 0,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "createdAt",
       "type": "Date",
       "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "dailyRate",
+      "type": "Number",
+      "defaultValue": 0,
       "enums": null,
       "integration": null,
       "isFilterable": true,
@@ -1400,6 +1442,20 @@
       "relationship": "HasMany",
       "validations": []
     }, {
+      "field": "maxPoints",
+      "type": "Number",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "member",
       "type": "String",
       "defaultValue": null,
@@ -1415,9 +1471,37 @@
       "relationship": "BelongsTo",
       "validations": []
     }, {
+      "field": "minPoints",
+      "type": "Number",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "missingEssentials",
       "type": ["String"],
       "defaultValue": [],
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "points",
+      "type": "Number",
+      "defaultValue": null,
       "enums": null,
       "integration": null,
       "isFilterable": true,
@@ -1665,6 +1749,20 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "total",
+      "type": "Number",
+      "defaultValue": 0,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "updatedAt",
       "type": "Date",
       "defaultValue": null,
@@ -1724,6 +1822,20 @@
       "field": "createdAt",
       "type": "Date",
       "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "dailyRate",
+      "type": "Number",
+      "defaultValue": 0,
       "enums": null,
       "integration": null,
       "isFilterable": true,
@@ -1892,6 +2004,20 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "depth",
+      "type": "Number",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "description",
       "type": "String",
       "defaultValue": null,
@@ -1933,6 +2059,20 @@
       "reference": "File.productId",
       "inverseOf": null,
       "relationship": "HasMany",
+      "validations": []
+    }, {
+      "field": "height",
+      "type": "Number",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
       "validations": []
     }, {
       "field": "id",
@@ -2034,6 +2174,34 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "points",
+      "type": "Number",
+      "defaultValue": 0,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "popularity",
+      "type": "Number",
+      "defaultValue": 0,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "queues",
       "type": ["Number"],
       "defaultValue": null,
@@ -2047,6 +2215,20 @@
       "reference": "Queue.productId",
       "inverseOf": null,
       "relationship": "HasMany",
+      "validations": []
+    }, {
+      "field": "shippingWeight",
+      "type": "Number",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
       "validations": []
     }, {
       "field": "slug",
@@ -2063,8 +2245,50 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "stock",
+      "type": "Number",
+      "defaultValue": 0,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "updatedAt",
       "type": "Date",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "weight",
+      "type": "Number",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "width",
+      "type": "Number",
       "defaultValue": null,
       "enums": null,
       "integration": null,
@@ -2275,6 +2499,20 @@
       "relationship": "BelongsTo",
       "validations": []
     }, {
+      "field": "cost",
+      "type": "Number",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "createdAt",
       "type": "Date",
       "defaultValue": null,
@@ -2346,6 +2584,20 @@
       "relationship": "HasMany",
       "validations": []
     }, {
+      "field": "height",
+      "type": "Number",
+      "defaultValue": 12,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "id",
       "type": "String",
       "defaultValue": null,
@@ -2407,6 +2659,20 @@
       "field": "labelUrlZPL",
       "type": "String",
       "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "length",
+      "type": "Number",
+      "defaultValue": 12,
       "enums": null,
       "integration": null,
       "isFilterable": true,
@@ -2570,18 +2836,37 @@
       "inverseOf": null,
       "relationship": "BelongsTo",
       "validations": []
+    }, {
+      "field": "weight",
+      "type": "Number",
+      "defaultValue": 12,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "width",
+      "type": "Number",
+      "defaultValue": 12,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
     }],
     "segments": [],
-    "actions": [{
-      "name": "Print Label",
-      "type": "bulk",
-      "baseUrl": null,
-      "endpoint": "/forest/actions/print-label",
-      "httpMethod": "POST",
-      "redirect": null,
-      "download": false,
-      "fields": []
-    }]
+    "actions": []
   }, {
     "name": "ShipmentEvent",
     "nameOld": "ShipmentEvent",
@@ -2991,6 +3276,20 @@
       "relationship": "HasMany",
       "validations": []
     }, {
+      "field": "billingHour",
+      "type": "Number",
+      "defaultValue": 1,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "businessName",
       "type": "String",
       "defaultValue": null,
@@ -3018,6 +3317,20 @@
       "reference": "Cart.userId",
       "inverseOf": null,
       "relationship": "HasMany",
+      "validations": []
+    }, {
+      "field": "contributorStep",
+      "type": "Number",
+      "defaultValue": 0,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
       "validations": []
     }, {
       "field": "createdAt",
@@ -3237,6 +3550,20 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "points",
+      "type": "Number",
+      "defaultValue": 0,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "queues",
       "type": ["Number"],
       "defaultValue": null,
@@ -3316,7 +3643,9 @@
     }, {
       "field": "stripeId",
       "type": "String",
-      "defaultValue": "3ea4c63f-b418-4ced-8b39-db0dbeb1e714",
+      "defaultValue": {
+        "val": "uuid_generate_v4()"
+      },
       "enums": null,
       "integration": null,
       "isFilterable": true,
@@ -3415,6 +3744,21 @@
       "isVirtual": false,
       "reference": null,
       "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "verifications",
+      "type": ["Number"],
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": "UserVerification.userId",
+      "inverseOf": null,
+      "relationship": "HasMany",
       "validations": []
     }],
     "segments": [],
@@ -4749,6 +5093,118 @@
       "reference": "User.userId",
       "inverseOf": null,
       "relationship": "BelongsTo",
+      "validations": []
+    }],
+    "segments": [],
+    "actions": []
+  }, {
+    "name": "UserVerification",
+    "nameOld": "UserVerification",
+    "icon": null,
+    "integration": null,
+    "isReadOnly": false,
+    "isSearchable": true,
+    "isVirtual": false,
+    "onlyForRelationships": false,
+    "paginationType": "page",
+    "fields": [{
+      "field": "createdAt",
+      "type": "Date",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "id",
+      "type": "String",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "meta",
+      "type": "Json",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "type",
+      "type": "String",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "updatedAt",
+      "type": "Date",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "user",
+      "type": "String",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": "User.userId",
+      "inverseOf": null,
+      "relationship": "BelongsTo",
+      "validations": []
+    }, {
+      "field": "verified",
+      "type": "Boolean",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
       "validations": []
     }],
     "segments": [],

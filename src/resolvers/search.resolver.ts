@@ -14,22 +14,23 @@ export default class SearchResolver {
   @Query((returns) => [CatalogSearchResult])
   public async catalogSearch(
     @Arg('search', (type) => String)
-    { search }: string,
+    search: string,
     @Ctx() ctx: IContext,
   ) {
     if (ctx.user) {
       const categories = Category.findAll({
-        where: { [Op.iLike]: `%${search}%` },
+        where: { name: { [Op.iLike]: `%${search}%` } },
         limit: 10,
         attributes: ['name', 'slug'],
       });
+
       const brands = Brand.findAll({
-        where: { [Op.iLike]: `%${search}%` },
+        where: { name: { [Op.iLike]: `%${search}%` } },
         limit: 10,
         attributes: ['name', 'slug'],
       });
       const products = Product.findAll({
-        where: { [Op.iLike]: `%${search}%` },
+        where: { name: { [Op.iLike]: `%${search}%` } },
         limit: 10,
         attributes: ['name', 'slug'],
       });

@@ -1,9 +1,19 @@
-import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
+import {
+  Arg,
+  Authorized,
+  Ctx,
+  FieldResolver,
+  Mutation,
+  Query,
+  Resolver,
+  Root,
+} from 'type-graphql';
 
 import { QueueCreateInput } from '../classes/queueCreate.input';
 import { QueueWhereUniqueInput } from '../classes/queueWhereUnique.input';
 import { UserRole } from '../enums/userRole';
 import { CartItem } from '../models/CartItem';
+import { Product } from '../models/Product';
 import { Queue } from '../models/Queue';
 import { IContext } from '../utils/context.interface';
 
@@ -73,5 +83,10 @@ export default class QueueResolver {
     }
 
     throw new Error('Unauthorized');
+  }
+
+  @FieldResolver((type) => Product)
+  async product(@Root() queue: Queue): Promise<Product> {
+    return ((await queue.$get<Product>('product')) as Product)!;
   }
 }

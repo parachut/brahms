@@ -9,7 +9,6 @@ export const customAuthChecker: AuthChecker<IContext> = (
   strict: boolean = false,
 ) => {
   const { user } = context;
-  console.log(user);
   // here you can read user from context
   // and check his permission in db against `roles` argument
   // that comes from `@Authorized`, eg. ["ADMIN", "MODERATOR"]

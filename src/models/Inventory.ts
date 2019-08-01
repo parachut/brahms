@@ -64,17 +64,17 @@ export class Inventory extends Model<Inventory> {
   @Column(DataType.ARRAY(DataType.STRING(1024)))
   public images?: string[];
 
-  @Column('Int')
+  @Column
   public maxPoints?: number;
 
-  @Column('Int')
+  @Column
   public minPoints?: number;
 
   @Default([])
   @Column(DataType.ARRAY(DataType.STRING(1024)))
   public missingEssentials!: string[];
 
-  @Column('Int')
+  @Column
   public points?: number;
 
   @Field({ nullable: true })
@@ -84,6 +84,7 @@ export class Inventory extends Model<Inventory> {
   @Column
   public sku?: string;
 
+  @Field((type) => InventoryStatus)
   @Default(InventoryStatus.NEW)
   @Column(
     DataType.ENUM({

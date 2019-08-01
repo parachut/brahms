@@ -83,17 +83,17 @@ export class Cart extends Model<Cart> {
   public userId!: string;
 
   @BelongsTo(() => Address)
-  address: Address;
+  public address?: Address;
 
   @ForeignKey(() => Address)
   @Column(DataType.UUID)
-  public addressId!: string;
+  public addressId?: string;
 
   @HasMany(() => CartItem, 'cartId')
-  items: CartItem[];
+  public items: CartItem[];
 
   @BelongsToMany(() => Inventory, () => CartInventory)
-  inventory: Inventory[];
+  public inventory: Inventory[];
 
   @CreatedAt
   public createdAt!: Date;
