@@ -1,0 +1,6 @@
+# Exclude compiled .js files
+
+# Exclude dependencies
+node_modules/
+.env
+cloud_sql_proxy

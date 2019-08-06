@@ -10,4 +10,7 @@ export class CartUpdateInput {
 
   @Field({ nullable: true })
   public service?: string;
+
+  @Field({ nullable: true })
+  public addressId?: string;
 }

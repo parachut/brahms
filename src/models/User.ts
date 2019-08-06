@@ -20,6 +20,8 @@ import { Field, ID, Int, ObjectType } from 'type-graphql';
 import { UserRole } from '../enums/userRole';
 import { UserStatus } from '../enums/userStatus';
 import { createStripeUser } from '../utils/createStripeUser';
+import { createAuthyUser } from '../utils/createAuthyUser';
+import { createFrontContact } from '../utils/createFrontContact';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Income } from './Income';
@@ -132,7 +134,7 @@ export class User extends Model<User> {
   public socialHandles!: UserSocialHandle[];
 
   @Field((type) => [Inventory])
-  @HasMany(() => Inventory, { foreignKey: 'memberId' })
+  @HasMany(() => Inventory, 'memberId')
   currentInventory: Inventory[];
 
   @Field((type) => [Inventory])
@@ -159,8 +161,7 @@ export class User extends Model<User> {
 
   @AfterCreate
   static async createStripeUser(instance: User) {
-    if (!instance.stripeId) {
-      console.log(instance);
+    if (!instance.stripeId || instance.stripeId.search('cus_') === -1) {
       const stripeIntegration = await createStripeUser(instance);
 
       return Promise.all([
@@ -173,7 +174,6 @@ export class User extends Model<User> {
     }
   }
 
-  /**
   @AfterCreate
   static async createAuthyUser(instance: User) {
     const authyIntegration = await createAuthyUser(instance);
@@ -185,6 +185,4 @@ export class User extends Model<User> {
     const frontIntegration = await createFrontContact(instance);
     return UserIntegration.create(frontIntegration);
   }
-
-   */
 }

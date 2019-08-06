@@ -2,65 +2,75 @@ import { Op } from 'sequelize';
 import Stripe from 'stripe';
 import { Arg, Authorized, Ctx, Query, Resolver } from 'type-graphql';
 
+import { CalcUnlimitedTier } from '../classes/calcUnlimitedTier';
 import { Plans } from '../decorators/plans';
 import { UserRole } from '../enums/userRole';
+import { InventoryStatus } from '../enums/inventoryStatus';
+import { Inventory } from '../models/Inventory';
 import { User } from '../models/User';
 import { calcUnlimitedTier as calcUnlimitedTierCalc } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
 
 const stripe = new Stripe(process.env.STRIPE);
 
-@Resolver(User)
+@Resolver(CalcUnlimitedTier)
 export default class CalcUnlimitedTierResolver {
   @Authorized([UserRole.MEMBER])
-  @Query((returns) => User)
-  public async calcUnlimitedTier(
-    @Arg('plan', (type) => String) plan: string,
-    @Plans() plans: Plans,
-    @Ctx() ctx: IContext,
-  ) {
+  @Query((returns) => CalcUnlimitedTier)
+  public async calcUnlimitedTier(@Plans() plans: Plans, @Ctx() ctx: IContext) {
     if (ctx.user) {
-      let selectedPlan = plan as string;
+      let nextBilling = new Date();
+      nextBilling = new Date(nextBilling.setMonth(nextBilling.getMonth() + 1));
+
       const user = await User.findByPk(ctx.user.id, {
         include: [
           {
             association: 'carts',
-            where: { completedAt: null, user: ctx.user.id },
+            where: { completedAt: null, userId: ctx.user.id },
             include: [
               {
                 association: 'items',
-                include: ['product'],
+                include: [
+                  {
+                    association: 'product',
+                    attributes: ['id', 'points'],
+                  },
+                ],
               },
             ],
           },
+          'integrations',
+        ],
+      });
+
+      const currentInventory = await Inventory.findAll({
+        where: {
+          memberId: ctx.user.id,
+          status: {
+            [Op.in]: [
+              InventoryStatus.SHIPMENTPREP,
+              InventoryStatus.ENROUTEMEMBER,
+              InventoryStatus.WITHMEMBER,
+              InventoryStatus.RETURNING,
+            ],
+          },
+        },
+        include: [
           {
-            association: 'currentInventory',
-            where: {
-              member: ctx.user.id,
-              status: {
-                [Op.in]: [
-                  'SHIPMENTPREP',
-                  'ENROUTEMEMBER',
-                  'WITHMEMBER',
-                  'RETURNING',
-                ],
-              },
-            },
-            include: ['product'],
+            association: 'product',
+            attributes: ['id', 'points'],
           },
         ],
       });
 
-      if (!plan) {
-        selectedPlan = user.planId || '1500';
-      }
+      const selectedPlan = user.carts[0].planId || user.planId || '1500';
 
       const cartPoints = user.carts[0].items.reduce(
         (r, ii) => r + ii.product.points * ii.quantity,
         0,
       );
 
-      const currentPoints = user.currentInventory.reduce(
+      const currentPoints = currentInventory.reduce(
         (r, ii) => r + ii.product.points * 1,
         0,
       );
@@ -81,11 +91,6 @@ export default class CalcUnlimitedTierResolver {
           : 0;
 
       let upgradeCost = 0;
-
-      const date = new Date();
-      let nextBilling: string = new Date(
-        date.setMonth(date.getMonth() + 1),
-      ).toLocaleDateString('en-US');
 
       const stripeCustomer = user.integrations.find(
         (int) => int.type === 'STRIPE',
@@ -142,17 +147,13 @@ export default class CalcUnlimitedTierResolver {
           }
         });
 
-        nextBilling = new Date(1000 * invoice.period_end).toLocaleDateString(
-          'en-US',
-        );
+        nextBilling = new Date(1000 * invoice.period_end);
       } else if (stripeMonthlyPlan) {
         const stripeSub = await stripe.subscriptions.retrieve(
           stripeMonthlyPlan.value,
         );
 
-        nextBilling = new Date(
-          1000 * stripeSub.current_period_end,
-        ).toLocaleDateString('en-US');
+        nextBilling = new Date(1000 * stripeSub.current_period_end);
       }
 
       return {

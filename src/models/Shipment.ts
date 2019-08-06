@@ -19,7 +19,7 @@ import { Field, ID, ObjectType, Root } from 'type-graphql';
 
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentStatus } from '../enums/shipmentStatus';
-import { ShipmentType } from '../enums/ShipmentType';
+import { ShipmentType } from '../enums/shipmentType';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Inventory } from './Inventory';
@@ -186,13 +186,13 @@ export class Shipment extends Model<Shipment> {
   @HasMany(() => ShipmentEvent, 'shipmentId')
   public events?: ShipmentEvent[];
 
+  @Field()
   @CreatedAt
   public createdAt!: Date;
 
   @UpdatedAt
   public updatedAt!: Date;
 
-  /**
   @AfterCreate
   static async createEasyPostShipment(instance: Shipment) {
     if (!instance.pickup && !instance.easyPostId) {
@@ -251,5 +251,4 @@ export class Shipment extends Model<Shipment> {
       instance.labelUrl = easyPostShipment.postage_label.label_url;
     }
   }
-   */
 }

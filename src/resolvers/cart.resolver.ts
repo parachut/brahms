@@ -1,6 +1,7 @@
 import EasyPost from '@easypost/api';
-
 import { WebClient } from '@slack/client';
+import Analytics from 'analytics-node';
+import isUndefined from 'lodash/isUndefined';
 import * as Postmark from 'postmark';
 import { Op } from 'sequelize';
 import Stripe from 'stripe';
@@ -24,10 +25,12 @@ import { Address } from '../models/Address';
 import { Cart } from '../models/Cart';
 import { CartItem } from '../models/CartItem';
 import { Inventory } from '../models/Inventory';
+import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
 import { Warehouse } from '../models/Warehouse';
 import { calcDailyRate, calcProtectionDailyRate } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
+import { updateSubscription } from '../utils/updateSubscription';
 
 const numeral = require('numeral');
 const moment = require('moment-business-days');
@@ -49,8 +52,11 @@ export default class CartResolver {
         },
       });
 
+      const user = await User.findByPk(ctx.user.id, { attributes: ['planId'] });
+
       if (!cart) {
         cart = new Cart({
+          planId: !!user.planId ? user.planId : '1500',
           userId: ctx.user.id,
         });
 
@@ -77,30 +83,52 @@ export default class CartResolver {
   }
 
   @Authorized([UserRole.MEMBER])
-  @Mutation(() => CartItem)
+  @Mutation(() => Cart)
   public async cartUpdate(
     @Arg('input', (type) => CartUpdateInput)
-    { service, planId, protectionPlan }: CartUpdateInput,
+    { addressId, service, planId, protectionPlan }: CartUpdateInput,
     @Ctx() ctx: IContext,
   ) {
     if (ctx.user) {
       const cart = await Cart.findOne({
         where: { userId: ctx.user.id, completedAt: null },
-        attributes: ['id'],
       });
 
-      return CartItem.update(
-        {
-          protectionPlan,
-          planId,
-          service,
+      const event: any = {
+        event: 'Checkout Step Completed',
+        properties: {
+          checkout_id: cart.id,
+          shipping_method: 'UPS',
+          step: 0,
         },
-        {
-          where: {
-            id: cart.id,
-          },
-        },
-      );
+        userId: ctx.user.id,
+      };
+
+      if (!isUndefined(service)) {
+        cart.service = service;
+        event.properties.step = 1;
+        event.properties.shipping_service = service;
+      }
+
+      if (!isUndefined(planId)) {
+        cart.planId = planId;
+        event.properties.step = 0;
+        event.properties.plan = planId;
+      }
+
+      if (!isUndefined(protectionPlan)) {
+        cart.protectionPlan = protectionPlan;
+        event.properties.step = 0;
+        event.properties.protection_plan = protectionPlan;
+      }
+
+      if (!isUndefined(addressId)) {
+        cart.addressId = addressId;
+        event.properties.step = 1;
+      }
+
+      ctx.analytics.track(event);
+      return cart.save();
     }
 
     throw new Error('Unauthorized');
@@ -114,20 +142,46 @@ export default class CartResolver {
         include: [
           {
             association: 'carts',
-            where: { completedAt: null, user: ctx.user.id },
+            where: { completedAt: null, userId: ctx.user.id },
+            limit: 1,
+            order: [['createdAt', 'DESC']],
             include: [
               {
                 association: 'items',
-                include: ['product'],
+                include: [
+                  {
+                    association: 'product',
+                    attributes: ['id', 'points', 'name'],
+                    include: [
+                      {
+                        association: 'inventory',
+                        attributes: ['id'],
+                        where: {
+                          status: InventoryStatus.INWAREHOUSE,
+                        },
+                      },
+                      {
+                        association: 'brand',
+                        attributes: ['name'],
+                      },
+                      {
+                        association: 'category',
+                        attributes: ['name'],
+                      },
+                    ],
+                  },
+                ],
               },
             ],
           },
           {
             association: 'currentInventory',
             where: {
-              member: ctx.user.id,
+              memberId: ctx.user.id,
               status: {
                 [Op.in]: [
+                  InventoryStatus.SHIPMENTPREP,
+                  InventoryStatus.ENROUTEMEMBER,
                   InventoryStatus.WITHMEMBER,
                   InventoryStatus.RETURNING,
                 ],
@@ -155,15 +209,9 @@ export default class CartResolver {
       if (!cart.completedAt) {
         const inventory = [];
         for (const item of cart.items) {
-          const availableInventory = await item.product.$get('inventory', {
-            where: {
-              status: InventoryStatus.INWAREHOUSE,
-            },
-          });
-
           for (let i = 0; i < item.quantity; i++) {
-            if (availableInventory[i]) {
-              inventory.push(availableInventory[i]);
+            if (item.product.inventory[i]) {
+              inventory.push(item.product.inventory[i].id);
             }
           }
         }
@@ -173,35 +221,13 @@ export default class CartResolver {
           0,
         );
 
-        const currentPoints = user.currentInventory.reduce(
-          (r, ii) => r + ii.product.points * 1,
+        const total = [...cart.items, ...user.currentInventory].reduce(
+          (r, i) =>
+            r + i.product.points * (i instanceof CartItem ? i.quantity : 1),
           0,
         );
 
-        if (cart.planId || user.planId) {
-          // await updateSubscription(data.plan);
-        } else {
-          total = 3 * calcDailyRate(cartPoints);
-
-          if (cart.protectionPlan) {
-            total += 3 * calcProtectionDailyRate(cartPoints);
-          }
-
-          try {
-            await stripe.invoiceItems.create({
-              amount: total * 100,
-              currency: 'usd',
-              customer: user.stripeId,
-              description: 'Deposit',
-            });
-
-            cartUpdate.confirmedAt = new Date();
-          } catch (e) {
-            charge = {
-              id: e.charge,
-            };
-          }
-        }
+        await updateSubscription(cart.planId || user.planId, user);
 
         if (cart.service !== 'Ground') {
           await stripe.invoiceItems.create({
@@ -210,131 +236,104 @@ export default class CartResolver {
             customer: user.stripeId,
             description: 'Expedited Shipping',
           });
-        }
 
-        try {
-          let invoice = await stripe.invoices.create({
-            customer: user.stripeId,
-            auto_advance: true,
-            billing: 'charge_automatically',
-          });
-
-          invoice = await stripe.invoices.pay(invoice.id);
-
-          if (!cart.planId && !user.planId && invoice.paid) {
-            const stripeCustomerRef: Stripe.customers.ICustomer = await stripe.customers.retrieve(
-              user.stripeId,
-            );
-
-            await stripe.customers.update(user.stripeId, {
-              account_balance: stripeCustomerRef.account_balance - total * 100,
+          try {
+            let invoice = await stripe.invoices.create({
+              customer: user.stripeId,
+              auto_advance: true,
+              billing: 'charge_automatically',
             });
-          }
 
-          cartUpdate.chargeId = invoice.charge;
-        } catch (e) {
-          throw e;
+            invoice = await stripe.invoices.pay(invoice.id);
+
+            if (!cart.planId && !user.planId && invoice.paid) {
+              const stripeCustomerRef: Stripe.customers.ICustomer = await stripe.customers.retrieve(
+                user.stripeId,
+              );
+
+              await stripe.customers.update(user.stripeId, {
+                account_balance:
+                  stripeCustomerRef.account_balance - total * 100,
+              });
+            }
+
+            cartUpdate.chargeId = invoice.charge;
+          } catch (e) {
+            throw e;
+          }
         }
 
         if (process.env.STAGE === 'production') {
-          try {
-            const totalDailyRate = calcDailyRate(cartPoints);
-
-            await slack.chat.postMessage({
-              channel: 'CGX5HELCT',
-              text: '',
-              blocks: [
-                {
-                  type: 'section',
-                  text: {
+          await slack.chat.postMessage({
+            channel: 'CGX5HELCT',
+            text: '',
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text:
+                    '*New order for:* ' +
+                    user.name +
+                    '\n<https://team.parachut.co/ops/order/' +
+                    cart.id +
+                    '|' +
+                    cart.id +
+                    '>',
+                },
+              },
+              {
+                type: 'section',
+                fields: [
+                  {
+                    type: 'mrkdwn',
+                    text: '*Completed:*\n' + new Date().toLocaleString(),
+                  },
+                  {
                     type: 'mrkdwn',
                     text:
-                      '*New order for:* ' +
-                      user.name +
-                      '\n<https://team.parachut.co/ops/order/' +
-                      cart.id +
-                      '|' +
-                      cart.id +
-                      '>',
+                      '*Total Points:*\n' + numeral(cartPoints).format('0,0'),
                   },
-                },
-                {
-                  type: 'section',
-                  fields: [
-                    {
-                      type: 'mrkdwn',
-                      text: '*Completed:*\n' + new Date().toLocaleString(),
-                    },
-                    {
-                      type: 'mrkdwn',
-                      text:
-                        '*Total Points:*\n' + numeral(cartPoints).format('0,0'),
-                    },
 
-                    {
-                      type: 'mrkdwn',
-                      text:
-                        '*Protection Plan:*\n' +
-                        (cart.protectionPlan ? 'YES' : 'NO'),
-                    },
-                    {
-                      type: 'mrkdwn',
-                      text: '*Service:*\n' + cart.service,
-                    },
-                    cart.planId || user.planId
-                      ? {
-                          type: 'mrkdwn',
-                          text: '*Unlimited User:*\n' + cart.planId,
-                        }
-                      : {
-                          type: 'mrkdwn',
-                          text:
-                            '*Daily Rate:*\n' +
-                            numeral(
-                              calcDailyRate(cartPoints) +
-                                (cart.protectionPlan
-                                  ? calcProtectionDailyRate(totalDailyRate)
-                                  : 0),
-                            ).format('$0,0'),
-                        },
-                  ],
-                },
-              ],
-            });
-
-            postmark.sendEmailWithTemplate({
-              From: 'support@parachut.co',
-              TemplateId: 10952889,
-              TemplateModel: {
-                chutItems: cart.items.map((item: any) => ({
-                  dailyRate: calcDailyRate(item.product.points),
-                  image:
-                    item.product.images && item.product.images.length
-                      ? `https://parachut.imgix.net/${item.product.images[0].filename}`
-                      : null,
-                  name: item.product.name,
-                  quantity: item.quantity,
-                })),
-                dailyRate: totalDailyRate,
-                name: user.name.split(' ')[0],
-                protectionPlan: cart.protectionPlan
-                  ? {
-                      protectionDaily: calcProtectionDailyRate(totalDailyRate),
-                    }
-                  : false,
-                purchase_date: new Date().toDateString(),
-                total,
-                totalRate:
-                  totalDailyRate +
-                  (cart.protectionPlan
-                    ? calcProtectionDailyRate(totalDailyRate)
-                    : 0),
+                  {
+                    type: 'mrkdwn',
+                    text:
+                      '*Protection Plan:*\n' +
+                      (cart.protectionPlan ? 'YES' : 'NO'),
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: '*Service:*\n' + cart.service,
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: '*Plan:*\n' + cart.planId || user.planId,
+                  },
+                ],
               },
-              To: user.email,
-            });
-          } catch (e) {
-            console.log(e);
-          }
+            ],
+          });
+
+          postmark.sendEmailWithTemplate({
+            From: 'support@parachut.co',
+            TemplateId: 10952889,
+            TemplateModel: {
+              chutItems: cart.items.map((item: any) => ({
+                points: item.product.points,
+                image:
+                  item.product.images && item.product.images.length
+                    ? `https://parachut.imgix.net/${item.product.images[0]}`
+                    : null,
+                name: item.product.name,
+                quantity: item.quantity,
+              })),
+              name: user.name.split(' ')[0],
+              protectionPlan: !!cart.protectionPlan,
+              purchase_date: new Date().toDateString(),
+              total,
+            },
+            To: user.email,
+          });
         }
 
         await Inventory.update(
@@ -365,6 +364,27 @@ export default class CartResolver {
           },
         );
 
+        ctx.analytics.track({
+          event: 'Order Completed',
+          properties: {
+            checkout_id: cart.id,
+            currency: 'USD',
+            order_id: cart.id,
+            products: cart.items.map((item) => ({
+              brand: item.product.brand.name,
+              category: item.product.category.name,
+              image_url: `https://parachut.imgix.net/${item.product.images[0]}`,
+              name: item.product.name,
+              price: item.product.points,
+              product_id: item.product.id,
+              quantity: item.quantity,
+            })),
+            shipping: cart.service !== 'Ground' ? 25 : 0,
+            total: cartPoints,
+          },
+          userId: ctx.user.id,
+        });
+
         const newCart = new Cart({
           userId: user.id,
         });
@@ -386,12 +406,17 @@ export default class CartResolver {
     return ((await cart.$get<Inventory>('inventory')) as Inventory[])!;
   }
 
-  @FieldResolver((type) => [CartItem], { nullable: true })
+  @FieldResolver((type) => Address, { nullable: true })
   async address(@Root() cart: Cart): Promise<Address> {
     return (await cart.$get<Address>('address')) as Address;
   }
 
-  @FieldResolver((type) => CartTransitTime, { nullable: true })
+  @FieldResolver((type) => [Shipment], { nullable: true })
+  async shipments(@Root() cart: Cart): Promise<Shipment[]> {
+    return (await cart.$get<Shipment>('shipments')) as Shipment[];
+  }
+
+  @FieldResolver((type) => [CartTransitTime], { nullable: true })
   async transitTimes(
     @Root() cart: Cart,
     @Ctx() ctx: IContext,
@@ -405,7 +430,11 @@ export default class CartResolver {
     );
 
     if (transitTimes) {
-      return JSON.parse(transitTimes);
+      const parsedTimes = JSON.parse(transitTimes);
+      return parsedTimes.map((t) => ({
+        ...t,
+        arrival: new Date(t.arrival),
+      }));
     }
 
     const [address, warehouse] = await Promise.all([
@@ -459,11 +488,11 @@ export default class CartResolver {
 
     transitTimes = [
       {
-        arrival: actualGroundDate,
+        arrival: new Date(actualGroundDate),
         service: 'Ground',
       },
       {
-        arrival: expeditedDate,
+        arrival: new Date(expeditedDate),
         service: '2ndDayAir',
       },
     ];

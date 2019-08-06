@@ -47,8 +47,6 @@ export default class InventoryResolver {
         },
       });
 
-      console.log(shipments);
-
       return shipments[0];
     } catch (e) {
       console.log(e);
@@ -67,8 +65,6 @@ export default class InventoryResolver {
           userId: ctx.user.id,
         },
       });
-
-      console.log(shipments);
 
       return shipments[0];
     } catch (e) {

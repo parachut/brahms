@@ -1,4 +1,3 @@
-import EasyPost from '@easypost/api';
 import Sequelize from 'sequelize';
 import {
   BelongsTo,
@@ -20,10 +19,8 @@ import { Address } from './Address';
 import { CartInventory } from './CartInventory';
 import { CartItem } from './CartItem';
 import { Inventory } from './Inventory';
+import { Shipment } from './Shipment';
 import { User } from './User';
-
-const moment = require('moment-business-days');
-const easyPost = new EasyPost(process.env.EASYPOST);
 
 @ObjectType()
 @Table
@@ -91,6 +88,9 @@ export class Cart extends Model<Cart> {
 
   @HasMany(() => CartItem, 'cartId')
   public items: CartItem[];
+
+  @HasMany(() => Shipment, 'cartId')
+  public shipments: Shipment[];
 
   @BelongsToMany(() => Inventory, () => CartInventory)
   public inventory: Inventory[];

@@ -4,4 +4,7 @@ import { Field, ObjectType } from 'type-graphql';
 export class Token {
   @Field({ nullable: true })
   public token?: string;
+
+  @Field({ nullable: true })
+  public refreshToken?: string;
 }

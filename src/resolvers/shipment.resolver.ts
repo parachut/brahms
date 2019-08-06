@@ -1,10 +1,20 @@
-import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
+import {
+  Arg,
+  Authorized,
+  Ctx,
+  Mutation,
+  Query,
+  Resolver,
+  FieldResolver,
+  Root,
+} from 'type-graphql';
 
 import { ShipmentCreateInput } from '../classes/shipmentCreate.input';
 import { ShipmentWhereUniqueInput } from '../classes/shipmentWhereUnique.input';
 import { UserRole } from '../enums/userRole';
-import { ShipmentDirection } from '../enums/ShipmentDirection';
+import { ShipmentDirection } from '../enums/shipmentDirection';
 import { Shipment } from '../models/Shipment';
+import { Inventory } from '../models/Inventory';
 import { IContext } from '../utils/context.interface';
 
 @Resolver(Shipment)
@@ -55,5 +65,10 @@ export default class ShipmentResolver {
     }
 
     throw new Error('Unauthorized');
+  }
+
+  @FieldResolver((type) => [Inventory])
+  async inventory(@Root() shipment: Shipment): Promise<Inventory[]> {
+    return (await shipment.$get<Inventory>('inventory')) as Inventory[];
   }
 }

@@ -92,7 +92,6 @@ export default class ProductResolver {
         target: Product,
         where: (key, value) => {
           if (value) {
-            console.log(value);
             if (key === 'where') {
               const where: any = {};
               if (value.inStock) {

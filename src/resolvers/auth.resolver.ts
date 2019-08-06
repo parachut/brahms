@@ -3,6 +3,7 @@ import fs from 'fs';
 import jsonwebtoken from 'jsonwebtoken';
 import pick from 'lodash/pick';
 import { Op } from 'sequelize';
+import crypto from 'crypto';
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 
 import { AuthenticateInput } from '../classes/authenticate.input';
@@ -87,8 +88,11 @@ export default class AuthResolver {
     };
 
     const token = jsonwebtoken.sign(payload, privateKEY, signOptions);
+    const refreshToken = crypto.randomBytes(128).toString('hex');
 
-    return { token };
+    await ctx.redis.set(`refreshToken:${user.id}`, refreshToken);
+
+    return { token, refreshToken };
   }
 
   @Mutation(() => Token)
@@ -143,7 +147,10 @@ export default class AuthResolver {
     };
 
     const token = jsonwebtoken.sign(payload, privateKEY, signOptions);
+    const refreshToken = crypto.randomBytes(128).toString('hex');
 
-    return { token };
+    await ctx.redis.set(`refreshToken:${user.id}`, refreshToken);
+
+    return { token, refreshToken };
   }
 }

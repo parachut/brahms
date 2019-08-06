@@ -44,7 +44,6 @@ export class CartItem extends Model<CartItem> {
   @Column(DataType.UUID)
   public cartId!: string;
 
-  @Field((type) => Product)
   @BelongsTo(() => Product)
   product: Product;
 
