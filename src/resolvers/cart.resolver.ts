@@ -66,7 +66,7 @@ export default class CartResolver {
       return cart;
     }
 
-    throw new Error('Unathorised.');
+    throw new Error('Unauthorised.');
   }
 
   @Authorized([UserRole.MEMBER])
@@ -138,62 +138,69 @@ export default class CartResolver {
   @Mutation(() => Cart)
   public async checkout(@Ctx() ctx: IContext) {
     if (ctx.user) {
-      const user = await User.findByPk(ctx.user.id, {
-        include: [
-          {
-            association: 'carts',
-            where: { completedAt: null, userId: ctx.user.id },
-            limit: 1,
-            order: [['createdAt', 'DESC']],
-            include: [
-              {
-                association: 'items',
-                include: [
-                  {
-                    association: 'product',
-                    attributes: ['id', 'points', 'name'],
-                    include: [
-                      {
-                        association: 'inventory',
-                        attributes: ['id'],
-                        where: {
-                          status: InventoryStatus.INWAREHOUSE,
+      const [user, currentInventory] = await Promise.all([
+        User.findByPk(ctx.user.id, {
+          include: [
+            {
+              association: 'carts',
+              where: { completedAt: null, userId: ctx.user.id },
+              limit: 1,
+              order: [['createdAt', 'DESC']],
+              include: [
+                {
+                  association: 'items',
+                  include: [
+                    {
+                      association: 'product',
+                      attributes: ['id', 'points', 'name', 'images'],
+                      include: [
+                        {
+                          association: 'inventory',
+                          attributes: ['id'],
+                          where: {
+                            status: InventoryStatus.INWAREHOUSE,
+                          },
                         },
-                      },
-                      {
-                        association: 'brand',
-                        attributes: ['name'],
-                      },
-                      {
-                        association: 'category',
-                        attributes: ['name'],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            association: 'currentInventory',
-            where: {
-              memberId: ctx.user.id,
-              status: {
-                [Op.in]: [
-                  InventoryStatus.SHIPMENTPREP,
-                  InventoryStatus.ENROUTEMEMBER,
-                  InventoryStatus.WITHMEMBER,
-                  InventoryStatus.RETURNING,
-                ],
-              },
+                        {
+                          association: 'brand',
+                          attributes: ['name'],
+                        },
+                        {
+                          association: 'category',
+                          attributes: ['name'],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
-            include: ['product'],
+            {
+              association: 'integrations',
+            },
+          ],
+        }),
+        Inventory.findAll({
+          where: {
+            memberId: ctx.user.id,
+            status: {
+              [Op.in]: [
+                InventoryStatus.SHIPMENTPREP,
+                InventoryStatus.ENROUTEMEMBER,
+                InventoryStatus.WITHMEMBER,
+                InventoryStatus.RETURNING,
+              ],
+            },
           },
-          {
-            association: 'integrations',
-          },
-        ],
-      });
+          include: [
+            {
+              association: 'product',
+              attributes: ['id', 'points'],
+            },
+          ],
+        }),
+      ]);
+
       let charge;
       let total;
       let cartUpdate: any = {};
@@ -221,13 +228,17 @@ export default class CartResolver {
           0,
         );
 
-        const total = [...cart.items, ...user.currentInventory].reduce(
+        const total = [...cart.items, ...currentInventory].reduce(
           (r, i) =>
             r + i.product.points * (i instanceof CartItem ? i.quantity : 1),
           0,
         );
 
-        await updateSubscription(cart.planId || user.planId, user);
+        await updateSubscription(
+          cart.planId || user.planId,
+          user,
+          currentInventory,
+        );
 
         if (cart.service !== 'Ground') {
           await stripe.invoiceItems.create({
@@ -373,7 +384,9 @@ export default class CartResolver {
             products: cart.items.map((item) => ({
               brand: item.product.brand.name,
               category: item.product.category.name,
-              image_url: `https://parachut.imgix.net/${item.product.images[0]}`,
+              image_url: item.product.images
+                ? `https://parachut.imgix.net/${item.product.images[0]}`
+                : undefined,
               name: item.product.name,
               price: item.product.points,
               product_id: item.product.id,
@@ -445,7 +458,12 @@ export default class CartResolver {
       }),
     ]);
 
-    if (!address || !warehouse) {
+    if (
+      !address ||
+      !warehouse ||
+      !address.easyPostId ||
+      !warehouse.easyPostId
+    ) {
       return null;
     }
 

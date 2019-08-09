@@ -16,7 +16,6 @@ import {
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
 
-import { AddressFormatted } from '../classes/addressFormatted.object';
 import { Shipment } from './Shipment';
 import { User } from './User';
 
@@ -45,14 +44,6 @@ export class Warehouse extends Model<Warehouse> {
   @Field()
   @Column
   public email!: string;
-
-  @Field((type) => AddressFormatted)
-  get formatted(): AddressFormatted | null {
-    return {
-      line1: this.street1 + (this.street2 ? ' ' + this.street2 : ''),
-      line2: this.city + ', ' + this.state + ' ' + this.zip,
-    };
-  }
 
   @Field()
   @Column

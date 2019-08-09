@@ -6,10 +6,13 @@ import {
   Mutation,
   Query,
   Resolver,
+  Subscription,
+  Root,
 } from 'type-graphql';
 
 import { AddressCreateInput } from '../classes/addressCreate.input';
 import { AddressWhereUniqueInput } from '../classes/addressWhereUnique.input';
+import { Notification, NotificationPayload } from '../classes/notification';
 import { Phone } from '../decorators/phone';
 import { UserRole } from '../enums/userRole';
 import { Address } from '../models/Address';
@@ -92,5 +95,15 @@ export default class AddressResolver {
     }
 
     throw new Error('Unauthorized');
+  }
+
+  @Subscription({
+    topics: 'ADDRESS_UPDATED',
+    filter: ({ payload, args, context }) => {
+      return payload.message.userId === context.currentUser;
+    },
+  })
+  addressUpdated(@Root() { id, message }: NotificationPayload): Notification {
+    return { id, message: message.id, date: new Date() };
   }
 }

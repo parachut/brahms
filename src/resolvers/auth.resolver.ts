@@ -11,10 +11,10 @@ import { RegisterInput } from '../classes/register.input';
 import { Token } from '../classes/token.object';
 import { Phone } from '../decorators/phone';
 import { User } from '../models/User';
-import { UserIntegration } from '../models/UserIntegration';
 import { IContext, IJWTPayLoad } from '../utils/context.interface';
 import { signOptions } from '../../certs';
 import { UserRole } from '../enums/userRole';
+import { createTask } from '../utils/createTask';
 
 const privateKEY = fs.readFileSync('./certs/private.key', 'utf8');
 const authy = new Authy({ key: process.env.AUTHY });
@@ -44,26 +44,29 @@ export default class AuthResolver {
     @Ctx() ctx: IContext,
   ) {
     // Check if the user is valid
-    const user = await User.findOne({ where: { phone } });
+    const user = await User.findOne({
+      where: { phone },
+      include: ['integrations', 'geolocations'],
+    });
 
     if (!user) {
       throw new Error('No user with that phone number.');
     }
 
-    const userIntegrations = await user.$get<UserIntegration>('integrations', {
-      where: { type: 'AUTHY' },
-    });
+    const authyIntegration = user.integrations.find(
+      (integration) => integration.type === 'AUTHY',
+    );
 
     if (!passcode) {
       await authy.requestSms({
-        authyId: userIntegrations[0].value,
+        authyId: authyIntegration.value,
       });
 
       return { token: null };
     }
 
     await authy.verifyToken({
-      authyId: userIntegrations[0].value,
+      authyId: authyIntegration.value,
       token: passcode,
     });
 
@@ -126,15 +129,20 @@ export default class AuthResolver {
       phone,
     });
 
+    await createTask('update-user-geolocation', {
+      userId: user.get('id'),
+      ipAddress: ctx.clientIp,
+    });
+
     ctx.analytics.identify({
       traits: {
         ...pick(user, ['name', 'email', 'phone']),
       },
-      userId: user.id,
+      userId: user.get('id'),
     });
 
     ctx.analytics.track({
-      userId: user.id,
+      userId: user.get('id'),
       event: 'Register',
       properties: {
         ...pick(user, ['name', 'email', 'phone']),
@@ -142,7 +150,7 @@ export default class AuthResolver {
     });
 
     const payload: IJWTPayLoad = {
-      id: user.id,
+      id: user.get('id'),
       roles: [UserRole.MEMBER],
     };
 

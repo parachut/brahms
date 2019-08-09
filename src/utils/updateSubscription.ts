@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 
 import { CartItem } from '../models/CartItem';
+import { Inventory } from '../models/Inventory';
 import { User } from '../models/User';
 import { UserIntegration } from '../models/UserIntegration';
 
@@ -9,12 +10,13 @@ const stripe = new Stripe(process.env.STRIPE);
 export async function updateSubscription(
   plan: string,
   user: User,
+  currentInventory: Inventory[],
 ): Promise<any> {
   let integrations: UserIntegration[] = [];
 
   const [cart] = user.carts;
 
-  const total = [...cart.items, ...user.currentInventory].reduce(
+  const total = [...cart.items, ...currentInventory].reduce(
     (r, i) => r + i.product.points * (i instanceof CartItem ? i.quantity : 1),
     0,
   );

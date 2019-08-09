@@ -10,6 +10,7 @@ export type IJWTPayLoad = {
 
 export interface IContext {
   analytics: Analytics;
+  clientIp: string;
   redis: Redis;
   sequelize: Sequelize.Sequelize;
   user?: IJWTPayLoad;

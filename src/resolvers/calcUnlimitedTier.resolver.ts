@@ -22,46 +22,47 @@ export default class CalcUnlimitedTierResolver {
       let nextBilling = new Date();
       nextBilling = new Date(nextBilling.setMonth(nextBilling.getMonth() + 1));
 
-      const user = await User.findByPk(ctx.user.id, {
-        include: [
-          {
-            association: 'carts',
-            where: { completedAt: null, userId: ctx.user.id },
-            include: [
-              {
-                association: 'items',
-                include: [
-                  {
-                    association: 'product',
-                    attributes: ['id', 'points'],
-                  },
-                ],
-              },
-            ],
+      const [user, currentInventory] = await Promise.all([
+        User.findByPk(ctx.user.id, {
+          include: [
+            {
+              association: 'carts',
+              where: { completedAt: null, userId: ctx.user.id },
+              include: [
+                {
+                  association: 'items',
+                  include: [
+                    {
+                      association: 'product',
+                      attributes: ['id', 'points'],
+                    },
+                  ],
+                },
+              ],
+            },
+            'integrations',
+          ],
+        }),
+        Inventory.findAll({
+          where: {
+            memberId: ctx.user.id,
+            status: {
+              [Op.in]: [
+                InventoryStatus.SHIPMENTPREP,
+                InventoryStatus.ENROUTEMEMBER,
+                InventoryStatus.WITHMEMBER,
+                InventoryStatus.RETURNING,
+              ],
+            },
           },
-          'integrations',
-        ],
-      });
-
-      const currentInventory = await Inventory.findAll({
-        where: {
-          memberId: ctx.user.id,
-          status: {
-            [Op.in]: [
-              InventoryStatus.SHIPMENTPREP,
-              InventoryStatus.ENROUTEMEMBER,
-              InventoryStatus.WITHMEMBER,
-              InventoryStatus.RETURNING,
-            ],
-          },
-        },
-        include: [
-          {
-            association: 'product',
-            attributes: ['id', 'points'],
-          },
-        ],
-      });
+          include: [
+            {
+              association: 'product',
+              attributes: ['id', 'points'],
+            },
+          ],
+        }),
+      ]);
 
       const selectedPlan = user.carts[0].planId || user.planId || '1500';
 

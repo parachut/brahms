@@ -1,7 +1,6 @@
 import Sequelize from 'sequelize';
 import {
   AfterCreate,
-  BeforeCreate,
   Column,
   CreatedAt,
   DataType,
@@ -14,14 +13,11 @@ import {
   Unique,
   UpdatedAt,
 } from 'sequelize-typescript';
-import uuid from 'uuid/v4';
 import { Field, ID, Int, ObjectType } from 'type-graphql';
 
 import { UserRole } from '../enums/userRole';
 import { UserStatus } from '../enums/userStatus';
-import { createStripeUser } from '../utils/createStripeUser';
-import { createAuthyUser } from '../utils/createAuthyUser';
-import { createFrontContact } from '../utils/createFrontContact';
+import { createTask } from '../utils/createTask';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Income } from './Income';
@@ -29,10 +25,11 @@ import { Inventory } from './Inventory';
 import { Invoice } from './Invoice';
 import { Queue } from './Queue';
 import { Shipment } from './Shipment';
+import { UserGeolocation } from './UserGeolocation';
 import { UserIntegration } from './UserIntegration';
-import { UserVerification } from './UserVerification';
 import { UserMarketingSource } from './UserMarketingSource';
 import { UserSocialHandle } from './UserSocialHandle';
+import { UserVerification } from './UserVerification';
 
 @ObjectType()
 @Table
@@ -104,10 +101,8 @@ export class User extends Model<User> {
   )
   public status!: UserStatus;
 
-  @Unique
-  @Default(Sequelize.literal('uuid_generate_v4()'))
   @Column
-  public stripeId!: string;
+  public stripeId?: string;
 
   @HasMany(() => Cart, 'userId')
   public carts!: Cart[];
@@ -132,6 +127,9 @@ export class User extends Model<User> {
 
   @HasMany(() => UserSocialHandle, 'userId')
   public socialHandles!: UserSocialHandle[];
+
+  @HasMany(() => UserGeolocation, 'userId')
+  public geolocations!: UserGeolocation[];
 
   @Field((type) => [Inventory])
   @HasMany(() => Inventory, 'memberId')
@@ -160,29 +158,19 @@ export class User extends Model<User> {
   public deletedAt?: Date;
 
   @AfterCreate
-  static async createStripeUser(instance: User) {
-    if (!instance.stripeId || instance.stripeId.search('cus_') === -1) {
-      const stripeIntegration = await createStripeUser(instance);
-
-      return Promise.all([
-        UserIntegration.create(stripeIntegration),
-        User.update(
-          { stripeId: stripeIntegration.value },
-          { where: { id: instance.id } },
-        ),
+  static async linkAccounts(instance: User) {
+    if (!instance.stripeId) {
+      await Promise.all([
+        createTask('create-stripe-user', {
+          userId: instance.get('id'),
+        }),
+        createTask('create-authy-user', {
+          userId: instance.get('id'),
+        }),
+        createTask('create-front-contact', {
+          userId: instance.get('id'),
+        }),
       ]);
     }
-  }
-
-  @AfterCreate
-  static async createAuthyUser(instance: User) {
-    const authyIntegration = await createAuthyUser(instance);
-    return UserIntegration.create(authyIntegration);
-  }
-
-  @AfterCreate
-  static async createFrontContact(instance: User) {
-    const frontIntegration = await createFrontContact(instance);
-    return UserIntegration.create(frontIntegration);
   }
 }

@@ -56,6 +56,9 @@ export default class UserResolver {
 
   @FieldResolver((type) => [StripeSource])
   async sources(@Ctx() ctx: IContext, @Root() user: User): Promise<any[]> {
+    if (!user.stripeId) {
+      return [];
+    }
     const redisId = [user.id, 'stripe-sources'].join(':');
     const cacheItem = await ctx.redis.get(redisId);
     let sources: any = cacheItem ? JSON.parse(cacheItem) : null;

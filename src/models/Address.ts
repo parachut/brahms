@@ -1,4 +1,6 @@
 import EasyPost from '@easypost/api';
+import Geocodio from 'geocodio';
+import omit from 'lodash/omit';
 import Sequelize from 'sequelize';
 import {
   BeforeCreate,
@@ -13,15 +15,23 @@ import {
   Model,
   PrimaryKey,
   Table,
+  AfterCreate,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
+import util from 'util';
 
-import { AddressFormatted } from '../classes/addressFormatted.object';
 import { Cart } from './Cart';
+import { CensusData } from './CensusData';
 import { Shipment } from './Shipment';
 import { User } from './User';
+import { createTask } from '../utils/createTask';
 
 const easyPost = new EasyPost(process.env.EASYPOST);
+const geocodio = new Geocodio({
+  api_key: process.env.GEOCODIO,
+});
+
+const geocodioPromise = util.promisify(geocodio.get).bind(geocodio);
 
 @ObjectType()
 @Table
@@ -34,35 +44,71 @@ export class Address extends Model<Address> {
 
   @Field()
   @Column
+  public number!: string;
+
+  @Field({ nullable: true })
+  @Column
+  public predirectional?: string;
+
+  @Field()
+  @Column
+  public prefix!: string;
+
+  @Field()
+  @Column
+  public street!: string;
+
+  @Field()
+  @Column
+  public suffix!: string;
+
+  @Field({ nullable: true })
+  @Column
+  public postdirectional?: string;
+
+  @Field({ nullable: true })
+  @Column
+  public secondaryUnit?: string;
+
+  @Field({ nullable: true })
+  @Column
+  public secondaryNumber?: string;
+
+  @Field()
+  @Column
   public city!: string;
+
+  @Field({ nullable: true })
+  @Column
+  public county?: string;
+
+  @Field({ nullable: true })
+  @Column
+  public state?: string;
+
+  @Field()
+  @Column
+  public zip!: string;
 
   @Field()
   @Column
   public country!: string;
 
+  @Field()
   @Column
-  public easyPostId?: string;
+  public formattedStreet!: string;
 
   @Field()
   @Column
-  public email!: string;
+  public formattedAddress!: string;
 
-  @Field((type) => AddressFormatted)
-  get formatted(): AddressFormatted | null {
-    return {
-      line1: this.street1 + (this.street2 ? ' ' + this.street2 : ''),
-      line2: this.city + ', ' + this.state + ' ' + this.zip,
-    };
-  }
-
-  @Field()
+  @Field({ nullable: true })
   @Column
-  public phone!: string;
+  public phone?: string;
 
-  @Field()
-  @Default(false)
+  @Field({ nullable: true })
   @Column
-  public primary!: boolean;
+  public email?: string;
 
   @Field()
   @Default(true)
@@ -70,23 +116,16 @@ export class Address extends Model<Address> {
   public residential!: boolean;
 
   @Field()
+  @Default(true)
   @Column
-  public state!: string;
-
-  @Field()
-  @Column
-  public street1!: string;
+  public primary!: boolean;
 
   @Field({ nullable: true })
   @Column
-  public street2?: string;
+  public easyPostId?: string;
 
   @Column(DataType.GEOGRAPHY('POINT'))
   public coordinates: any;
-
-  @Field()
-  @Column
-  public zip!: string;
 
   @BelongsTo(() => User)
   public user!: User;
@@ -94,6 +133,13 @@ export class Address extends Model<Address> {
   @ForeignKey(() => User)
   @Column(DataType.UUID)
   public userId!: string;
+
+  @BelongsTo(() => CensusData)
+  public censusData!: CensusData;
+
+  @ForeignKey(() => CensusData)
+  @Column(DataType.UUID)
+  public cesusDataId!: string;
 
   @HasMany(() => Shipment, 'addressId')
   public shipments?: Shipment[];
@@ -108,44 +154,42 @@ export class Address extends Model<Address> {
   public deletedAt?: Date;
 
   @BeforeCreate
-  static async createEasyPostId(instance: Address) {
+  static async normalize(instance: Address) {
     const user = await User.findByPk(instance.userId);
 
     instance.phone = instance.phone || user.phone;
     instance.email = instance.email || user.email;
     instance.country = instance.country || 'US';
 
-    const easyPostAddress = new easyPost.Address({
-      city: instance.city,
-      country: instance.country,
-      email: instance.email,
-      phone: instance.phone,
-      state: instance.state,
-      street1: instance.street1,
-      street2: instance.street2,
-      verify: ['delivery'],
-      zip: instance.zip,
+    const q = `${instance.street} ${instance.secondaryUnit} ${instance.city} ${instance.state} ${instance.zip}`;
+
+    const res = await geocodioPromise('geocode', { q });
+    const { results } = JSON.parse(res);
+
+    const [result] = results;
+
+    Object.assign(
+      instance,
+      omit(result.address_components, [
+        'formatted_street',
+        'secondaryunit',
+        'secondarynumber',
+      ]),
+    );
+    instance.formattedStreet = result.address_components.formatted_street;
+    instance.formattedAddress = result.formatted_address;
+    instance.secondaryUnit = result.address_components.secondaryunit;
+    instance.secondaryNumber = result.address_components.secondarynumber;
+    instance.coordinates = {
+      type: 'Point',
+      coordinates: [result.location.lat, result.location.lng],
+    };
+  }
+
+  @AfterCreate
+  static async createEasyPostId(instance: Address) {
+    await createTask('create-easypost-address', {
+      addressId: instance.get('id'),
     });
-    await easyPostAddress.save();
-
-    if (easyPostAddress.verifications.delivery.success === false) {
-      throw new Error('Address not found.');
-    }
-
-    if (
-      easyPostAddress.verifications.delivery &&
-      easyPostAddress.verifications.delivery.details
-    ) {
-      const { details } = easyPostAddress.verifications.delivery;
-      const point = {
-        type: 'Point',
-        coordinates: [details.longitude, details.latitude],
-      };
-      instance.coordinates = point;
-    }
-
-    instance.residential = easyPostAddress.residential;
-    instance.zip = easyPostAddress.zip;
-    instance.easyPostId = easyPostAddress.id;
   }
 }
