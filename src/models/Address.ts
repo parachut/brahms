@@ -161,7 +161,7 @@ export class Address extends Model<Address> {
     instance.email = instance.email || user.email;
     instance.country = instance.country || 'US';
 
-    const q = `${instance.street} ${instance.secondaryUnit} ${instance.city} ${instance.state} ${instance.zip}`;
+    const q = `${instance.street} ${instance.secondaryUnit}, ${instance.city} ${instance.state} ${instance.zip}`;
 
     const res = await geocodioPromise('geocode', { q });
     const { results } = JSON.parse(res);

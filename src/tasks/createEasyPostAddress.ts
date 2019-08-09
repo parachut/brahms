@@ -29,19 +29,15 @@ export async function createEasyPostAddress(req, res) {
 
     await address.save();
 
+    await pubSub.publish('ADDRESS_UPDATED', {
+      id: uuid(),
+      message: address,
+    });
+
     return res
       .send(`Address easyPostId created: ${addressId} ${address.easyPostId}`)
       .end();
   }
-
-  const asdf = await pubSub.publish('ADDRESS_UPDATED', {
-    id: uuid(),
-    message: {
-      userId: '4a07f861-347a-42a7-bd4e-a0eafc3e05b7',
-    },
-  });
-
-  console.log(asdf);
 
   return res
     .status(500)
