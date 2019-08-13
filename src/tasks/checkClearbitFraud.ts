@@ -11,21 +11,24 @@ export async function checkClearbitFraud(req, res) {
   if (userId && req.header('X-AppEngine-TaskName')) {
     const user = await User.findByPk(userId, {
       include: [
-        'integrations',
         {
           association: 'addresses',
-          order: [['createdAt', 'DESC']],
+          where: {
+            primary: true,
+          },
         },
       ],
     });
 
     const result = await clearbit.Risk.calculate({
-      country_code: user.addresses[0].country,
+      country_code: user.addresses.length ? user.addresses[0].country : 'US',
       email: user.email,
       ip: ipAddress,
       name: user.name,
-      zip_code: user.addresses[0].zip,
+      zip_code: user.addresses.length ? user.addresses[0].zip : undefined,
     });
+
+    console.log(result);
 
     await UserVerification.create({
       type: 'CLEARBIT_FRAUD',

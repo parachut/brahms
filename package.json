@@ -18,6 +18,7 @@
     "dataloader-sequelize": "^2.0.1",
     "dotenv": "^8.0.0",
     "express": "^4.16.4",
+    "express-basic-auth": "^1.2.0",
     "express-json": "^1.0.0",
     "express-jwt": "^5.3.1",
     "forest-express-sequelize": "^3.2.6",
@@ -92,8 +93,6 @@
   "scripts": {
     "deploy": "gcloud beta app deploy --version=staging-flex",
     "gcp-build": "tsc -p .",
-    "prepare": "npm run gcp-build",
-    "pretest": "npm run gcp-build",
     "dev": "ts-node-dev --respawn --transpileOnly --ignore-watch node_modules ./src/server.ts",
     "lint": "tslint 'src/**/*.{ts,tsx}' --exclude 'src/**/*.d.ts'",
     "start": "node ./dist/src/server.js",

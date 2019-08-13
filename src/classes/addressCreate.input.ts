@@ -23,9 +23,6 @@ export class AddressCreateInput {
   @Field()
   public street!: string;
 
-  @Field({ nullable: true })
-  public secondaryUnit?: string;
-
   @Field()
   public zip!: string;
 }

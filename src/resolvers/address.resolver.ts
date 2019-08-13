@@ -17,6 +17,7 @@ import { Phone } from '../decorators/phone';
 import { UserRole } from '../enums/userRole';
 import { Address } from '../models/Address';
 import { IContext } from '../utils/context.interface';
+import { createTask } from '../utils/createTask';
 
 @Resolver(Address)
 export default class AddressResolver {
@@ -38,7 +39,7 @@ export default class AddressResolver {
       return address;
     }
 
-    throw new Error('Unathorised.');
+    throw new Error('Unauthorised.');
   }
 
   @Authorized([UserRole.MEMBER])
@@ -51,7 +52,7 @@ export default class AddressResolver {
 
       return addresses;
     }
-    throw new Error('Unathorised.');
+    throw new Error('Unauthorised.');
   }
 
   @Authorized([UserRole.MEMBER])
@@ -66,6 +67,11 @@ export default class AddressResolver {
       const newAddress = await Address.create({
         ...input,
         userId: ctx.user.id,
+      });
+
+      createTask('check-clearbit-fraud', {
+        userId: ctx.user.id,
+        ipAddress: ctx.clientIp,
       });
 
       return newAddress;

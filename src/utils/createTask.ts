@@ -28,5 +28,10 @@ export async function createTask(
     task: task,
   };
 
-  return client.createTask(request);
+  client
+    .createTask(request)
+    .then(() => null)
+    .catch((e) => console.log(e));
+
+  return client;
 }

@@ -35,7 +35,7 @@ export default class QueueResolver {
       });
     }
 
-    throw new Error('Unathorised.');
+    throw new Error('Unauthorised.');
   }
 
   @Authorized([UserRole.MEMBER])
@@ -46,7 +46,7 @@ export default class QueueResolver {
         where: { userId: ctx.user.id },
       });
     }
-    throw new Error('Unathorised.');
+    throw new Error('Unauthorised.');
   }
 
   @Authorized([UserRole.MEMBER])

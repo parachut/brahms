@@ -10,6 +10,7 @@ import expressJwt from 'express-jwt';
 import fs from 'fs';
 import { createServer } from 'http';
 import jwt from 'jsonwebtoken';
+import requestIp from 'request-ip';
 import { Sequelize } from 'sequelize-typescript';
 import { buildSchema } from 'type-graphql';
 
@@ -80,9 +81,10 @@ const main = async () => {
       if (!req || !req.headers) {
         return connection.context;
       }
+
       const context = {
         analytics,
-        clientIp: req.header('x-appengine-user-ip'),
+        clientIp: requestIp.getClientIp(req),
         dataloaderContext,
         redis,
         req,

@@ -1,5 +1,16 @@
 import { Op } from 'sequelize';
-import { Ctx, FieldResolver, Resolver, Root } from 'type-graphql';
+import {
+  Arg,
+  Authorized,
+  Ctx,
+  FieldResolver,
+  Info,
+  Int,
+  Mutation,
+  Query,
+  Resolver,
+  Root,
+} from 'type-graphql';
 
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { Cart } from '../models/Cart';
@@ -7,9 +18,54 @@ import { Inventory } from '../models/Inventory';
 import { Product } from '../models/Product';
 import { Shipment } from '../models/Shipment';
 import { IContext } from '../utils/context.interface';
+import { UserRole } from '../enums/userRole';
+import { InventoryCreateInput } from '../classes/inventoryCreate.input';
 
 @Resolver(Inventory)
 export default class InventoryResolver {
+  @Authorized([UserRole.MEMBER])
+  @Query((returns) => Product)
+  public async inventory(@Ctx() ctx: IContext) {
+    if (ctx.user) {
+      return Inventory.findAll({
+        where: {
+          userId: ctx.user.id,
+        },
+      });
+    }
+
+    throw new Error('Unauthorised.');
+  }
+
+  @Authorized([UserRole.MEMBER])
+  @Mutation(() => Inventory)
+  public async inventoryCreate(
+    @Arg('input', (type) => InventoryCreateInput)
+    newInventory: InventoryCreateInput,
+    @Ctx() ctx: IContext,
+  ) {
+    if (ctx.user) {
+      const inventory = await Inventory.create({
+        ...newInventory,
+        userId: ctx.user.id,
+      });
+
+      ctx.analytics.track({
+        userId: ctx.user.id,
+        event: 'Inventory Added',
+        properties: {
+          product_id: newInventory.productId,
+          condition: newInventory.condition,
+          missing_essentials: newInventory.missingEssentials,
+        },
+      });
+
+      return newInventory;
+    }
+
+    throw new Error('Unauthorized');
+  }
+
   @FieldResolver((type) => Product)
   async product(@Root() inventory: Inventory): Promise<Product> {
     return ((await inventory.$get<Product>('product')) as Product)!;

@@ -21,6 +21,7 @@ export async function createEasyPostAddress(req, res) {
       street1: address.formattedStreet,
       zip: address.zip,
     });
+
     await easyPostAddress.save();
 
     address.residential = easyPostAddress.residential;

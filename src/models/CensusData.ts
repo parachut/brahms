@@ -51,7 +51,10 @@ export class CensusData extends Model<CensusData> {
   public professionalGraduate!: number;
 
   @Column
-  public decorateGraduate!: number;
+  public doctorateGraduate!: number;
+
+  @Column
+  public populationTotal!: number;
 
   @HasMany(() => CensusRangeBlock, 'censusDataAgeId')
   public ageRanges!: CensusRangeBlock[];

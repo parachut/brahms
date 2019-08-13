@@ -10,6 +10,7 @@ import { StripeBankAccount } from '../classes/stripeBankAccount';
 import { StripeCard } from '../classes/stripeCard';
 import { IContext } from '../utils/context.interface';
 import { formatStripeSource } from '../utils/formatStripeSource';
+import { UserIntegration } from '../models/UserIntegration';
 
 const stripe = new Stripe(process.env.STRIPE);
 
@@ -52,6 +53,17 @@ export default class UserResolver {
       .createHmac('sha256', process.env.FRONT_CHAT_SECRET)
       .update(user.email)
       .digest('hex');
+  }
+
+  @FieldResolver((type) => Boolean)
+  async protectionPlan(@Root() user: User): Promise<boolean> {
+    const integrations = (await user.$get<UserIntegration>(
+      'integrations',
+    )) as UserIntegration[];
+
+    return !!integrations.find(
+      (int) => int.type === 'STRIPE_MONTHLYPROTECTIONPLAN',
+    );
   }
 
   @FieldResolver((type) => [StripeSource])

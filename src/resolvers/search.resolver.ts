@@ -48,6 +48,6 @@ export default class SearchResolver {
       return Array.prototype.concat.apply([], results);
     }
 
-    throw new Error('Unathorised.');
+    throw new Error('Unauthorised.');
   }
 }

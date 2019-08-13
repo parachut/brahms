@@ -70,6 +70,7 @@ export async function updateSubscription(
         value: stripeSub.items.data.find(
           (item) => item.plan.id === 'monthlyprotectionplan',
         ).id,
+        userId: user.id,
       } as UserIntegration);
     }
   } else {
@@ -82,10 +83,12 @@ export async function updateSubscription(
       {
         type: 'STRIPE_MONTHLYUNLIMITEDTIER',
         value: stripeSub.items.data.find((item) => item.plan.id === plan).id,
+        userId: user.id,
       } as UserIntegration,
       {
         type: 'STRIPE_MONTHLYPLAN',
         value: stripeSub.id,
+        userId: user.id,
       } as UserIntegration,
     ];
 
@@ -95,12 +98,15 @@ export async function updateSubscription(
         value: stripeSub.items.data.find(
           (item) => item.plan.id === 'monthlyprotectionplan',
         ).id,
+        userId: user.id,
       } as UserIntegration);
     }
   }
 
   user.planId = plan;
   user.points = total > (user.points || 0) ? total : user.points;
+
+  await user.save();
 
   await UserIntegration.bulkCreate(integrations, {
     updateOnDuplicate: ['id'],

@@ -109,6 +109,8 @@ export default class CalcUnlimitedTierResolver {
         (int) => int.type === 'STRIPE_MONTHLYPROTECTIONPLAN',
       );
 
+      console.log(user.planId, pointsOver);
+
       if (
         (user.planId && user.planId !== selectedPlan) ||
         (user.planId && pointsOver)
@@ -126,18 +128,17 @@ export default class CalcUnlimitedTierResolver {
         if (stripeMonthlyProtectionPlan) {
           items.push({
             id: stripeMonthlyProtectionPlan.value,
+            plan: 'monthlyprotectionplan',
             quantity: 1,
           });
         }
 
-        const invoice = await stripe.invoices.retrieveUpcoming(
-          stripeCustomer.value,
-          stripeMonthlyPlan.value,
-          {
-            subscription_items: items,
-            subscription_proration_date: prorationDate,
-          } as any,
-        );
+        const invoice = await stripe.invoices.retrieveUpcoming({
+          customer: stripeCustomer.value,
+          subscription: stripeMonthlyPlan.value,
+          subscription_items: items,
+          subscription_proration_date: prorationDate,
+        } as any);
 
         const currentProrations = [];
 

@@ -40,6 +40,10 @@ export class ShipmentEvent extends Model<ShipmentEvent> {
 
   @Field()
   @Column
+  public datetime!: Date;
+
+  @Field()
+  @Column
   public source!: string;
 
   @Column(DataType.GEOGRAPHY('POINT'))

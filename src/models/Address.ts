@@ -1,4 +1,3 @@
-import EasyPost from '@easypost/api';
 import Geocodio from 'geocodio';
 import omit from 'lodash/omit';
 import Sequelize from 'sequelize';
@@ -26,7 +25,6 @@ import { Shipment } from './Shipment';
 import { User } from './User';
 import { createTask } from '../utils/createTask';
 
-const easyPost = new EasyPost(process.env.EASYPOST);
 const geocodio = new Geocodio({
   api_key: process.env.GEOCODIO,
 });
@@ -135,11 +133,11 @@ export class Address extends Model<Address> {
   public userId!: string;
 
   @BelongsTo(() => CensusData)
-  public censusData!: CensusData;
+  public censusData?: CensusData;
 
   @ForeignKey(() => CensusData)
   @Column(DataType.UUID)
-  public cesusDataId!: string;
+  public censusDataId?: string;
 
   @HasMany(() => Shipment, 'addressId')
   public shipments?: Shipment[];
@@ -155,40 +153,29 @@ export class Address extends Model<Address> {
 
   @BeforeCreate
   static async normalize(instance: Address) {
-    const user = await User.findByPk(instance.userId);
-
-    instance.phone = instance.phone || user.phone;
-    instance.email = instance.email || user.email;
+    if (instance.primary) {
+      await Address.update(
+        {
+          primary: false,
+        },
+        {
+          where: {
+            userId: instance.userId,
+          },
+        },
+      );
+    }
     instance.country = instance.country || 'US';
-
-    const q = `${instance.street} ${instance.secondaryUnit}, ${instance.city} ${instance.state} ${instance.zip}`;
-
-    const res = await geocodioPromise('geocode', { q });
-    const { results } = JSON.parse(res);
-
-    const [result] = results;
-
-    Object.assign(
-      instance,
-      omit(result.address_components, [
-        'formatted_street',
-        'secondaryunit',
-        'secondarynumber',
-      ]),
-    );
-    instance.formattedStreet = result.address_components.formatted_street;
-    instance.formattedAddress = result.formatted_address;
-    instance.secondaryUnit = result.address_components.secondaryunit;
-    instance.secondaryNumber = result.address_components.secondarynumber;
-    instance.coordinates = {
-      type: 'Point',
-      coordinates: [result.location.lat, result.location.lng],
-    };
+    instance.formattedStreet = instance.street;
+    instance.formattedAddress = `${instance.street}. ${instance.city} ${instance.state} ${instance.zip}`;
   }
 
   @AfterCreate
   static async createEasyPostId(instance: Address) {
-    await createTask('create-easypost-address', {
+    createTask('create-easypost-address', {
+      addressId: instance.get('id'),
+    });
+    createTask('update-address-censusdata', {
       addressId: instance.get('id'),
     });
   }

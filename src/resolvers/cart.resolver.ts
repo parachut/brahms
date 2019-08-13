@@ -79,7 +79,7 @@ export default class CartResolver {
 
       return carts;
     }
-    throw new Error('Unathorised.');
+    throw new Error('Unauthorised.');
   }
 
   @Authorized([UserRole.MEMBER])
@@ -202,7 +202,6 @@ export default class CartResolver {
       ]);
 
       let charge;
-      let total;
       let cartUpdate: any = {};
 
       const cart = user.carts[0];
@@ -256,17 +255,6 @@ export default class CartResolver {
             });
 
             invoice = await stripe.invoices.pay(invoice.id);
-
-            if (!cart.planId && !user.planId && invoice.paid) {
-              const stripeCustomerRef: Stripe.customers.ICustomer = await stripe.customers.retrieve(
-                user.stripeId,
-              );
-
-              await stripe.customers.update(user.stripeId, {
-                account_balance:
-                  stripeCustomerRef.account_balance - total * 100,
-              });
-            }
 
             cartUpdate.chargeId = invoice.charge;
           } catch (e) {
@@ -350,7 +338,7 @@ export default class CartResolver {
         await Inventory.update(
           {
             status: 'SHIPMENTPREP',
-            member: user.id,
+            memberId: user.id,
           },
           {
             where: {

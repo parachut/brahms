@@ -44,6 +44,10 @@ export class Category extends Model<Category> {
   @Column
   public description?: string;
 
+  @Field((type) => [String], { nullable: true })
+  @Column(DataType.ARRAY(DataType.STRING(1024)))
+  public includedEssentials?: string[];
+
   @Field((type) => Category, { nullable: true })
   @BelongsTo(() => Category)
   public parent?: Category;

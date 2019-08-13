@@ -1,6 +1,7 @@
 import Sequelize from 'sequelize';
 import {
   AfterCreate,
+  AfterUpdate,
   Column,
   CreatedAt,
   DataType,
@@ -39,6 +40,14 @@ export class User extends Model<User> {
   @Default(Sequelize.literal('uuid_generate_v4()'))
   @Column(DataType.UUID)
   public id!: string;
+
+  @Field({ nullable: true })
+  @Column
+  public avatar?: string;
+
+  @Field({ nullable: true })
+  @Column
+  public bio?: string;
 
   @Field()
   @Default(1)
@@ -101,6 +110,10 @@ export class User extends Model<User> {
   )
   public status!: UserStatus;
 
+  @Field({ nullable: true })
+  @Column
+  public site?: string;
+
   @Column
   public stripeId?: string;
 
@@ -158,19 +171,35 @@ export class User extends Model<User> {
   public deletedAt?: Date;
 
   @AfterCreate
-  static async linkAccounts(instance: User) {
+  static linkAccounts(instance: User) {
     if (!instance.stripeId) {
-      await Promise.all([
-        createTask('create-stripe-user', {
-          userId: instance.get('id'),
-        }),
-        createTask('create-authy-user', {
-          userId: instance.get('id'),
-        }),
-        createTask('create-front-contact', {
-          userId: instance.get('id'),
-        }),
-      ]);
+      createTask('create-stripe-user', {
+        userId: instance.get('id'),
+      });
+      createTask('create-authy-user', {
+        userId: instance.get('id'),
+      });
+      createTask('create-front-contact', {
+        userId: instance.get('id'),
+      });
+      createTask('run-clearbit', {
+        userId: instance.get('id'),
+      });
+    }
+  }
+
+  @AfterUpdate
+  static async updateAuthy(instance: User) {
+    if (!instance.changed('phone')) {
+      await UserIntegration.destroy({
+        where: {
+          user: instance.id,
+          type: 'AUTHY',
+        },
+      });
+      createTask('create-authy-user', {
+        userId: instance.get('id'),
+      });
     }
   }
 }

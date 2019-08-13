@@ -106,14 +106,14 @@ export class Inventory extends Model<Inventory> {
   @Column(DataType.UUID)
   public productId!: string;
 
-  @BelongsTo(() => User)
+  @BelongsTo(() => User, 'userId')
   public user!: User;
 
   @ForeignKey(() => User)
   @Column(DataType.UUID)
   public userId!: string;
 
-  @BelongsTo(() => User)
+  @BelongsTo(() => User, 'memberId')
   public member!: User;
 
   @ForeignKey(() => User)

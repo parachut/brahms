@@ -45,7 +45,7 @@ export default class ProductResolver {
       });
     }
 
-    throw new Error('Unathorised.');
+    throw new Error('Unauthorised.');
   }
 
   @Authorized([UserRole.MEMBER])
@@ -125,7 +125,7 @@ export default class ProductResolver {
       return result;
     }
 
-    throw new Error('Unathorised.');
+    throw new Error('Unauthorised.');
   }
 
   @FieldResolver((type) => Brand)
