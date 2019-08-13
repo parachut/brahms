@@ -19,6 +19,9 @@ require('dotenv').config();
 import { signOptions } from '../certs';
 import { pubSub, redis } from './redis';
 import tasks from './tasks';
+import hooks from './hooks';
+import cron from './cron';
+
 import { customAuthChecker } from './utils/customAuthChecker';
 
 // import { migrator } from './migrator';
@@ -178,6 +181,9 @@ const main = async () => {
 
   app.use('/tasks', bodyParser.raw({ type: 'application/octet-stream' }));
   app.use('/tasks', tasks);
+
+  app.use('/hooks', hooks);
+  app.use('/cron', cron);
 
   const wss = createServer(app);
   server.installSubscriptionHandlers(wss);

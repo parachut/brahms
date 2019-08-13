@@ -38,10 +38,14 @@ export class Invoice extends Model<Invoice> {
   @Column
   public collectedAt?: Date;
 
-  @Field()
-  @Unique
+  @Field({ nullable: true })
   @Column
-  public stripeId!: string;
+  public stripeId?: string;
+
+  @Field()
+  @Default(true)
+  @Column
+  public subscription!: boolean;
 
   @Field((type) => InvoiceStatus)
   @Default(InvoiceStatus.OPEN)

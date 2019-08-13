@@ -33,18 +33,18 @@ export class InvoiceItem extends Model<InvoiceItem> {
 
   @Field()
   @Default(0)
-  @Column
+  @Column(DataType.FLOAT)
   public commission!: number;
+
+  @Field((type) => Int)
+  @Default(0)
+  @Column
+  public points!: number;
 
   @Field()
   @Default(false)
   @Column
   public protectionPlan!: boolean;
-
-  @Field()
-  @Unique
-  @Column
-  public stripeId!: string;
 
   @BelongsTo(() => Invoice)
   public invoice!: Invoice;

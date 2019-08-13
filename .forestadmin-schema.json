@@ -2300,6 +2300,20 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "subscription",
+      "type": "Boolean",
+      "defaultValue": true,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "total",
       "type": "Number",
       "defaultValue": 0,
@@ -2442,9 +2456,9 @@
       "relationship": "BelongsTo",
       "validations": []
     }, {
-      "field": "protectionPlan",
-      "type": "Boolean",
-      "defaultValue": false,
+      "field": "points",
+      "type": "Number",
+      "defaultValue": 0,
       "enums": null,
       "integration": null,
       "isFilterable": true,
@@ -2456,9 +2470,9 @@
       "inverseOf": null,
       "validations": []
     }, {
-      "field": "stripeId",
-      "type": "String",
-      "defaultValue": null,
+      "field": "protectionPlan",
+      "type": "Boolean",
+      "defaultValue": false,
       "enums": null,
       "integration": null,
       "isFilterable": true,
@@ -3453,6 +3467,20 @@
       "validations": []
     }, {
       "field": "createdAt",
+      "type": "Date",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "datetime",
       "type": "Date",
       "defaultValue": null,
       "enums": null,
