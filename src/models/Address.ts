@@ -42,6 +42,10 @@ export class Address extends Model<Address> {
 
   @Field()
   @Column
+  public name!: string;
+
+  @Field()
+  @Column
   public number!: string;
 
   @Field({ nullable: true })
@@ -153,6 +157,7 @@ export class Address extends Model<Address> {
 
   @BeforeCreate
   static async normalize(instance: Address) {
+    const user = await User.findByPk(instance.userId);
     if (instance.primary) {
       await Address.update(
         {
@@ -166,6 +171,9 @@ export class Address extends Model<Address> {
       );
     }
     instance.country = instance.country || 'US';
+    instance.email = user.email;
+    instance.phone = user.phone;
+    instance.name = user.name;
     instance.formattedStreet = instance.street;
     instance.formattedAddress = `${instance.street}. ${instance.city} ${instance.state} ${instance.zip}`;
   }

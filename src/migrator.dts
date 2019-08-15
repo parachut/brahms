@@ -28,7 +28,7 @@ const redis = new Redis(
   process.env.REDIS_HOST,
 );
 
-const concurrency = 500;
+const concurrency = 20;
 
 const moveUsers = async () => {
   const userIds: any = {};
@@ -174,31 +174,35 @@ const moveUserIntegrations = async (userIds) => {
     },
   );
 
-  await pMap(
-    newIntegrations,
-    async (cat: UserIntegration) => {
-      const res = await UserIntegration.create(cat);
-      bar.tick();
-      return res;
-    },
-    {
-      concurrency,
-      stopOnError: true,
-    },
-  );
+  try {
+    await pMap(
+      newIntegrations,
+      async (cat: UserIntegration) => {
+        const res = await UserIntegration.create(cat);
+        bar.tick();
+        return res;
+      },
+      {
+        concurrency,
+        stopOnError: true,
+      },
+    );
 
-  await pMap(
-    newVerifications,
-    async (cat: UserVerification) => {
-      const res = await UserVerification.create(cat);
-      bar.tick();
-      return res;
-    },
-    {
-      concurrency,
-      stopOnError: true,
-    },
-  );
+    await pMap(
+      newVerifications,
+      async (cat: UserVerification) => {
+        const res = await UserVerification.create(cat);
+        bar.tick();
+        return res;
+      },
+      {
+        concurrency,
+        stopOnError: true,
+      },
+    );
+  } catch (e) {
+    console.log(e);
+  }
 
   return true;
 };
@@ -604,7 +608,7 @@ const moveInventory = async (productIds, userIds) => {
       missingEssentials: [],
       memberId: null,
       productId: productIds[inventoriesExtra[i].product.id],
-      userId: '4a07f861-347a-42a7-bd4e-a0eafc3e05b7',
+      userId: userIds[inventoriesExtra[i].user.id],
     });
   });
 
@@ -818,7 +822,6 @@ const moveShipments = async (
         user {
           id
         }
-     
     } `);
 
   const newShipments: any = [];
@@ -879,7 +882,6 @@ export const migrator = async (req, res) => {
   console.log('Being migration...');
   let userIds = await redis.get('migration:userIds');
 
-  /**
   if (!userIds) {
     userIds = await moveUsers();
     redis.set('migration:userIds', JSON.stringify(userIds));
@@ -923,7 +925,7 @@ export const migrator = async (req, res) => {
     cateogryIds = JSON.parse(cateogryIds);
   }
 
-  
+  let productIds = await redis.get('migration:productIds');
 
   if (!productIds) {
     productIds = await moveProducts(brandIds, cateogryIds, fileIds);
@@ -933,17 +935,13 @@ export const migrator = async (req, res) => {
     console.log('Skipping products');
     productIds = JSON.parse(productIds);
   }
-   */
-  let productIds = await redis.get('migration:productIds');
-  productIds = JSON.parse(productIds);
 
-  const inventoryIds = await moveInventory(productIds, []);
+  const inventoryIds = await moveInventory(productIds, userIds);
   redis.set('migration:inventoryIds', JSON.stringify(inventoryIds));
   console.log('Inventory completed!');
 
   let addressIds = await redis.get('migration:addressIds');
 
-  /**
   if (!addressIds) {
     addressIds = await moveAddresses(userIds);
     redis.set('migration:addressIds', JSON.stringify(addressIds));
@@ -991,8 +989,6 @@ export const migrator = async (req, res) => {
     console.log('Skipping shipments');
     shipmentIds = JSON.parse(shipmentIds);
   }
-
-   */
 
   res.send('done');
 };

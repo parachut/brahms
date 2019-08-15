@@ -108,12 +108,17 @@ export class Warehouse extends Model<Warehouse> {
       email: instance.email,
       phone: instance.phone,
       state: instance.state,
+      name: instance.name,
+      company: instance.name,
       street1: instance.street1,
       street2: instance.street2,
       verify: ['delivery'],
       zip: instance.zip,
     });
+
     await easyPostAddress.save();
+
+    console.log(easyPostAddress);
 
     if (easyPostAddress.verifications.delivery.success === false) {
       throw new Error('Address not found.');

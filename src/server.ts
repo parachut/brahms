@@ -24,7 +24,7 @@ import cron from './cron';
 
 import { customAuthChecker } from './utils/customAuthChecker';
 
-// import { migrator } from './migrator';
+//import { migrator } from './migrator';
 const PORT = process.env.PORT || 4000;
 const GQLPATH = '/graphql';
 
@@ -42,7 +42,7 @@ const main = async () => {
       host:
         process.env.NODE_ENV === 'production'
           ? `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`
-          : '127.0.0.1',
+          : '35.202.140.177',
       logging: false,
       modelPaths: [`${__dirname}/models`],
     },
@@ -68,7 +68,7 @@ const main = async () => {
 
   const app = express();
 
-  // app.use('/migrator', migrator);
+  //app.use('/migrator', migrator);
 
   if (process.env.NODE_ENV !== 'production') {
     app.use(GQLPATH, cors());
@@ -200,7 +200,7 @@ const main = async () => {
       !queues.find(
         (queue) =>
           queue.name ===
-          'projects/parachut-216816/locations/us-central1/queues/parachut-appengine-queue',
+          'projects/parachut-216816/locations/us-central1/queues/parachut-appengine',
       )
     ) {
       await client.createQueue({
@@ -211,7 +211,7 @@ const main = async () => {
           name: client.queuePath(
             'parachut-216816',
             'us-central1',
-            'parachut-appengine-queue',
+            'parachut-appengine',
           ),
           appEngineHttpQueue: {
             appEngineRoutingOverride: {

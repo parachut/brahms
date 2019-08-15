@@ -20,11 +20,13 @@ import { Shipment } from '../models/Shipment';
 import { IContext } from '../utils/context.interface';
 import { UserRole } from '../enums/userRole';
 import { InventoryCreateInput } from '../classes/inventoryCreate.input';
+import { InventoryUpdateInput } from '../classes/inventoryUpdate.input';
+import { InventoryWhereUniqueInput } from '../classes/inventoryWhereUnique.input';
 
 @Resolver(Inventory)
 export default class InventoryResolver {
   @Authorized([UserRole.MEMBER])
-  @Query((returns) => Product)
+  @Query((returns) => [Inventory])
   public async inventory(@Ctx() ctx: IContext) {
     if (ctx.user) {
       return Inventory.findAll({
@@ -60,7 +62,56 @@ export default class InventoryResolver {
         },
       });
 
-      return newInventory;
+      return inventory;
+    }
+
+    throw new Error('Unauthorized');
+  }
+
+  @Authorized([UserRole.MEMBER])
+  @Mutation(() => Inventory)
+  public async inventoryUpdate(
+    @Arg('input', (type) => InventoryUpdateInput)
+    { condition, productId, missingEssentials }: InventoryUpdateInput,
+    @Arg('where', (type) => InventoryWhereUniqueInput)
+    { id }: InventoryWhereUniqueInput,
+    @Ctx() ctx: IContext,
+  ) {
+    if (ctx.user) {
+      const inventory = await Inventory.findOne({
+        where: {
+          id,
+          userId: ctx.user.id,
+        },
+      });
+
+      if (productId) {
+        inventory.productId = productId;
+      }
+
+      if (condition) {
+        inventory.condition = condition;
+      }
+
+      if (missingEssentials) {
+        inventory.missingEssentials = missingEssentials;
+      }
+
+      if (!inventory) {
+        throw new Error('Inventory not found.');
+      }
+
+      ctx.analytics.track({
+        userId: ctx.user.id,
+        event: 'Inventory Updated',
+        properties: {
+          product_id: productId,
+          condition: condition,
+          missing_essentials: missingEssentials,
+        },
+      });
+
+      return inventory.save();
     }
 
     throw new Error('Unauthorized');

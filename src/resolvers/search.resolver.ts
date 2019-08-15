@@ -50,4 +50,23 @@ export default class SearchResolver {
 
     throw new Error('Unauthorised.');
   }
+
+  @Authorized([UserRole.MEMBER])
+  @Query((returns) => [Product])
+  public async productSearch(
+    @Arg('search', (type) => String)
+    search: string,
+    @Ctx() ctx: IContext,
+  ) {
+    if (ctx.user) {
+      const products = await Product.findAll({
+        where: { name: { [Op.iLike]: `%${search}%` } },
+        limit: 25,
+      });
+
+      return products;
+    }
+
+    throw new Error('Unauthorised.');
+  }
 }

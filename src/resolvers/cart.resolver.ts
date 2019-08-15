@@ -1,10 +1,7 @@
 import EasyPost from '@easypost/api';
-import { WebClient } from '@slack/client';
-import Analytics from 'analytics-node';
 import isUndefined from 'lodash/isUndefined';
 import * as Postmark from 'postmark';
 import { Op } from 'sequelize';
-import Stripe from 'stripe';
 import {
   Arg,
   Authorized,
@@ -28,14 +25,10 @@ import { Inventory } from '../models/Inventory';
 import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
 import { Warehouse } from '../models/Warehouse';
-import { calcDailyRate, calcProtectionDailyRate } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
-import { updateSubscription } from '../utils/updateSubscription';
+import { createTask } from '../utils/createTask';
 
-const numeral = require('numeral');
 const moment = require('moment-business-days');
-const stripe = new Stripe(process.env.STRIPE);
-const slack = new WebClient(process.env.SLACK_TOKEN);
 const postmark = new Postmark.ServerClient(process.env.POSTMARK);
 const easyPost = new EasyPost(process.env.EASYPOST);
 
@@ -74,7 +67,11 @@ export default class CartResolver {
   public async carts(@Ctx() ctx: IContext) {
     if (ctx.user) {
       const carts = await Cart.findAll({
-        where: { userId: ctx.user.id },
+        where: {
+          userId: ctx.user.id,
+          canceledAt: null,
+          completedAt: { [Op.ne]: null },
+        },
       });
 
       return carts;
@@ -201,9 +198,6 @@ export default class CartResolver {
         }),
       ]);
 
-      let charge;
-      let cartUpdate: any = {};
-
       const cart = user.carts[0];
 
       if (!cart.completedAt && user.status === UserStatus.BLACKLISTED) {
@@ -233,86 +227,7 @@ export default class CartResolver {
           0,
         );
 
-        await updateSubscription(
-          cart.planId || user.planId,
-          user,
-          currentInventory,
-        );
-
-        if (cart.service !== 'Ground') {
-          await stripe.invoiceItems.create({
-            amount: 2500,
-            currency: 'usd',
-            customer: user.stripeId,
-            description: 'Expedited Shipping',
-          });
-
-          try {
-            let invoice = await stripe.invoices.create({
-              customer: user.stripeId,
-              auto_advance: true,
-              billing: 'charge_automatically',
-            });
-
-            invoice = await stripe.invoices.pay(invoice.id);
-
-            cartUpdate.chargeId = invoice.charge;
-          } catch (e) {
-            throw e;
-          }
-        }
-
         if (process.env.STAGE === 'production') {
-          await slack.chat.postMessage({
-            channel: 'CGX5HELCT',
-            text: '',
-            blocks: [
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text:
-                    '*New order for:* ' +
-                    user.name +
-                    '\n<https://team.parachut.co/ops/order/' +
-                    cart.id +
-                    '|' +
-                    cart.id +
-                    '>',
-                },
-              },
-              {
-                type: 'section',
-                fields: [
-                  {
-                    type: 'mrkdwn',
-                    text: '*Completed:*\n' + new Date().toLocaleString(),
-                  },
-                  {
-                    type: 'mrkdwn',
-                    text:
-                      '*Total Points:*\n' + numeral(cartPoints).format('0,0'),
-                  },
-
-                  {
-                    type: 'mrkdwn',
-                    text:
-                      '*Protection Plan:*\n' +
-                      (cart.protectionPlan ? 'YES' : 'NO'),
-                  },
-                  {
-                    type: 'mrkdwn',
-                    text: '*Service:*\n' + cart.service,
-                  },
-                  {
-                    type: 'mrkdwn',
-                    text: '*Plan:*\n' + cart.planId || user.planId,
-                  },
-                ],
-              },
-            ],
-          });
-
           postmark.sendEmailWithTemplate({
             From: 'support@parachut.co',
             TemplateId: 10952889,
@@ -343,25 +258,16 @@ export default class CartResolver {
           {
             where: {
               id: {
-                [Op.in]: inventory.map((x) => x.id),
+                [Op.in]: inventory,
               },
             },
           },
         );
 
-        await Cart.update(
-          {
-            chargeId: charge ? charge.id : null,
-            inventory: inventory,
-            completedAt: new Date(),
-            ...cartUpdate,
-          },
-          {
-            where: {
-              id: cart.id,
-            },
-          },
-        );
+        cart.completedAt = new Date();
+        await cart.save();
+
+        cart.$set('inventory', inventory);
 
         ctx.analytics.track({
           event: 'Order Completed',
@@ -388,6 +294,10 @@ export default class CartResolver {
 
         const newCart = new Cart({
           userId: user.id,
+        });
+
+        createTask('checkout', {
+          cartId: cart.id,
         });
 
         return newCart.save();

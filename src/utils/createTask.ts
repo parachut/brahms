@@ -3,7 +3,7 @@ import { CloudTasksClient } from '@google-cloud/tasks';
 export async function createTask(
   taskPath: string,
   payload: any,
-  queue: string = 'parachut-appengine-queue',
+  queue: string = 'parachut-appengine',
   inSeconds: number = 0,
 ) {
   const client = new CloudTasksClient();

@@ -190,10 +190,10 @@ export class User extends Model<User> {
 
   @AfterUpdate
   static async updateAuthy(instance: User) {
-    if (!instance.changed('phone')) {
+    if (instance.changed('phone')) {
       await UserIntegration.destroy({
         where: {
-          user: instance.id,
+          userId: instance.id,
           type: 'AUTHY',
         },
       });

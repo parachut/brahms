@@ -124,8 +124,6 @@ export async function hourlyBiller(req, res) {
         });
       }
 
-      console.log(invoiceItems, currentInventory);
-
       totalItems = totalItems + invoiceItems.length;
       const total = invoiceItems.reduce((r, i) => r + i.points, 0);
 

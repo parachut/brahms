@@ -17,6 +17,7 @@ export async function createEasyPostAddress(req, res) {
       country: address.country,
       email: address.email,
       phone: address.phone,
+      name: address.name,
       state: address.state,
       street1: address.formattedStreet,
       zip: address.zip,

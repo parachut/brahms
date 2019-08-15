@@ -175,10 +175,7 @@ export class Shipment extends Model<Shipment> {
   public address!: Address;
 
   @BelongsToMany(() => Inventory, () => ShipmentInventory)
-  async inventory(@Root() shipment: Shipment): Promise<Inventory[]> {
-    const inventory = await shipment.$get<Inventory>('inventory');
-    return inventory as Inventory[];
-  }
+  inventory: Inventory[];
 
   @HasMany(() => ShipmentInspection, 'shipmentId')
   public inspections?: ShipmentInspection[];
@@ -203,9 +200,24 @@ export class Shipment extends Model<Shipment> {
         width: instance.width,
       });
 
+      const addresses = !instance.addressId
+        ? await Address.findAll({
+            where: {
+              userId: instance.userId,
+            },
+            order: [['primary', 'DESC'], ['createdAt', 'DESC']],
+            limit: 2,
+            attributes: ['id', 'primary', 'easyPostId'],
+          })
+        : null;
+
+      const addressId = addresses ? addresses[0].id : instance.easyPostId;
+
       const [address, warehouse] = await Promise.all([
-        Address.findByPk(instance.addressId),
-        Warehouse.findByPk(instance.warehouseId),
+        Address.findByPk(addressId),
+        Warehouse.findOne({
+          where: {},
+        }),
       ]);
 
       if (!address || !warehouse) {
@@ -223,10 +235,9 @@ export class Shipment extends Model<Shipment> {
               ? 'ADULT_SIGNATURE'
               : undefined,
           label_size: '4X6',
-          print_custom_1: instance.id,
-          print_custom_1_code: 'MK',
         },
         parcel,
+        service: '3DaySelect',
         to_address: address.easyPostId,
       };
 
@@ -240,7 +251,6 @@ export class Shipment extends Model<Shipment> {
         await easyPostShipment.save();
         await easyPostShipment.convertLabelFormat('ZPL');
       } catch (e) {
-        console.log(e);
         throw new Error('Unable to create shipment label.');
       }
 

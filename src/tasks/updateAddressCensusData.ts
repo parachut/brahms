@@ -21,12 +21,8 @@ export async function updateAddressCensusData(req, res) {
         {
           association: 'censusData',
         },
-        'user',
       ],
     });
-
-    address.phone = address.phone || address.user.phone;
-    address.email = address.email || address.user.email;
 
     try {
       const response = await geocodioPromise('geocode', {

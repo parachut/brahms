@@ -8,6 +8,7 @@ import {
   FieldResolver,
   Root,
 } from 'type-graphql';
+import { Op } from 'sequelize';
 
 import { ShipmentCreateInput } from '../classes/shipmentCreate.input';
 import { ShipmentWhereUniqueInput } from '../classes/shipmentWhereUnique.input';
@@ -53,15 +54,31 @@ export default class ShipmentResolver {
   @Mutation(() => Shipment)
   public async shipmentCreate(
     @Arg('input', (type) => ShipmentCreateInput)
-    { inventoryIds }: ShipmentCreateInput,
+    { inventoryIds, type }: ShipmentCreateInput,
     @Ctx() ctx: IContext,
   ) {
     if (ctx.user) {
-      return Shipment.create({
-        inventoryIds,
-        direction: ShipmentDirection.INBOUND,
-        userId: ctx.user.id,
-      });
+      const [shipment] = await Promise.all([
+        Shipment.create({
+          direction: ShipmentDirection.INBOUND,
+          type,
+          userId: ctx.user.id,
+        }),
+        Inventory.update(
+          {
+            status: 'RETURNING',
+          },
+          {
+            where: {
+              id: { [Op.in]: inventoryIds },
+            },
+          },
+        ),
+      ]);
+
+      await shipment.$set('inventory', inventoryIds);
+
+      return shipment;
     }
 
     throw new Error('Unauthorized');
