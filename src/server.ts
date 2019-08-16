@@ -71,11 +71,7 @@ const main = async () => {
 
   //app.use('/migrator', migrator);
 
-  if (process.env.NODE_ENV !== 'production') {
-    app.use(GQLPATH, cors());
-  } else {
-    app.set('trust proxy', true);
-  }
+  app.use(GQLPATH, cors());
 
   const server = new ApolloServer({
     introspection: true,
