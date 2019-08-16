@@ -92,12 +92,12 @@
     "url": "https://github.com/mrdokenny/typescript-sequalize-graphql-boilerplate"
   },
   "scripts": {
-    "deploy": "gcloud beta app deploy --version=staging-flex",
-    "gcp-build": "tsc -p .",
+    "build": "tsc -p .",
     "dev": "ts-node-dev --respawn --transpileOnly --max-old-space-size=8192 --ignore-watch node_modules ./src/server.ts",
     "lint": "tslint 'src/**/*.{ts,tsx}' --exclude 'src/**/*.d.ts'",
     "start": "node ./dist/src/server.js",
-    "test": "npm run lint"
+    "test": "npm run lint",
+    "postinstall": "npm run build"
   },
   "version": "0.1.0"
 }
