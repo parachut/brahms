@@ -1,25 +1,25 @@
-import { WebClient } from "@slack/client";
-import numeral from "numeral";
-import Stripe from "stripe";
-import Queue from "bull";
+import { WebClient } from '@slack/client';
+import numeral from 'numeral';
+import Stripe from 'stripe';
+import Queue from 'bull';
 
-import { Cart } from "@common/models/Cart";
-import { CartItem } from "@common/models/CartItem";
-import { UserIntegration } from "@common/models/UserIntegration";
+import { Cart } from '../models/Cart';
+import { CartItem } from '../models/CartItem';
+import { UserIntegration } from '../models/UserIntegration';
 
 if (!process.env.STRIPE) {
-  throw new Error("Missing environment variable STRIPE");
+  throw new Error('Missing environment variable STRIPE');
 }
 
 if (!process.env.SLACK_TOKEN) {
-  throw new Error("Missing environment variable SLACK_TOKEN");
+  throw new Error('Missing environment variable SLACK_TOKEN');
 }
 
 const stripe = new Stripe(process.env.STRIPE);
 const slack = new WebClient(process.env.SLACK_TOKEN);
 
-const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6379";
-const updateProductStockQueue = new Queue("update-product-stock", REDIS_URL);
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const updateProductStockQueue = new Queue('update-product-stock', REDIS_URL);
 
 async function checkout(job) {
   const { cartId } = job.data;
@@ -29,49 +29,49 @@ async function checkout(job) {
     const cart = await Cart.findByPk(cartId, {
       include: [
         {
-          association: "user",
+          association: 'user',
           include: [
             {
-              association: "currentInventory",
-              include: ["product"]
+              association: 'currentInventory',
+              include: ['product'],
             },
-            "integrations"
-          ]
+            'integrations',
+          ],
         },
-        "items"
-      ]
+        'items',
+      ],
     });
 
     if (!cart) {
-      throw new Error("no cart found");
+      throw new Error('no cart found');
     }
 
     const total = [...cart.items, ...cart.user.currentInventory].reduce(
       (r, i) => r + i.product.points * (i instanceof CartItem ? i.quantity : 1),
-      0
+      0,
     );
 
     const stripeCustomer = cart.user.integrations.find(
-      int => int.type === "STRIPE"
+      (int) => int.type === 'STRIPE',
     );
 
     const stripeMonthlyPlan = cart.user.integrations.find(
-      int => int.type === "STRIPE_MONTHLYPLAN"
+      (int) => int.type === 'STRIPE_MONTHLYPLAN',
     );
 
     const stripeUnlimitedTier = cart.user.integrations.find(
-      int => int.type === "STRIPE_MONTHLYUNLIMITEDTIER"
+      (int) => int.type === 'STRIPE_MONTHLYUNLIMITEDTIER',
     );
 
     const stripeMonthlyProtectionPlan = cart.user.integrations.find(
-      int => int.type === "STRIPE_MONTHLYPROTECTIONPLAN"
+      (int) => int.type === 'STRIPE_MONTHLYPROTECTIONPLAN',
     );
 
     const items: any[] = [
       {
         plan: cart.planId,
-        quantity: total > (cart.user.points || 0) ? total : cart.user.points
-      }
+        quantity: total > (cart.user.points || 0) ? total : cart.user.points,
+      },
     ];
 
     if (stripeUnlimitedTier) {
@@ -80,8 +80,8 @@ async function checkout(job) {
 
     if (stripeMonthlyProtectionPlan || cart.protectionPlan) {
       items.push({
-        plan: "monthlyprotectionplan",
-        quantity: 1
+        plan: 'monthlyprotectionplan',
+        quantity: 1,
       });
 
       if (stripeMonthlyProtectionPlan) {
@@ -93,45 +93,46 @@ async function checkout(job) {
 
     if (cart.user.planId) {
       stripeSub = await stripe.subscriptions.update(stripeMonthlyPlan.value, {
-        items
+        items,
       });
 
       if (!stripeMonthlyProtectionPlan && cart.protectionPlan) {
         integrations.push({
-          type: "STRIPE_MONTHLYPROTECTIONPLAN",
+          type: 'STRIPE_MONTHLYPROTECTIONPLAN',
           value: stripeSub.items.data.find(
-            item => item.plan.id === "monthlyprotectionplan"
+            (item) => item.plan.id === 'monthlyprotectionplan',
           ).id,
-          userId: cart.user.id
+          userId: cart.user.id,
         } as UserIntegration);
       }
     } else {
       stripeSub = await stripe.subscriptions.create({
         customer: stripeCustomer.value,
-        items
+        items,
       });
 
       integrations = [
         {
-          type: "STRIPE_MONTHLYUNLIMITEDTIER",
-          value: stripeSub.items.data.find(item => item.plan.id === cart.planId)
-            .id,
-          userId: cart.user.id
+          type: 'STRIPE_MONTHLYUNLIMITEDTIER',
+          value: stripeSub.items.data.find(
+            (item) => item.plan.id === cart.planId,
+          ).id,
+          userId: cart.user.id,
         } as UserIntegration,
         {
-          type: "STRIPE_MONTHLYPLAN",
+          type: 'STRIPE_MONTHLYPLAN',
           value: stripeSub.id,
-          userId: cart.user.id
-        } as UserIntegration
+          userId: cart.user.id,
+        } as UserIntegration,
       ];
 
       if (stripeMonthlyProtectionPlan || cart.protectionPlan) {
         integrations.push({
-          type: "STRIPE_MONTHLYPROTECTIONPLAN",
+          type: 'STRIPE_MONTHLYPROTECTIONPLAN',
           value: stripeSub.items.data.find(
-            item => item.plan.id === "monthlyprotectionplan"
+            (item) => item.plan.id === 'monthlyprotectionplan',
           ).id,
-          userId: cart.user.id
+          userId: cart.user.id,
         } as UserIntegration);
       }
     }
@@ -143,27 +144,27 @@ async function checkout(job) {
     await cart.user.save();
 
     await UserIntegration.bulkCreate(integrations, {
-      updateOnDuplicate: ["id"]
+      updateOnDuplicate: ['id'],
     });
 
-    if (cart.service !== "Ground") {
+    if (cart.service !== 'Ground') {
       await stripe.invoiceItems.create({
         amount: 2500,
-        currency: "usd",
+        currency: 'usd',
         customer: cart.user.stripeId,
-        description: "Expedited Shipping"
+        description: 'Expedited Shipping',
       });
 
       try {
         let invoice = await stripe.invoices.create({
           customer: cart.user.stripeId,
           auto_advance: true,
-          billing: "charge_automatically"
+          billing: 'charge_automatically',
         });
 
         invoice = await stripe.invoices.pay(invoice.id);
 
-        if (typeof invoice.charge !== "string") {
+        if (typeof invoice.charge !== 'string') {
           cart.chargeId = invoice.charge.id;
         } else {
           cart.chargeId = invoice.charge;
@@ -175,61 +176,61 @@ async function checkout(job) {
 
     await cart.save();
 
-    cart.items.forEach(item =>
-      updateProductStockQueue.add({ productId: item.productId })
+    cart.items.forEach((item) =>
+      updateProductStockQueue.add({ productId: item.productId }),
     );
 
-    if (process.env.STAGE === "production") {
+    if (process.env.STAGE === 'production') {
       await slack.chat.postMessage({
-        channel: "CGX5HELCT",
-        text: "",
+        channel: 'CGX5HELCT',
+        text: '',
         blocks: [
           {
-            type: "section",
+            type: 'section',
             text: {
-              type: "mrkdwn",
+              type: 'mrkdwn',
               text:
-                "*New order for:* " +
+                '*New order for:* ' +
                 cart.user.name +
-                "\n<https://team.parachut.co/ops/order/" +
+                '\n<https://team.parachut.co/ops/order/' +
                 cart.id +
-                "|" +
+                '|' +
                 cart.id +
-                ">"
-            }
+                '>',
+            },
           },
           {
-            type: "section",
+            type: 'section',
             fields: [
               {
-                type: "mrkdwn",
-                text: "*Completed:*\n" + new Date().toLocaleString()
+                type: 'mrkdwn',
+                text: '*Completed:*\n' + new Date().toLocaleString(),
               },
               {
-                type: "mrkdwn",
+                type: 'mrkdwn',
                 text:
-                  "*Total Points:*\n" +
+                  '*Total Points:*\n' +
                   numeral(cart.items.reduce((r, i) => r + i.points, 0)).format(
-                    "0,0"
-                  )
+                    '0,0',
+                  ),
               },
 
               {
-                type: "mrkdwn",
+                type: 'mrkdwn',
                 text:
-                  "*Protection Plan:*\n" + (cart.protectionPlan ? "YES" : "NO")
+                  '*Protection Plan:*\n' + (cart.protectionPlan ? 'YES' : 'NO'),
               },
               {
-                type: "mrkdwn",
-                text: "*Service:*\n" + cart.service
+                type: 'mrkdwn',
+                text: '*Service:*\n' + cart.service,
               },
               {
-                type: "mrkdwn",
-                text: "*Plan:*\n" + cart.planId || cart.user.planId
-              }
-            ]
-          }
-        ]
+                type: 'mrkdwn',
+                text: '*Plan:*\n' + cart.planId || cart.user.planId,
+              },
+            ],
+          },
+        ],
       });
     }
 

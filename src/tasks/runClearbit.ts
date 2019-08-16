@@ -1,9 +1,9 @@
-import { User } from "@common/models/User";
-import { UserEmployment } from "@common/models/UserEmployment";
-import { UserSocialHandle } from "@common/models/UserSocialHandle";
-import { UserVerification } from "@common/models/UserVerification";
-import { Client } from "clearbit";
-import pick from "lodash/pick";
+import { User } from '../models/User';
+import { UserEmployment } from '../models/UserEmployment';
+import { UserSocialHandle } from '../models/UserSocialHandle';
+import { UserVerification } from '../models/UserVerification';
+import { Client } from 'clearbit';
+import pick from 'lodash/pick';
 
 const clearbit = new Client({ key: process.env.CLEARBIT });
 
@@ -17,7 +17,7 @@ async function runClearbit(job) {
       email: string;
       company?: string;
     } = {
-      email: user.email
+      email: user.email,
     };
 
     if (user.businessName) {
@@ -27,19 +27,19 @@ async function runClearbit(job) {
     try {
       const person = await clearbit.Person.find(personFilter);
 
-      Object.assign(user, pick(person, ["bio", "site", "avatar"]));
+      Object.assign(user, pick(person, ['bio', 'site', 'avatar']));
       await user.save();
 
       if (person.employment) {
         await UserEmployment.create({
           ...pick(person.employment, [
-            "domain",
-            "name",
-            "title",
-            "role",
-            "subRole",
-            "seniority"
-          ])
+            'domain',
+            'name',
+            'title',
+            'role',
+            'subRole',
+            'seniority',
+          ]),
         });
       }
 
@@ -48,51 +48,51 @@ async function runClearbit(job) {
       if (person.facebook && person.facebook.handle) {
         socialHandles.push({
           handle: person.facebook.handle,
-          type: "FACEBOOK",
-          userId: user.id
+          type: 'FACEBOOK',
+          userId: user.id,
         });
       }
 
       if (person.github && person.github.handle) {
         socialHandles.push({
           handle: person.github.handle,
-          type: "GITHUB",
-          userId: user.id
+          type: 'GITHUB',
+          userId: user.id,
         });
       }
 
       if (person.twitter && person.twitter.handle) {
         socialHandles.push({
           handle: person.twitter.handle,
-          type: "TWITTER",
-          userId: user.id
+          type: 'TWITTER',
+          userId: user.id,
         });
       }
 
       if (person.linkedin && person.linkedin.handle) {
         socialHandles.push({
           handle: person.linkedin.handle,
-          type: "LINKEDIN",
-          userId: user.id
+          type: 'LINKEDIN',
+          userId: user.id,
         });
       }
 
       await UserSocialHandle.bulkCreate(socialHandles);
 
       await UserVerification.create({
-        type: "CLEARBIT_PERSON",
+        type: 'CLEARBIT_PERSON',
         verified: !person.fuzzy,
         meta: person,
-        userId: user.id
+        userId: user.id,
       });
 
       return `User clearbit account found: ${userId} ${person.id}`;
     } catch (e) {
       await UserVerification.create({
-        type: "CLEARBIT_PERSON",
+        type: 'CLEARBIT_PERSON',
         verified: false,
         meta: e,
-        userId: user.id
+        userId: user.id,
       });
     }
 

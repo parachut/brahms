@@ -1,10 +1,10 @@
-import { Op } from "sequelize";
-import uuid from "uuid/v4";
+import { Op } from 'sequelize';
+import uuid from 'uuid/v4';
 
-import { Product } from "@common/models/Product";
-import { Inventory } from "@common/models/Inventory";
-import { InventoryStatus } from "@common/enums/inventoryStatus";
-import { pubSub } from "@common/redis";
+import { Product } from '../models/Product';
+import { Inventory } from '../models/Inventory';
+import { InventoryStatus } from '../enums/inventoryStatus';
+import { pubSub } from '../redis';
 
 async function updateProductStock(job) {
   const { productId } = job.data;
@@ -13,27 +13,27 @@ async function updateProductStock(job) {
     const stock = await Inventory.count({
       where: {
         productId,
-        status: { [Op.contains]: InventoryStatus.INWAREHOUSE }
-      }
+        status: { [Op.contains]: InventoryStatus.INWAREHOUSE },
+      },
     });
 
     Product.update(
       {
-        stock
+        stock,
       },
       {
         where: {
-          productId
-        }
-      }
+          productId,
+        },
+      },
     );
 
-    await pubSub.publish("ADDRESS_UPDATED", {
+    await pubSub.publish('ADDRESS_UPDATED', {
       id: uuid(),
       message: {
         productId,
-        stock
-      }
+        stock,
+      },
     });
 
     return `Updated product stock: ${productId}`;

@@ -1,8 +1,8 @@
-import ipstack from "ipstack";
-import util from "util";
+import ipstack from 'ipstack';
+import util from 'util';
 
-import { User } from "@common/models/User";
-import { UserGeolocation } from "@common/models/UserGeolocation";
+import { User } from '../models/User';
+import { UserGeolocation } from '../models/UserGeolocation';
 
 const ipStack = util.promisify(ipstack);
 
@@ -11,10 +11,10 @@ async function updateUserGeolocation(job) {
 
   if (userId && ipAddress) {
     const user = await User.findByPk(userId, {
-      include: ["geolocations"]
+      include: ['geolocations'],
     });
 
-    if (!user.geolocations.find(geo => geo.ip === ipAddress)) {
+    if (!user.geolocations.find((geo) => geo.ip === ipAddress)) {
       const ipInfo = await ipStack(ipAddress, process.env.IPSTACK);
 
       await UserGeolocation.create({
@@ -25,10 +25,10 @@ async function updateUserGeolocation(job) {
         city: ipInfo.city,
         zip: ipInfo.zip,
         coordinates: {
-          type: "Point",
-          coordinates: [ipInfo.longitude, ipInfo.latitude]
+          type: 'Point',
+          coordinates: [ipInfo.longitude, ipInfo.latitude],
         },
-        userId
+        userId,
       });
     }
 

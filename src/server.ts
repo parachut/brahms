@@ -1,7 +1,5 @@
-import cloudTasks from '@google-cloud/tasks';
 import Analytics from 'analytics-node';
 import { ApolloServer } from 'apollo-server-express';
-import bodyParser from 'body-parser';
 import cors from 'cors';
 import crypto from 'crypto';
 import { createContext } from 'dataloader-sequelize';
@@ -17,10 +15,9 @@ import { buildSchema } from 'type-graphql';
 require('dotenv').config();
 
 import { signOptions } from '../certs';
-import { pubSub, redis } from './redis';
-import hooks from './hooks';
 import cron from './cron';
-
+import hooks from './hooks';
+import { pubSub, redis } from './redis';
 import { customAuthChecker } from './utils/customAuthChecker';
 
 //import { migrator } from './migrator';
@@ -32,20 +29,25 @@ const analytics = new Analytics(process.env.SEGMENT);
 const jwtSecret = fs.readFileSync('./certs/private.key', 'utf8');
 
 const main = async () => {
-  const sequelize = new Sequelize(
-    process.env.SQL_USER,
-    process.env.SQL_DATABASE,
-    process.env.SQL_PASSWORD,
-    {
-      dialect: 'postgres',
-      host:
-        process.env.NODE_ENV === 'production'
-          ? `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`
-          : '35.202.140.177',
-      logging: false,
-      modelPaths: [`${__dirname}/models`],
-    },
-  );
+  const sequelize = process.env.DATABASE_URL
+    ? new Sequelize(process.env.DATABASE_URL, {
+        dialect: 'postgres',
+        modelPaths: [`${__dirname}/models`],
+      })
+    : new Sequelize(
+        process.env.SQL_USER,
+        process.env.SQL_DATABASE,
+        process.env.SQL_PASSWORD,
+        {
+          dialect: 'postgres',
+          host:
+            process.env.NODE_ENV === 'production'
+              ? `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`
+              : '35.202.140.177',
+          logging: false,
+          modelPaths: [`${__dirname}/models`],
+        },
+      );
 
   const dataloaderContext = createContext(sequelize);
 
@@ -178,8 +180,6 @@ const main = async () => {
     }),
   );
 
-  app.use('/tasks', bodyParser.raw({ type: 'application/octet-stream' }));
-
   app.use('/hooks', hooks);
   app.use('/cron', cron);
 
@@ -189,37 +189,6 @@ const main = async () => {
   // tslint:disable-next-line: no-console
   wss.listen(PORT, async () => {
     // Instantiates a client.
-    const client = new cloudTasks.CloudTasksClient();
-    const parent = client.locationPath('parachut-216816', 'us-central1');
-
-    const [queues] = await client.listQueues({ parent });
-
-    if (
-      !queues.find(
-        (queue) =>
-          queue.name ===
-          'projects/parachut-216816/locations/us-central1/queues/parachut-appengine',
-      )
-    ) {
-      await client.createQueue({
-        // The fully qualified path to the location where the queue is created
-        parent,
-        queue: {
-          // The fully qualified path to the queue
-          name: client.queuePath(
-            'parachut-216816',
-            'us-central1',
-            'parachut-appengine',
-          ),
-          appEngineHttpQueue: {
-            appEngineRoutingOverride: {
-              service: 'default',
-            },
-          },
-        },
-      });
-    }
-
     console.log(`Listening on ${PORT}`);
   });
 };
