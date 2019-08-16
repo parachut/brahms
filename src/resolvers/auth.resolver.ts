@@ -1,23 +1,29 @@
 import { Client as Authy } from 'authy-client';
+import Queue from 'bull';
+import crypto from 'crypto';
 import fs from 'fs';
 import jsonwebtoken from 'jsonwebtoken';
 import pick from 'lodash/pick';
 import { Op } from 'sequelize';
-import crypto from 'crypto';
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 
+import { signOptions } from '../../certs';
 import { AuthenticateInput } from '../classes/authenticate.input';
 import { RegisterInput } from '../classes/register.input';
 import { Token } from '../classes/token.object';
 import { Phone } from '../decorators/phone';
+import { UserRole } from '../enums/userRole';
 import { User } from '../models/User';
 import { IContext, IJWTPayLoad } from '../utils/context.interface';
-import { signOptions } from '../../certs';
-import { UserRole } from '../enums/userRole';
-import { createTask } from '../utils/createTask';
 
 const privateKEY = fs.readFileSync('./certs/private.key', 'utf8');
 const authy = new Authy({ key: process.env.AUTHY });
+
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const updateUserGeolocationQueue = new Queue(
+  'update-user-geolocation',
+  REDIS_URL,
+);
 
 @Resolver(User)
 export default class AuthResolver {
@@ -85,6 +91,11 @@ export default class AuthResolver {
       },
     });
 
+    updateUserGeolocationQueue.add({
+      userId: user.get('id'),
+      ipAddress: ctx.clientIp,
+    });
+
     const payload: IJWTPayLoad = {
       id: user.id,
       roles: [UserRole.MEMBER],
@@ -129,7 +140,7 @@ export default class AuthResolver {
       phone,
     });
 
-    await createTask('update-user-geolocation', {
+    updateUserGeolocationQueue.add({
       userId: user.get('id'),
       ipAddress: ctx.clientIp,
     });

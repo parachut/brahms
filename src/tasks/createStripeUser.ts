@@ -1,41 +1,36 @@
-import Stripe from 'stripe';
+import Stripe from "stripe";
 
-import { User } from '../models/User';
-import { UserIntegration } from '../models/UserIntegration';
+import { User } from "@common/models/User";
+import { UserIntegration } from "@common/models/UserIntegration";
 
 if (!process.env.STRIPE) {
-  throw new Error('Missing environment variable STRIPE');
+  throw new Error("Missing environment variable STRIPE");
 }
 
 const stripe = new Stripe(process.env.STRIPE);
 
-export async function createStripeUser(req, res) {
-  const { userId } = req.body;
+async function createStripeUser(job) {
+  const { userId } = job.data;
 
-  if (userId && req.header('X-AppEngine-TaskName')) {
-    const user = await User.findByPk(userId, { include: ['integrations'] });
+  if (userId) {
+    const user = await User.findByPk(userId, { include: ["integrations"] });
 
     const customer = await stripe.customers.create({
       description: user.name,
-      email: user.email,
+      email: user.email
     });
 
     user.stripeId = customer.id;
 
     await user.save();
     await UserIntegration.create({
-      type: 'STRIPE',
+      type: "STRIPE",
       value: customer.id,
-      userId: user.id,
+      userId: user.id
     });
 
-    return res
-      .send(`User stripe account created: ${userId} ${customer.id}`)
-      .end();
+    return `User stripe account created: ${userId} ${customer.id}`;
   }
-
-  return res
-    .status(500)
-    .send('Not authorized')
-    .end();
 }
+
+export default createStripeUser;

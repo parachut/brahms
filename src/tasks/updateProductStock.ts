@@ -1,46 +1,43 @@
-import { Op } from 'sequelize';
-import uuid from 'uuid/v4';
+import { Op } from "sequelize";
+import uuid from "uuid/v4";
 
-import { Product } from '../models/Product';
-import { Inventory } from '../models/Inventory';
-import { InventoryStatus } from '../enums/inventoryStatus';
-import { pubSub } from '../redis';
+import { Product } from "@common/models/Product";
+import { Inventory } from "@common/models/Inventory";
+import { InventoryStatus } from "@common/enums/inventoryStatus";
+import { pubSub } from "@common/redis";
 
-export async function updateProductStock(req, res) {
-  const { productId } = req.body;
+async function updateProductStock(job) {
+  const { productId } = job.data;
 
-  if (productId && req.header('X-AppEngine-TaskName')) {
+  if (productId) {
     const stock = await Inventory.count({
       where: {
         productId,
-        status: { [Op.contains]: InventoryStatus.INWAREHOUSE },
-      },
+        status: { [Op.contains]: InventoryStatus.INWAREHOUSE }
+      }
     });
 
     Product.update(
       {
-        stock,
+        stock
       },
       {
         where: {
-          productId,
-        },
-      },
+          productId
+        }
+      }
     );
 
-    await pubSub.publish('ADDRESS_UPDATED', {
+    await pubSub.publish("ADDRESS_UPDATED", {
       id: uuid(),
       message: {
         productId,
-        stock,
-      },
+        stock
+      }
     });
 
-    return res.send(`Updated product stock: ${productId}`).end();
+    return `Updated product stock: ${productId}`;
   }
-
-  return res
-    .status(500)
-    .send('Not authorized')
-    .end();
 }
+
+export default updateProductStock;

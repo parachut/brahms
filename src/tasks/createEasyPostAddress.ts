@@ -1,15 +1,15 @@
-import EasyPost from '@easypost/api';
-import uuid from 'uuid/v4';
+import EasyPost from "@easypost/api";
+import uuid from "uuid/v4";
 
-import { Address } from '../models/Address';
-import { pubSub } from '../redis';
+import { Address } from "@common/models/Address";
+import { pubSub } from "@common/redis";
 
 const easyPost = new EasyPost(process.env.EASYPOST);
 
-export async function createEasyPostAddress(req, res) {
-  const { addressId } = req.body;
+async function createEasyPostAddress(job) {
+  const { addressId } = job.data;
 
-  if (addressId && req.header('X-AppEngine-TaskName')) {
+  if (addressId) {
     const address = await Address.findByPk(addressId);
 
     const easyPostAddress = new easyPost.Address({
@@ -20,7 +20,7 @@ export async function createEasyPostAddress(req, res) {
       name: address.name,
       state: address.state,
       street1: address.formattedStreet,
-      zip: address.zip,
+      zip: address.zip
     });
 
     await easyPostAddress.save();
@@ -31,18 +31,13 @@ export async function createEasyPostAddress(req, res) {
 
     await address.save();
 
-    await pubSub.publish('ADDRESS_UPDATED', {
+    await pubSub.publish("ADDRESS_UPDATED", {
       id: uuid(),
-      message: address,
+      message: address
     });
 
-    return res
-      .send(`Address easyPostId created: ${addressId} ${address.easyPostId}`)
-      .end();
+    return `Address easyPostId created: ${addressId} ${address.easyPostId}`;
   }
-
-  return res
-    .status(500)
-    .send('Not authorized')
-    .end();
 }
+
+export default createEasyPostAddress;

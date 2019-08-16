@@ -1,16 +1,14 @@
 import crypto from 'crypto';
 import Stripe from 'stripe';
-import { FieldResolver, Resolver, Root, Ctx } from 'type-graphql';
+import { Ctx, FieldResolver, Resolver, Root } from 'type-graphql';
 
+import { StripeSource } from '../classes/stripeSource';
 import { Inventory } from '../models/Inventory';
 import { User } from '../models/User';
+import { UserIntegration } from '../models/UserIntegration';
 import { UserVerification } from '../models/UserVerification';
-import { StripeSource } from '../classes/stripeSource';
-import { StripeBankAccount } from '../classes/stripeBankAccount';
-import { StripeCard } from '../classes/stripeCard';
 import { IContext } from '../utils/context.interface';
 import { formatStripeSource } from '../utils/formatStripeSource';
-import { UserIntegration } from '../models/UserIntegration';
 
 const stripe = new Stripe(process.env.STRIPE);
 

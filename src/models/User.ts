@@ -1,3 +1,4 @@
+import BullQueue from 'bull';
 import Sequelize from 'sequelize';
 import {
   AfterCreate,
@@ -18,7 +19,6 @@ import { Field, ID, Int, ObjectType } from 'type-graphql';
 
 import { UserRole } from '../enums/userRole';
 import { UserStatus } from '../enums/userStatus';
-import { createTask } from '../utils/createTask';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Income } from './Income';
@@ -31,6 +31,15 @@ import { UserIntegration } from './UserIntegration';
 import { UserMarketingSource } from './UserMarketingSource';
 import { UserSocialHandle } from './UserSocialHandle';
 import { UserVerification } from './UserVerification';
+
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const createAuthyUserQueue = new BullQueue('create-authy-user', REDIS_URL);
+const createFrontContactQueue = new BullQueue(
+  'create-front-contact',
+  REDIS_URL,
+);
+const createStripeUserQueue = new BullQueue('create-stripe-user', REDIS_URL);
+const runClearbitQueue = new BullQueue('run-clearbit', REDIS_URL);
 
 @ObjectType()
 @Table
@@ -173,16 +182,16 @@ export class User extends Model<User> {
   @AfterCreate
   static linkAccounts(instance: User) {
     if (!instance.stripeId) {
-      createTask('create-stripe-user', {
+      createStripeUserQueue.add({
         userId: instance.get('id'),
       });
-      createTask('create-authy-user', {
+      createAuthyUserQueue.add({
         userId: instance.get('id'),
       });
-      createTask('create-front-contact', {
+      createFrontContactQueue.add({
         userId: instance.get('id'),
       });
-      createTask('run-clearbit', {
+      runClearbitQueue.add({
         userId: instance.get('id'),
       });
     }
@@ -197,7 +206,7 @@ export class User extends Model<User> {
           type: 'AUTHY',
         },
       });
-      createTask('create-authy-user', {
+      createAuthyUserQueue.add({
         userId: instance.get('id'),
       });
     }

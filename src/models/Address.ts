@@ -1,7 +1,7 @@
-import Geocodio from 'geocodio';
-import omit from 'lodash/omit';
+import Queue from 'bull';
 import Sequelize from 'sequelize';
 import {
+  AfterCreate,
   BeforeCreate,
   BelongsTo,
   Column,
@@ -14,22 +14,23 @@ import {
   Model,
   PrimaryKey,
   Table,
-  AfterCreate,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
-import util from 'util';
 
 import { Cart } from './Cart';
 import { CensusData } from './CensusData';
 import { Shipment } from './Shipment';
 import { User } from './User';
-import { createTask } from '../utils/createTask';
 
-const geocodio = new Geocodio({
-  api_key: process.env.GEOCODIO,
-});
-
-const geocodioPromise = util.promisify(geocodio.get).bind(geocodio);
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const createEasypostAddressQeue = new Queue(
+  'create-easypost-address',
+  REDIS_URL,
+);
+const updateAddressCensusDataQueue = new Queue(
+  'update-address-census-data',
+  REDIS_URL,
+);
 
 @ObjectType()
 @Table
@@ -180,10 +181,10 @@ export class Address extends Model<Address> {
 
   @AfterCreate
   static async createEasyPostId(instance: Address) {
-    createTask('create-easypost-address', {
+    createEasypostAddressQeue.add({
       addressId: instance.get('id'),
     });
-    createTask('update-address-censusdata', {
+    updateAddressCensusDataQueue.add({
       addressId: instance.get('id'),
     });
   }

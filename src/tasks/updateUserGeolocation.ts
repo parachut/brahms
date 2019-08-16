@@ -1,20 +1,20 @@
-import ipstack from 'ipstack';
-import util from 'util';
+import ipstack from "ipstack";
+import util from "util";
 
-import { User } from '../models/User';
-import { UserGeolocation } from '../models/UserGeolocation';
+import { User } from "@common/models/User";
+import { UserGeolocation } from "@common/models/UserGeolocation";
 
 const ipStack = util.promisify(ipstack);
 
-export async function updateUserGeolocation(req, res) {
-  const { userId, ipAddress } = req.body;
+async function updateUserGeolocation(job) {
+  const { userId, ipAddress } = job.data;
 
-  if (userId && ipAddress && req.header('X-AppEngine-TaskName')) {
+  if (userId && ipAddress) {
     const user = await User.findByPk(userId, {
-      include: ['geolocations'],
+      include: ["geolocations"]
     });
 
-    if (!user.geolocations.find((geo) => geo.ip === ipAddress)) {
+    if (!user.geolocations.find(geo => geo.ip === ipAddress)) {
       const ipInfo = await ipStack(ipAddress, process.env.IPSTACK);
 
       await UserGeolocation.create({
@@ -25,18 +25,15 @@ export async function updateUserGeolocation(req, res) {
         city: ipInfo.city,
         zip: ipInfo.zip,
         coordinates: {
-          type: 'Point',
-          coordinates: [ipInfo.longitude, ipInfo.latitude],
+          type: "Point",
+          coordinates: [ipInfo.longitude, ipInfo.latitude]
         },
-        userId,
+        userId
       });
     }
 
-    return res.send(`User geolocation updated: ${userId} ${ipAddress}`).end();
+    return `User geolocation updated: ${userId} ${ipAddress}`;
   }
-
-  return res
-    .status(500)
-    .send('Not authorized')
-    .end();
 }
+
+export default updateUserGeolocation;

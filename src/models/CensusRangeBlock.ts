@@ -23,7 +23,7 @@ export class CensusRangeBlock extends Model<CensusRangeBlock> {
   @Column(DataType.RANGE(DataType.INTEGER))
   public range!: [number];
 
-  @Column
+  @Column(DataType.FLOAT)
   public value!: number;
 
   @Column(DataType.GEOGRAPHY('POINT'))

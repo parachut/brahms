@@ -1,35 +1,32 @@
-import { Client as Authy } from 'authy-client';
+import { Client as Authy } from "authy-client";
 
-import { User } from '../models/User';
-import { UserIntegration } from '../models/UserIntegration';
+import { User } from "@common/models/User";
+import { UserIntegration } from "@common/models/UserIntegration";
 
 const authy = new Authy({ key: process.env.AUTHY });
 
-export async function createAuthyUser(req, res) {
-  const { userId } = req.body;
+async function createAuthyUser(job) {
+  const { userId } = job.data;
 
-  if (userId && req.header('X-AppEngine-TaskName')) {
-    const user = await User.findByPk(userId, { include: ['integrations'] });
+  if (userId) {
+    const user = await User.findByPk(userId, { include: ["integrations"] });
 
     const {
-      user: { id: authyId },
+      user: { id: authyId }
     } = await authy.registerUser({
-      countryCode: 'US',
+      countryCode: "US",
       email: user.email,
-      phone: user.phone,
+      phone: user.phone
     });
 
     await UserIntegration.create({
-      type: 'AUTHY',
+      type: "AUTHY",
       value: authyId,
-      userId: user.id,
+      userId: user.id
     });
 
-    return res.send(`User authy account created: ${userId} ${authyId}`).end();
+    return `User authy account created: ${userId} ${authyId}`;
   }
-
-  return res
-    .status(500)
-    .send('Not authorized')
-    .end();
 }
+
+export default createAuthyUser;

@@ -1,3 +1,4 @@
+import Queue from 'bull';
 import {
   Arg,
   Authorized,
@@ -6,8 +7,8 @@ import {
   Mutation,
   Query,
   Resolver,
-  Subscription,
   Root,
+  Subscription,
 } from 'type-graphql';
 
 import { AddressCreateInput } from '../classes/addressCreate.input';
@@ -17,7 +18,9 @@ import { Phone } from '../decorators/phone';
 import { UserRole } from '../enums/userRole';
 import { Address } from '../models/Address';
 import { IContext } from '../utils/context.interface';
-import { createTask } from '../utils/createTask';
+
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const checkClearbitFraudQueue = new Queue('check-clearbit-fraud', REDIS_URL);
 
 @Resolver(Address)
 export default class AddressResolver {
@@ -69,7 +72,7 @@ export default class AddressResolver {
         userId: ctx.user.id,
       });
 
-      createTask('check-clearbit-fraud', {
+      checkClearbitFraudQueue.add({
         userId: ctx.user.id,
         ipAddress: ctx.clientIp,
       });

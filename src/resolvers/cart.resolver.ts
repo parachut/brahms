@@ -1,4 +1,5 @@
 import EasyPost from '@easypost/api';
+import Queue from 'bull';
 import isUndefined from 'lodash/isUndefined';
 import * as Postmark from 'postmark';
 import { Op } from 'sequelize';
@@ -26,11 +27,12 @@ import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
 import { Warehouse } from '../models/Warehouse';
 import { IContext } from '../utils/context.interface';
-import { createTask } from '../utils/createTask';
 
 const moment = require('moment-business-days');
 const postmark = new Postmark.ServerClient(process.env.POSTMARK);
 const easyPost = new EasyPost(process.env.EASYPOST);
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const checkoutQueue = new Queue('checkout', REDIS_URL);
 
 @Resolver(Cart)
 export default class CartResolver {
@@ -296,7 +298,7 @@ export default class CartResolver {
           userId: user.id,
         });
 
-        createTask('checkout', {
+        checkoutQueue.add({
           cartId: cart.id,
         });
 
