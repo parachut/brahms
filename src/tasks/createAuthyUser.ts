@@ -8,22 +8,30 @@ const authy = new Authy({ key: process.env.AUTHY });
 async function createAuthyUser(job) {
   const { userId } = job.data;
 
+  console.log(job.data);
+
   if (userId) {
-    const user = await User.findByPk(userId, { include: ['integrations'] });
+    try {
+      const user = await User.findByPk(userId, { include: ['integrations'] });
 
-    const {
-      user: { id: authyId },
-    } = await authy.registerUser({
-      countryCode: 'US',
-      email: user.email,
-      phone: user.phone,
-    });
+      console.log(user);
 
-    await UserIntegration.create({
-      type: 'AUTHY',
-      value: authyId,
-      userId: user.id,
-    });
+      const {
+        user: { id: authyId },
+      } = await authy.registerUser({
+        countryCode: 'US',
+        email: user.email,
+        phone: user.phone,
+      });
+
+      await UserIntegration.create({
+        type: 'AUTHY',
+        value: authyId,
+        userId: user.id,
+      });
+    } catch (e) {
+      console.log(e);
+    }
 
     return `User authy account created: ${userId} ${authyId}`;
   }
