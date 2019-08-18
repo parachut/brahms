@@ -38,7 +38,10 @@ async function checkout(job) {
             'integrations',
           ],
         },
-        'items',
+        {
+          association: 'items',
+          include: ['product'],
+        },
       ],
     });
 
@@ -172,6 +175,10 @@ async function checkout(job) {
       } catch (e) {
         throw e;
       }
+    }
+
+    if (stripeMonthlyPlan) {
+      cart.confirmedAt = new Date();
     }
 
     await cart.save();

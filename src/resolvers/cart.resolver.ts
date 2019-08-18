@@ -16,6 +16,7 @@ import {
 
 import { CartTransitTime } from '../classes/cartTransitTime';
 import { CartUpdateInput } from '../classes/cartUpdate.input';
+import { CartWhereUniqueInput } from '../classes/cartWhereUnique.input';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { UserRole } from '../enums/userRole';
 import { UserStatus } from '../enums/userStatus';
@@ -79,6 +80,39 @@ export default class CartResolver {
       return carts;
     }
     throw new Error('Unauthorised.');
+  }
+
+  @Authorized([UserRole.MEMBER])
+  @Mutation(() => Cart)
+  public async cancelCart(
+    @Arg('where', (type) => CartWhereUniqueInput)
+    { id }: CartWhereUniqueInput,
+    @Ctx() ctx: IContext,
+  ) {
+    if (ctx.user) {
+      const cart = await Cart.findOne({
+        where: { userId: ctx.user.id, id },
+        include: ['inventory'],
+      });
+
+      await Inventory.update(
+        {
+          memberId: null,
+          status: InventoryStatus.INWAREHOUSE,
+        },
+        {
+          where: {
+            id: { [Op.in]: cart.inventory.map((i) => i.id) },
+          },
+        },
+      );
+
+      cart.canceledAt = new Date();
+
+      return cart.save();
+    }
+
+    throw new Error('Unauthorized');
   }
 
   @Authorized([UserRole.MEMBER])

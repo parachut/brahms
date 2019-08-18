@@ -109,8 +109,6 @@ export default class CalcUnlimitedTierResolver {
         (int) => int.type === 'STRIPE_MONTHLYPROTECTIONPLAN',
       );
 
-      console.log(user.planId, pointsOver);
-
       if (
         (user.planId && user.planId !== selectedPlan) ||
         (user.planId && pointsOver)

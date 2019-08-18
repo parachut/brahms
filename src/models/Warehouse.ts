@@ -118,8 +118,6 @@ export class Warehouse extends Model<Warehouse> {
 
     await easyPostAddress.save();
 
-    console.log(easyPostAddress);
-
     if (easyPostAddress.verifications.delivery.success === false) {
       throw new Error('Address not found.');
     }
