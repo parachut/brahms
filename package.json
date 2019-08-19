@@ -93,6 +93,7 @@
     "worker": "ts-node-dev --respawn --transpileOnly --ignore-watch node_modules ./src/worker.ts",
     "lint": "tslint 'src/**/*.{ts,tsx}' --exclude 'src/**/*.d.ts'",
     "start": "node ./dist/src/server.js",
+    "start-worker": "node ./dist/src/worker.js",
     "test": "npm run lint"
   },
   "version": "0.1.0"
