@@ -839,6 +839,20 @@
         "description": "Select the inventory for the shipment.",
         "position": 0,
         "widget": null
+      }, {
+        "field": "Service",
+        "type": "[Enum]",
+        "defaultValue": null,
+        "enums": [
+          "Ground",
+          "2ndDayAir",
+          "NextDayAir"
+        ],
+        "isRequired": true,
+        "reference": null,
+        "description": "Select a UPS service for the shipment.",
+        "position": 1,
+        "widget": null
       }]
     }]
   }, {
