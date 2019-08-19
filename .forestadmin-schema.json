@@ -831,7 +831,7 @@
       "download": false,
       "fields": [{
         "field": "Inventory",
-        "type": "[String]",
+        "type": ["Enum"],
         "defaultValue": null,
         "enums": null,
         "isRequired": true,
@@ -841,7 +841,7 @@
         "widget": null
       }, {
         "field": "Service",
-        "type": "[Enum]",
+        "type": ["Enum"],
         "defaultValue": null,
         "enums": [
           "Ground",
