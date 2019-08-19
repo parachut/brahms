@@ -284,6 +284,8 @@ export class Shipment extends Model<Shipment> {
       instance.publicUrl = easyPostShipment.tracker.public_url;
       instance.labelUrlZPL = easyPostShipment.postage_label.label_zpl_url;
       instance.labelUrl = easyPostShipment.postage_label.label_url;
+
+      await instance.save();
     }
   }
 }
