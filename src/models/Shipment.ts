@@ -14,6 +14,7 @@ import {
   PrimaryKey,
   Table,
   UpdatedAt,
+  BeforeCreate,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType, Root } from 'type-graphql';
 
@@ -189,6 +190,29 @@ export class Shipment extends Model<Shipment> {
 
   @UpdatedAt
   public updatedAt!: Date;
+
+  @BeforeCreate
+  static async findRelatedInformation(instance: Shipment) {
+    if (instance.cartId) {
+      const cart = await Cart.findByPk(instance.cartId);
+
+      if (!instance.addressId) {
+        instance.addressId = cart.addressId;
+      }
+
+      if (!instance.userId) {
+        instance.userId = cart.userId;
+      }
+    }
+
+    if (!instance.warehouseId) {
+      const warehouse = await Warehouse.findOne({
+        where: {},
+      });
+
+      instance.warehouseId = warehouse.id;
+    }
+  }
 
   @AfterCreate
   static async createEasyPostShipment(instance: Shipment) {
