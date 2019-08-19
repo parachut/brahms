@@ -16,9 +16,6 @@ Liana.collection('Cart', {
           field: 'Inventory',
           description: 'Select the inventory for the shipment.',
           type: '[Enum]',
-          enums: (context) => {
-            return ['Something', 'Something Else'];
-          },
           isRequired: true,
         },
       ],
