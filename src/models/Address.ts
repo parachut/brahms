@@ -21,16 +21,10 @@ import { Cart } from './Cart';
 import { CensusData } from './CensusData';
 import { Shipment } from './Shipment';
 import { User } from './User';
+import { createQueue } from '../redis';
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const createEasypostAddressQeue = new Queue(
-  'create-easypost-address',
-  REDIS_URL,
-);
-const updateAddressCensusDataQueue = new Queue(
-  'update-address-census-data',
-  REDIS_URL,
-);
+const createEasypostAddressQeue = createQueue('create-easypost-address');
+const updateAddressCensusDataQueue = createQueue('update-address-census-data');
 
 @ObjectType()
 @Table

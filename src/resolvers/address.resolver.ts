@@ -18,9 +18,9 @@ import { Phone } from '../decorators/phone';
 import { UserRole } from '../enums/userRole';
 import { Address } from '../models/Address';
 import { IContext } from '../utils/context.interface';
+import { createQueue } from '../redis';
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const checkClearbitFraudQueue = new Queue('check-clearbit-fraud', REDIS_URL);
+const checkClearbitFraudQueue = createQueue('check-clearbit-fraud');
 
 @Resolver(Address)
 export default class AddressResolver {

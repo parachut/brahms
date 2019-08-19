@@ -6,6 +6,7 @@ import Queue from 'bull';
 import { Cart } from '../models/Cart';
 import { CartItem } from '../models/CartItem';
 import { UserIntegration } from '../models/UserIntegration';
+import { createQueue } from '../redis';
 
 if (!process.env.STRIPE) {
   throw new Error('Missing environment variable STRIPE');
@@ -18,8 +19,7 @@ if (!process.env.SLACK_TOKEN) {
 const stripe = new Stripe(process.env.STRIPE);
 const slack = new WebClient(process.env.SLACK_TOKEN);
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const updateProductStockQueue = new Queue('update-product-stock', REDIS_URL);
+const updateProductStockQueue = createQueue('update-product-stock');
 
 async function checkout(job) {
   const { cartId } = job.data;

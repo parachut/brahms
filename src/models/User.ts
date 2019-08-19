@@ -31,15 +31,12 @@ import { UserIntegration } from './UserIntegration';
 import { UserMarketingSource } from './UserMarketingSource';
 import { UserSocialHandle } from './UserSocialHandle';
 import { UserVerification } from './UserVerification';
+import { createQueue } from '../redis';
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const createAuthyUserQueue = new BullQueue('create-authy-user', REDIS_URL);
-const createFrontContactQueue = new BullQueue(
-  'create-front-contact',
-  REDIS_URL,
-);
-const createStripeUserQueue = new BullQueue('create-stripe-user', REDIS_URL);
-const runClearbitQueue = new BullQueue('run-clearbit', REDIS_URL);
+const createAuthyUserQueue = createQueue('create-authy-user');
+const createFrontContactQueue = createQueue('create-front-contact');
+const createStripeUserQueue = createQueue('create-stripe-user');
+const runClearbitQueue = createQueue('run-clearbit');
 
 @ObjectType()
 @Table

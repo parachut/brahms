@@ -28,12 +28,12 @@ import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
 import { Warehouse } from '../models/Warehouse';
 import { IContext } from '../utils/context.interface';
+import { createQueue } from '../redis';
 
 const moment = require('moment-business-days');
 const postmark = new Postmark.ServerClient(process.env.POSTMARK);
 const easyPost = new EasyPost(process.env.EASYPOST);
-const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const checkoutQueue = new Queue('checkout', REDIS_URL);
+const checkoutQueue = createQueue('checkout');
 
 @Resolver(Cart)
 export default class CartResolver {

@@ -15,15 +15,12 @@ import { Phone } from '../decorators/phone';
 import { UserRole } from '../enums/userRole';
 import { User } from '../models/User';
 import { IContext, IJWTPayLoad } from '../utils/context.interface';
+import { createQueue } from '../redis';
 
 const privateKEY = fs.readFileSync('./certs/private.key', 'utf8');
 const authy = new Authy({ key: process.env.AUTHY });
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const updateUserGeolocationQueue = new Queue(
-  'update-user-geolocation',
-  REDIS_URL,
-);
+const updateUserGeolocationQueue = createQueue('update-user-geolocation');
 
 @Resolver(User)
 export default class AuthResolver {
