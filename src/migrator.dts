@@ -606,9 +606,15 @@ const moveInventory = async (productIds, userIds) => {
         'status',
       ]),
       missingEssentials: [],
-      memberId: null,
+      memberId:
+        userIds.length > 1
+          ? userIds[inventoriesExtra[i].member.id]
+          : userIds[0].id,
       productId: productIds[inventoriesExtra[i].product.id],
-      userId: userIds[inventoriesExtra[i].user.id],
+      userId:
+        userIds.length > 1
+          ? userIds[inventoriesExtra[i].user.id]
+          : userIds[0].id,
     });
   });
 
@@ -880,16 +886,30 @@ const moveShipments = async (
 export const migrator = async (req, res) => {
   console.clear();
   console.log('Being migration...');
-  let userIds = await redis.get('migration:userIds');
 
-  if (!userIds) {
-    userIds = await moveUsers();
-    redis.set('migration:userIds', JSON.stringify(userIds));
-    await moveUserIntegrations(userIds);
-    console.log('Users completed!');
+  let userIds = [];
+
+  if (process.env.NODE_ENV === 'production') {
+    let userIds = await redis.get('migration:userIds');
+
+    if (!userIds) {
+      userIds = await moveUsers();
+      redis.set('migration:userIds', JSON.stringify(userIds));
+      await moveUserIntegrations(userIds);
+      console.log('Users completed!');
+    } else {
+      console.log('Skipping users');
+      userIds = JSON.parse(userIds);
+    }
   } else {
-    console.log('Skipping users');
-    userIds = JSON.parse(userIds);
+    const testUser = await User.create({
+      email: 'daniel+test@parachut.co',
+      phone: '+12085853959',
+      name: 'Test User',
+      stripeId: 'cus_Fcduro8B5S9Ghx',
+    });
+
+    userIds.push(testUser.id);
   }
 
   let fileIds = await redis.get('migration:fileIds');
@@ -940,54 +960,56 @@ export const migrator = async (req, res) => {
   redis.set('migration:inventoryIds', JSON.stringify(inventoryIds));
   console.log('Inventory completed!');
 
-  let addressIds = await redis.get('migration:addressIds');
+  if (process.env.NODE_ENV === 'production') {
+    let addressIds = await redis.get('migration:addressIds');
 
-  if (!addressIds) {
-    addressIds = await moveAddresses(userIds);
-    redis.set('migration:addressIds', JSON.stringify(addressIds));
-    console.log('Addresses completed!');
-  } else {
-    console.log('Skipping addresses');
-    addressIds = JSON.parse(addressIds);
-  }
+    if (!addressIds) {
+      addressIds = await moveAddresses(userIds);
+      redis.set('migration:addressIds', JSON.stringify(addressIds));
+      console.log('Addresses completed!');
+    } else {
+      console.log('Skipping addresses');
+      addressIds = JSON.parse(addressIds);
+    }
 
-  let warehouseIds = await redis.get('migration:warehouseIds');
+    let warehouseIds = await redis.get('migration:warehouseIds');
 
-  if (!warehouseIds) {
-    warehouseIds = await moveWarehouses();
-    redis.set('migration:warehouseIds', JSON.stringify(warehouseIds));
-    console.log('Warehouses completed!');
-  } else {
-    console.log('Skipping warehouses');
-    warehouseIds = JSON.parse(warehouseIds);
-  }
+    if (!warehouseIds) {
+      warehouseIds = await moveWarehouses();
+      redis.set('migration:warehouseIds', JSON.stringify(warehouseIds));
+      console.log('Warehouses completed!');
+    } else {
+      console.log('Skipping warehouses');
+      warehouseIds = JSON.parse(warehouseIds);
+    }
 
-  let cartIds = await redis.get('migration:cartIds');
+    let cartIds = await redis.get('migration:cartIds');
 
-  if (!cartIds) {
-    cartIds = await moveCarts(productIds, userIds, inventoryIds, addressIds);
-    redis.set('migration:cartIds', JSON.stringify(cartIds));
-    console.log('Carts completed!');
-  } else {
-    console.log('Skipping carts');
-    cartIds = JSON.parse(cartIds);
-  }
+    if (!cartIds) {
+      cartIds = await moveCarts(productIds, userIds, inventoryIds, addressIds);
+      redis.set('migration:cartIds', JSON.stringify(cartIds));
+      console.log('Carts completed!');
+    } else {
+      console.log('Skipping carts');
+      cartIds = JSON.parse(cartIds);
+    }
 
-  let shipmentIds = await redis.get('migration:shipmentIds');
+    let shipmentIds = await redis.get('migration:shipmentIds');
 
-  if (!shipmentIds) {
-    shipmentIds = await moveShipments(
-      userIds,
-      inventoryIds,
-      cartIds,
-      addressIds,
-      warehouseIds,
-    );
-    redis.set('migration:shipmentIds', JSON.stringify(shipmentIds));
-    console.log('Shipments completed!');
-  } else {
-    console.log('Skipping shipments');
-    shipmentIds = JSON.parse(shipmentIds);
+    if (!shipmentIds) {
+      shipmentIds = await moveShipments(
+        userIds,
+        inventoryIds,
+        cartIds,
+        addressIds,
+        warehouseIds,
+      );
+      redis.set('migration:shipmentIds', JSON.stringify(shipmentIds));
+      console.log('Shipments completed!');
+    } else {
+      console.log('Skipping shipments');
+      shipmentIds = JSON.parse(shipmentIds);
+    }
   }
 
   res.send('done');

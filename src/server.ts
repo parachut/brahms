@@ -20,7 +20,7 @@ import hooks from './hooks';
 import { pubSub, redis } from './redis';
 import { customAuthChecker } from './utils/customAuthChecker';
 
-//import { migrator } from './migrator';
+// import { migrator } from './migrator';
 const PORT = process.env.PORT || 4000;
 const GQLPATH = '/graphql';
 
@@ -29,25 +29,13 @@ const analytics = new Analytics(process.env.SEGMENT);
 const jwtSecret = fs.readFileSync('./certs/private.key', 'utf8');
 
 const main = async () => {
-  const sequelize = process.env.DATABASE_URL
-    ? new Sequelize(process.env.DATABASE_URL, {
-        dialect: 'postgres',
-        modelPaths: [`${__dirname}/models`],
-      })
-    : new Sequelize(
-        process.env.SQL_USER,
-        process.env.SQL_DATABASE,
-        process.env.SQL_PASSWORD,
-        {
-          dialect: 'postgres',
-          host:
-            process.env.NODE_ENV === 'production'
-              ? `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`
-              : '35.202.140.177',
-          logging: false,
-          modelPaths: [`${__dirname}/models`],
-        },
-      );
+  const sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
+    modelPaths: [`${__dirname}/models`],
+    dialectOptions: {
+      ssl: true,
+    },
+  });
 
   const dataloaderContext = createContext(sequelize);
 
@@ -69,7 +57,7 @@ const main = async () => {
 
   const app = express();
 
-  //app.use('/migrator', migrator);
+  // app.use('/migrator', migrator);
 
   app.use(GQLPATH, cors());
 
