@@ -9,7 +9,7 @@ router.post(
   '/actions/create-shipment/values',
   Liana.ensureAuthenticated,
   async (req, res) => {
-    let { id } = req.body.data.attributes;
+    let { id } = req.body.data.attributes.values;
 
     const cart = await Cart.findOne({
       where: { id },
