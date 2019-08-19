@@ -193,6 +193,7 @@ export class Shipment extends Model<Shipment> {
 
   @BeforeCreate
   static async findRelatedInformation(instance: Shipment) {
+    console.log(instance);
     if (instance.cartId) {
       const cart = await Cart.findByPk(instance.cartId);
 
@@ -224,21 +225,21 @@ export class Shipment extends Model<Shipment> {
         width: instance.width,
       });
 
-      const addresses = !instance.addressId
-        ? await Address.findAll({
-            where: {
-              userId: instance.userId,
-            },
-            order: [['primary', 'DESC'], ['createdAt', 'DESC']],
-            limit: 2,
-            attributes: ['id', 'primary', 'easyPostId'],
-          })
-        : null;
+      if (!instance.addressId) {
+        const addresses = await Address.findAll({
+          where: {
+            userId: instance.userId,
+          },
+          order: [['primary', 'DESC'], ['createdAt', 'DESC']],
+          limit: 2,
+          attributes: ['id', 'primary', 'easyPostId'],
+        });
 
-      const addressId = addresses ? addresses[0].id : instance.easyPostId;
+        instance.addressId = addresses ? addresses[0].id : instance.addressId;
+      }
 
       const [address, warehouse] = await Promise.all([
-        Address.findByPk(addressId),
+        Address.findByPk(instance.addressId),
         Warehouse.findOne({
           where: {},
         }),
