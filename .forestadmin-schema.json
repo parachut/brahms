@@ -830,8 +830,8 @@
       "redirect": null,
       "download": false,
       "fields": [{
-        "field": "Inventory",
-        "type": ["Enum"],
+        "field": "inventory",
+        "type": ["String"],
         "defaultValue": null,
         "enums": null,
         "isRequired": true,
@@ -840,7 +840,7 @@
         "position": 0,
         "widget": null
       }, {
-        "field": "Service",
+        "field": "service",
         "type": ["Enum"],
         "defaultValue": null,
         "enums": [

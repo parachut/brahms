@@ -23,7 +23,7 @@ router.post(
       });
 
       res.send({
-        data: cart.inventory.map((inventory) => inventory.serial),
+        inventory: cart.inventory.map((inventory) => inventory.serial),
       });
     } catch (e) {
       res.status(500).send(e);

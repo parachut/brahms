@@ -13,13 +13,13 @@ Liana.collection('Cart', {
       type: 'single',
       fields: [
         {
-          field: 'Inventory',
+          field: 'inventory',
           description: 'Select the inventory for the shipment.',
-          type: ['Enum'],
+          type: ['String'],
           isRequired: true,
         },
         {
-          field: 'Service',
+          field: 'service',
           description: 'Select a UPS service for the shipment.',
           type: ['Enum'],
           enums: ['Ground', '2ndDayAir', 'NextDayAir'],
