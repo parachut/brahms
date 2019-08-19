@@ -10,7 +10,6 @@ router.post(
   Liana.ensureAuthenticated,
   async (req, res) => {
     const { id } = req.body.data.attributes.values;
-    console.log(req.body.data.attributes);
 
     try {
       const cart = await Cart.findOne({
@@ -23,13 +22,8 @@ router.post(
         ],
       });
 
-      console.log(cart);
-
       res.send({
-        data: cart.inventory.map((inventory) => ({
-          value: inventory.id,
-          label: `${inventory.product.name} (${inventory.serial})`,
-        })),
+        data: cart.inventory.map((inventory) => inventory.serial),
       });
     } catch (e) {
       res.status(500).send(e);
