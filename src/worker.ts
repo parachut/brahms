@@ -20,6 +20,14 @@ let workers = process.env.WEB_CONCURRENCY || 2;
 
 const maxJobsPerWorker = 25;
 
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  modelPaths: [`${__dirname}/models`],
+  dialectOptions: {
+    ssl: true,
+  },
+});
+
 function start() {
   try {
     const checkClearbitFraudQueue = new Queue(
@@ -50,14 +58,6 @@ function start() {
       'update-user-geolocation',
       REDIS_URL,
     );
-
-    const sequelize = new Sequelize(process.env.DATABASE_URL, {
-      dialect: 'postgres',
-      modelPaths: [`${__dirname}/models`],
-      dialectOptions: {
-        ssl: true,
-      },
-    });
 
     checkClearbitFraudQueue.process(maxJobsPerWorker, checkClearbitFraud);
     checkoutQueue.process(maxJobsPerWorker, checkout);

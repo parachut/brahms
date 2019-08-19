@@ -164,6 +164,12 @@ const main = async () => {
     }),
   );
 
+  fs.readdirSync(__dirname + '/routes').forEach((file) => {
+    if (file[0] !== '.') {
+      app.use('/forest', require('./routes/' + file));
+    }
+  });
+
   app.use('/hooks', hooks);
   app.use('/cron', cron);
 
