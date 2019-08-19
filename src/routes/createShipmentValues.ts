@@ -25,12 +25,12 @@ router.post(
 
       console.log(cart);
 
-      res.send(
-        cart.inventory.map((inventory) => ({
+      res.send({
+        data: cart.inventory.map((inventory) => ({
           value: inventory.id,
           label: `${inventory.product.name} (${inventory.serial})`,
         })),
-      );
+      });
     } catch (e) {
       res.status(500).send(e);
     }
