@@ -821,6 +821,27 @@
       "redirect": null,
       "download": false,
       "fields": []
+    }, {
+      "name": "Create Shipment",
+      "type": "single",
+      "baseUrl": null,
+      "endpoint": "/forest/actions/create-shipment",
+      "httpMethod": "POST",
+      "redirect": null,
+      "download": false,
+      "fields": [{
+        "field": "Inventory",
+        "type": "[Enum]",
+        "defaultValue": null,
+        "enums": {
+
+        },
+        "isRequired": true,
+        "reference": null,
+        "description": "Select the inventory for the shipment.",
+        "position": 0,
+        "widget": null
+      }]
     }]
   }, {
     "name": "CartInventory",
