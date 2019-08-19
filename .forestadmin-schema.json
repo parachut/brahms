@@ -803,7 +803,25 @@
       "validations": []
     }],
     "segments": [],
-    "actions": []
+    "actions": [{
+      "name": "Cancel Cart",
+      "type": "bulk",
+      "baseUrl": null,
+      "endpoint": "/forest/actions/cancel-cart",
+      "httpMethod": "POST",
+      "redirect": null,
+      "download": false,
+      "fields": []
+    }, {
+      "name": "Confirm Cart",
+      "type": "bulk",
+      "baseUrl": null,
+      "endpoint": "/forest/actions/confirm-cart",
+      "httpMethod": "POST",
+      "redirect": null,
+      "download": false,
+      "fields": []
+    }]
   }, {
     "name": "CartInventory",
     "nameOld": "CartInventory",

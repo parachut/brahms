@@ -1,10 +1,8 @@
+import PhoneNumber from 'awesome-phonenumber';
 import Liana from 'forest-express-sequelize';
+
 import { User } from '../models/User';
 import { UserVerification } from '../models/UserVerification';
-import PhoneNumber from 'awesome-phonenumber';
-
-import { Client as Authy } from 'authy-client';
-const authy = new Authy({ key: process.env.AUTHY });
 
 Liana.collection('User', {
   fields: [
