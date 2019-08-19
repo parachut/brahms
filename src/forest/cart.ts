@@ -15,7 +15,7 @@ Liana.collection('Cart', {
         {
           field: 'Inventory',
           description: 'Select the inventory for the shipment.',
-          type: '[Enum]',
+          type: '[String]',
           isRequired: true,
         },
       ],

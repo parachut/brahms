@@ -831,11 +831,9 @@
       "download": false,
       "fields": [{
         "field": "Inventory",
-        "type": "[Enum]",
+        "type": "[String]",
         "defaultValue": null,
-        "enums": {
-
-        },
+        "enums": null,
         "isRequired": true,
         "reference": null,
         "description": "Select the inventory for the shipment.",
