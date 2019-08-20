@@ -25,7 +25,7 @@ router.post(
     );
 
     for (const id of ids) {
-      communicationQueue.add('send-outbound-earn-confirmation-email', {
+      communicationQueue.add('send-outbound-access-confirmation-email', {
         cartId: id,
       });
     }

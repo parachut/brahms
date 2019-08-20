@@ -79,19 +79,23 @@ async function checkClearbit(job) {
 
       await UserSocialHandle.bulkCreate(socialHandles);
 
-      return UserVerification.create({
+      const verification = await UserVerification.create({
         type: 'CLEARBIT_PERSON',
         verified: !person.fuzzy,
         meta: person,
         userId: user.id,
       });
+
+      return verification;
     } catch (e) {
-      return UserVerification.create({
+      const verification = await UserVerification.create({
         type: 'CLEARBIT_PERSON',
         verified: false,
         meta: e,
         userId: user.id,
       });
+
+      return verification;
     }
   }
 }

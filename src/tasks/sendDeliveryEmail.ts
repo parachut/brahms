@@ -17,7 +17,7 @@ async function sendDeliveryEmail(job) {
     ],
   });
 
-  return sendEmail({
+  await sendEmail({
     to: cart.user.email,
     id: 12952495,
     data: {
@@ -32,6 +32,8 @@ async function sendDeliveryEmail(job) {
       })),
     },
   });
+
+  return shipment;
 }
 
 export default sendDeliveryEmail;

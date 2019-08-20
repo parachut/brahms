@@ -3,7 +3,7 @@ import { Cart } from '../models/Cart';
 import { CartItem } from '../models/CartItem';
 import { plans } from '../decorators/plans';
 
-async function sendOutboundEarnConfirmationEmail(job) {
+async function sendOutboundAccessConfirmationEmail(job) {
   const { cartId } = job.data;
 
   const cart = await Cart.findByPk(cartId, {
@@ -30,7 +30,7 @@ async function sendOutboundEarnConfirmationEmail(job) {
     0,
   );
 
-  return sendEmail({
+  await sendEmail({
     to: cart.user.email,
     from: 'support@parachut.co',
     id: 12931487,
@@ -54,6 +54,8 @@ async function sendOutboundEarnConfirmationEmail(job) {
       cartPoints: cart.items.reduce((r, i) => r + i.points, 0),
     },
   });
+
+  return cart;
 }
 
-export default sendOutboundEarnConfirmationEmail;
+export default sendOutboundAccessConfirmationEmail;

@@ -2,7 +2,7 @@ import { Cart } from '../models/Cart';
 import { Shipment } from '../models/Shipment';
 import { sendEmail } from '../utils/sendEmail';
 
-async function sendOutboundEarnShipmentEmail(job) {
+async function sendOutboundAccessShipmentEmail(job) {
   const { shipmentId } = job.data;
 
   const shipment = await Shipment.findByPk(shipmentId);
@@ -37,4 +37,4 @@ async function sendOutboundEarnShipmentEmail(job) {
   });
 }
 
-export default sendOutboundEarnShipmentEmail;
+export default sendOutboundAccessShipmentEmail;

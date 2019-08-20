@@ -203,7 +203,7 @@ async function updateAddressCensusData(job) {
       }
     }
 
-    return `Address information collected: ${address.id}`;
+    return address;
   }
 }
 

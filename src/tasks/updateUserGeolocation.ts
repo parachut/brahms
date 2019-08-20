@@ -32,7 +32,7 @@ async function updateUserGeolocation(job) {
       });
     }
 
-    return `User geolocation updated: ${userId} ${ipAddress}`;
+    return user;
   }
 }
 

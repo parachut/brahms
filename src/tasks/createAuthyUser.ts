@@ -19,11 +19,13 @@ async function createAuthyUser(job) {
       phone: user.phone,
     });
 
-    return UserIntegration.create({
+    const integration = await UserIntegration.create({
       type: 'AUTHY',
       value: authyId,
       userId: user.id,
     });
+
+    return integration;
   }
 }
 

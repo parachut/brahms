@@ -36,7 +36,7 @@ async function updateProductStock(job) {
       },
     });
 
-    return `Updated product stock: ${productId}`;
+    return productId;
   }
 }
 

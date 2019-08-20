@@ -290,7 +290,7 @@ export class Shipment extends Model<Shipment> {
       );
 
       if (instance.cartId) {
-        communicationQueue.add('send-outbound-earn-shipment-email', {
+        communicationQueue.add('send-outbound-access-shipment-email', {
           shipmentId: shipment.id,
         });
       }

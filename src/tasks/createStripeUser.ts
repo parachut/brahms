@@ -12,6 +12,8 @@ const stripe = new Stripe(process.env.STRIPE);
 async function createStripeUser(job) {
   const { userId } = job.data;
 
+  console.log(userId);
+
   if (userId) {
     const user = await User.findByPk(userId, { include: ['integrations'] });
 
@@ -23,11 +25,13 @@ async function createStripeUser(job) {
     user.stripeId = customer.id;
 
     await user.save();
-    return UserIntegration.create({
+    const integration = await UserIntegration.create({
       type: 'STRIPE',
       value: customer.id,
       userId: user.id,
     });
+
+    return integration;
   }
 }
 
