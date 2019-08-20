@@ -12,8 +12,6 @@ const stripe = new Stripe(process.env.STRIPE);
 async function createStripeUser(job) {
   const { userId } = job.data;
 
-  console.log(userId);
-
   if (userId) {
     const user = await User.findByPk(userId, { include: ['integrations'] });
 

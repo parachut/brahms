@@ -41,8 +41,6 @@ router.post(
         },
       });
 
-      console.log(response);
-
       res.send({ success: 'Label(s) are printing!' });
     }
   },

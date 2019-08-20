@@ -4217,6 +4217,20 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "parsedName",
+      "type": "Json",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "phone",
       "type": "String",
       "defaultValue": null,

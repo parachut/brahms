@@ -23,10 +23,6 @@ import updateUserGeolocation from './tasks/updateUserGeolocation';
 const workers = process.env.WEB_CONCURRENCY || 2;
 const maxJobsPerWorker = 25;
 
-Honeybadger.configure({
-  apiKey: process.env.HONEYBADGER_API_KEY,
-});
-
 function start() {
   const sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
@@ -46,6 +42,7 @@ function start() {
     maxJobsPerWorker,
     checkClearbitFraud,
   );
+
   internalQueue.process('checkout', maxJobsPerWorker, checkout);
   integrationQueue.process(
     'create-authy-user',

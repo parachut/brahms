@@ -12,6 +12,8 @@ import {
   PrimaryKey,
   Table,
   UpdatedAt,
+  AfterCreate,
+  AfterUpdate,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
 
@@ -26,6 +28,9 @@ import { ShipmentInspection } from './ShipmentInspection';
 import { ShipmentInventory } from './ShipmentInventory';
 import { User } from './User';
 import { Warehouse } from './Warehouse';
+import { createQueue } from '../redis';
+
+const internalQueue = createQueue('internal-queue');
 
 @ObjectType()
 @Table
@@ -138,4 +143,12 @@ export class Inventory extends Model<Inventory> {
 
   @UpdatedAt
   public updatedAt!: Date;
+
+  @AfterUpdate
+  @AfterCreate
+  static updateProductStock(instance: Inventory) {
+    internalQueue.add('update-product-stock', {
+      productId: instance.productId,
+    });
+  }
 }

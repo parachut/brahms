@@ -618,6 +618,13 @@ analytics-node@^3.4.0-beta.1:
     remove-trailing-slash "^0.1.0"
     uuid "^3.2.1"
 
+another-name-parser@^0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/another-name-parser/-/another-name-parser-0.0.7.tgz#9d54e1fa24982182049685b71a8fd0c6c781b4a9"
+  integrity sha512-gSFnBnY9unFTaQsHIChNh8GtOjCt9kihD+TN2GNotupFID1pW8l81PWZrRbQtFxFwN48oc+5mCQFbDRRIv9BcA==
+  dependencies:
+    lodash "^4.17.11"
+
 ansi-align@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/ansi-align/-/ansi-align-2.0.0.tgz#c36aeccba563b89ceb556f3690f0b1d9e3547f7f"

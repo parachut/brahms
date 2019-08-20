@@ -23,7 +23,7 @@ import { Shipment } from './Shipment';
 import { User } from './User';
 import { createQueue } from '../redis';
 
-const integrationQueue = createQueue('integrations-queue');
+const integrationQueue = createQueue('integration-queue');
 
 @ObjectType()
 @Table

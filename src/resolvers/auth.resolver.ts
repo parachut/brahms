@@ -104,15 +104,6 @@ export default class AuthResolver {
 
     await ctx.redis.set(`refreshToken:${user.id}`, refreshToken);
 
-    communicationQueue.add('send-simple-email', {
-      to: user.email,
-      from: 'support@parachut.co',
-      id: 13136612,
-      data: {
-        name: user.name,
-      },
-    });
-
     return { token, refreshToken };
   }
 
@@ -171,6 +162,14 @@ export default class AuthResolver {
       id: user.get('id'),
       roles: [UserRole.MEMBER],
     };
+
+    communicationQueue.add('send-simple-email', {
+      to: user.email,
+      id: 13136612,
+      data: {
+        name: user.parsedName.first,
+      },
+    });
 
     const token = jsonwebtoken.sign(payload, privateKEY, signOptions);
     const refreshToken = crypto.randomBytes(128).toString('hex');

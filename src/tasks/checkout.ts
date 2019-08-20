@@ -3,9 +3,7 @@ import Stripe from 'stripe';
 
 import { plans } from '../decorators/plans';
 import { Cart } from '../models/Cart';
-import { CartItem } from '../models/CartItem';
 import { UserIntegration } from '../models/UserIntegration';
-import updateProductStock from '../tasks/updateProductStock';
 import { sendEmail } from '../utils/sendEmail';
 
 if (!process.env.STRIPE) {
@@ -47,8 +45,8 @@ async function checkout(job) {
       throw new Error('no cart found');
     }
 
-    const total = [...cart.items, ...cart.user.currentInventory].reduce(
-      (r, i) => r + i.product.points * (i instanceof CartItem ? i.quantity : 1),
+    const total = cart.user.currentInventory.reduce(
+      (r, i) => r + i.product.points,
       0,
     );
 
@@ -70,7 +68,7 @@ async function checkout(job) {
 
     const items: any[] = [
       {
-        plan: cart.planId,
+        plan: cart.planId || cart.user.planId,
         quantity: total > (cart.user.points || 0) ? total : cart.user.points,
       },
     ];
@@ -199,12 +197,6 @@ async function checkout(job) {
 
     await cart.save();
 
-    await Promise.all(
-      cart.items.map((item) =>
-        updateProductStock({ productId: item.productId }),
-      ),
-    );
-
     if (process.env.STAGE === 'production') {
       await slack.chat.postMessage({
         channel: 'CGX5HELCT',
@@ -262,7 +254,7 @@ async function checkout(job) {
         id: 12931487,
         data: {
           purchase_date: new Date().toDateString(),
-          name: cart.user.name,
+          name: cart.user.parsedName.first,
           chutItems: cart.items.map((item) => ({
             image: item.product.images.length
               ? `https://parachut.imgix.net/${item.product.images[0]}`
@@ -274,7 +266,7 @@ async function checkout(job) {
           monthly: plans[cart.planId],
           pointsOver: Math.max(0, total - Number(cart.planId)),
           overage: Math.max(0, total - Number(cart.planId)) * 0.1,
-          protectionPlan: cart.protectionPlan,
+          protectionPlan: !!cart.protectionPlan,
           totalMonthly: total + Math.max(0, total - Number(cart.planId)) * 0.1,
           availablePoints: cart.user.points - total,
           cartPoints: cart.items.reduce((r, i) => r + i.points, 0),

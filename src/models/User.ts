@@ -1,8 +1,9 @@
-import BullQueue from 'bull';
+import nameParser from 'another-name-parser';
 import Sequelize from 'sequelize';
 import {
   AfterCreate,
   AfterUpdate,
+  BeforeCreate,
   Column,
   CreatedAt,
   DataType,
@@ -19,6 +20,7 @@ import { Field, ID, Int, ObjectType } from 'type-graphql';
 
 import { UserRole } from '../enums/userRole';
 import { UserStatus } from '../enums/userStatus';
+import { createQueue } from '../redis';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Income } from './Income';
@@ -31,7 +33,6 @@ import { UserIntegration } from './UserIntegration';
 import { UserMarketingSource } from './UserMarketingSource';
 import { UserSocialHandle } from './UserSocialHandle';
 import { UserVerification } from './UserVerification';
-import { createQueue } from '../redis';
 
 const integrationQueue = createQueue('integration-queue');
 
@@ -83,6 +84,9 @@ export class User extends Model<User> {
   @Field()
   @Column
   public name!: string;
+
+  @Column(DataType.JSONB)
+  public parsedName?: any;
 
   @Field({ nullable: true })
   @Column
@@ -173,8 +177,13 @@ export class User extends Model<User> {
   @DeletedAt
   public deletedAt?: Date;
 
+  @BeforeCreate
+  static parseName(instance: User) {
+    instance.parsedName = nameParser(instance.name);
+  }
+
   @AfterCreate
-  static linkAccounts(instance: User) {
+  static async linkAccounts(instance: User) {
     if (!instance.stripeId) {
       integrationQueue.add('create-stripe-user', {
         userId: instance.get('id'),

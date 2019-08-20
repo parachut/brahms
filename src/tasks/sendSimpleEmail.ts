@@ -1,7 +1,7 @@
 import { sendEmail } from '../utils/sendEmail';
 
 async function sendSimpleEmail(job) {
-  await sendEmail(job.data);
+  const email = await sendEmail(job.data);
 
   return job.data;
 }
