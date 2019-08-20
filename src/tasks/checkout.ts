@@ -1,12 +1,12 @@
 import { WebClient } from '@slack/client';
-import numeral from 'numeral';
 import Stripe from 'stripe';
-import Queue from 'bull';
 
+import { plans } from '../decorators/plans';
 import { Cart } from '../models/Cart';
 import { CartItem } from '../models/CartItem';
 import { UserIntegration } from '../models/UserIntegration';
-import { createQueue } from '../redis';
+import updateProductStock from '../tasks/updateProductStock';
+import { sendEmail } from '../utils/sendEmail';
 
 if (!process.env.STRIPE) {
   throw new Error('Missing environment variable STRIPE');
@@ -18,8 +18,6 @@ if (!process.env.SLACK_TOKEN) {
 
 const stripe = new Stripe(process.env.STRIPE);
 const slack = new WebClient(process.env.SLACK_TOKEN);
-
-const updateProductStockQueue = createQueue('update-product-stock');
 
 async function checkout(job) {
   const { cartId } = job.data;
@@ -179,12 +177,32 @@ async function checkout(job) {
 
     if (stripeMonthlyPlan) {
       cart.confirmedAt = new Date();
+
+      await sendEmail({
+        to: cart.user.email,
+        from: 'support@parachut.co',
+        id: 12932745,
+        data: {
+          purchase_date: new Date().toDateString(),
+          name: cart.user.name,
+          chutItems: cart.items.map((item) => ({
+            image: item.product.images.length
+              ? `https://parachut.imgix.net/${item.product.images[0]}`
+              : '',
+            name: item.product.name,
+          })),
+          availablePoints: cart.user.points - total,
+          cartPoints: cart.items.reduce((r, i) => r + i.points, 0),
+        },
+      });
     }
 
     await cart.save();
 
-    cart.items.forEach((item) =>
-      updateProductStockQueue.add({ productId: item.productId }),
+    await Promise.all(
+      cart.items.map((item) =>
+        updateProductStock({ productId: item.productId }),
+      ),
     );
 
     if (process.env.STAGE === 'production') {
@@ -215,11 +233,7 @@ async function checkout(job) {
               },
               {
                 type: 'mrkdwn',
-                text:
-                  '*Total Points:*\n' +
-                  numeral(cart.items.reduce((r, i) => r + i.points, 0)).format(
-                    '0,0',
-                  ),
+                text: '*Total Points:*\n' + total,
               },
 
               {
@@ -241,7 +255,34 @@ async function checkout(job) {
       });
     }
 
-    return `Cart stripe collected: ${cart.id}`;
+    if (!stripeMonthlyPlan) {
+      await sendEmail({
+        to: cart.user.email,
+        from: 'support@parachut.co',
+        id: 12931487,
+        data: {
+          purchase_date: new Date().toDateString(),
+          name: cart.user.name,
+          chutItems: cart.items.map((item) => ({
+            image: item.product.images.length
+              ? `https://parachut.imgix.net/${item.product.images[0]}`
+              : '',
+            name: item.product.name,
+            points: item.product.points,
+          })),
+          planId: cart.planId,
+          monthly: plans[cart.planId],
+          pointsOver: Math.max(0, total - Number(cart.planId)),
+          overage: Math.max(0, total - Number(cart.planId)) * 0.1,
+          protectionPlan: cart.protectionPlan,
+          totalMonthly: total + Math.max(0, total - Number(cart.planId)) * 0.1,
+          availablePoints: cart.user.points - total,
+          cartPoints: cart.items.reduce((r, i) => r + i.points, 0),
+        },
+      });
+    }
+
+    return cart;
   }
 }
 

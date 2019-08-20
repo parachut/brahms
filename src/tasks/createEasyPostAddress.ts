@@ -36,7 +36,7 @@ async function createEasyPostAddress(job) {
       message: address,
     });
 
-    return `Address easyPostId created: ${addressId} ${address.easyPostId}`;
+    return address;
   }
 }
 

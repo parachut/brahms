@@ -1,6 +1,6 @@
 import { createParamDecorator } from 'type-graphql';
 
-const plans = {
+export const plans = {
   '1500': 149,
   '3500': 349,
   '750': 99,

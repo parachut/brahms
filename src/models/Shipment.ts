@@ -29,8 +29,10 @@ import { ShipmentInspection } from './ShipmentInspection';
 import { ShipmentInventory } from './ShipmentInventory';
 import { User } from './User';
 import { Warehouse } from './Warehouse';
+import { createQueue } from '../redis';
 
 const easyPost = new EasyPost(process.env.EASYPOST);
+const communicationQueue = createQueue('communication-queue');
 
 @ObjectType()
 @Table
@@ -193,7 +195,6 @@ export class Shipment extends Model<Shipment> {
 
   @BeforeCreate
   static async findRelatedInformation(instance: Shipment) {
-    console.log(instance);
     if (instance.cartId) {
       const cart = await Cart.findByPk(instance.cartId);
 
@@ -262,7 +263,7 @@ export class Shipment extends Model<Shipment> {
           label_size: '4X6',
         },
         parcel,
-        service: '3DaySelect',
+        service: instance.service,
         to_address: address.easyPostId,
       };
 
@@ -284,6 +285,15 @@ export class Shipment extends Model<Shipment> {
       instance.publicUrl = easyPostShipment.tracker.public_url;
       instance.labelUrlZPL = easyPostShipment.postage_label.label_zpl_url;
       instance.labelUrl = easyPostShipment.postage_label.label_url;
+      instance.estDeliveryDate = new Date(
+        easyPostShipment.rates[0].delivery_date,
+      );
+
+      if (instance.cartId) {
+        communicationQueue.add('send-outbound-earn-shipment-email', {
+          shipmentId: shipment.id,
+        });
+      }
 
       await instance.save();
     }

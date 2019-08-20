@@ -19,13 +19,11 @@ async function createAuthyUser(job) {
       phone: user.phone,
     });
 
-    await UserIntegration.create({
+    return UserIntegration.create({
       type: 'AUTHY',
       value: authyId,
       userId: user.id,
     });
-
-    return `User authy account created: ${userId} ${authyId}`;
   }
 }
 

@@ -23,13 +23,11 @@ async function createStripeUser(job) {
     user.stripeId = customer.id;
 
     await user.save();
-    await UserIntegration.create({
+    return UserIntegration.create({
       type: 'STRIPE',
       value: customer.id,
       userId: user.id,
     });
-
-    return `User stripe account created: ${userId} ${customer.id}`;
   }
 }
 

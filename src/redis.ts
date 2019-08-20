@@ -13,6 +13,10 @@ export const pubSub = new RedisPubSub({
 
 export function createQueue(name: string): InstanceType<Queue> {
   return new Queue(name, {
+    attempts: 3,
+    backoff: {
+      type: 'jitter',
+    },
     redis: {
       opts: {
         createClient(type) {

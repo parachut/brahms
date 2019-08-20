@@ -3,6 +3,7 @@ import pick from 'lodash/pick';
 import util from 'util';
 
 import { Inventory } from '../models/Inventory';
+import { Cart } from '../models/Cart';
 import { Shipment } from '../models/Shipment';
 import { ShipmentEvent } from '../models/ShipmentEvent';
 import { User } from '../models/User';
@@ -10,6 +11,9 @@ import { ShipmentStatus } from '../enums/shipmentStatus';
 import { ShipmentType } from '../enums/shipmentType';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { InventoryStatus } from '../enums/inventoryStatus';
+import { createQueue } from '../redis';
+
+const communicationQueue = createQueue('communication-queue');
 
 const geocodio = new Geocodio({
   api_key: process.env.GEOCODIO,
@@ -17,12 +21,13 @@ const geocodio = new Geocodio({
 
 const geocodioPromise = util.promisify(geocodio.get).bind(geocodio);
 
-export async function easyPost(req, res) {
+export async function easypost(req, res) {
   const { result } = req.body;
 
   if (result && result.description === 'tracker.updated') {
     const shipment = await Shipment.findOne({
       where: { easyPostId: result.shipment_id },
+      include: ['user'],
     });
 
     if (!shipment) {
@@ -121,6 +126,21 @@ export async function easyPost(req, res) {
           update = {
             status: InventoryStatus.WITHMEMBER,
           };
+
+          if (shipment.cartId) {
+            const cart = await Cart.findByPk(shipment.cartId, {
+              include: [
+                {
+                  association: 'items',
+                  include: ['product'],
+                },
+              ],
+            });
+
+            communicationQueue.add('send-delivery-email', {
+              shipmentId: shipment.id,
+            });
+          }
         }
         if (update.status) {
           Inventory.update(update, {

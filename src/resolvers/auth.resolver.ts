@@ -20,7 +20,8 @@ import { createQueue } from '../redis';
 const privateKEY = fs.readFileSync('./certs/private.key', 'utf8');
 const authy = new Authy({ key: process.env.AUTHY });
 
-const updateUserGeolocationQueue = createQueue('update-user-geolocation');
+const integrationQueue = createQueue('integration-queue');
+const communicationQueue = createQueue('communication-queue');
 
 @Resolver(User)
 export default class AuthResolver {
@@ -88,7 +89,7 @@ export default class AuthResolver {
       },
     });
 
-    updateUserGeolocationQueue.add({
+    integrationQueue.add('update-user-geolocation', {
       userId: user.get('id'),
       ipAddress: ctx.clientIp,
     });
@@ -102,6 +103,15 @@ export default class AuthResolver {
     const refreshToken = crypto.randomBytes(128).toString('hex');
 
     await ctx.redis.set(`refreshToken:${user.id}`, refreshToken);
+
+    communicationQueue.add('send-simple-email', {
+      to: user.email,
+      from: 'support@parachut.co',
+      id: 13136612,
+      data: {
+        name: user.name,
+      },
+    });
 
     return { token, refreshToken };
   }
@@ -137,7 +147,7 @@ export default class AuthResolver {
       phone,
     });
 
-    updateUserGeolocationQueue.add({
+    integrationQueue.add('update-user-geolocation', {
       userId: user.get('id'),
       ipAddress: ctx.clientIp,
     });

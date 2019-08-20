@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 
 const clearbit = new Client({ key: process.env.CLEARBIT });
 
-async function runClearbit(job) {
+async function checkClearbit(job) {
   const { userId } = job.data;
 
   if (userId) {
@@ -79,25 +79,21 @@ async function runClearbit(job) {
 
       await UserSocialHandle.bulkCreate(socialHandles);
 
-      await UserVerification.create({
+      return UserVerification.create({
         type: 'CLEARBIT_PERSON',
         verified: !person.fuzzy,
         meta: person,
         userId: user.id,
       });
-
-      return `User clearbit account found: ${userId} ${person.id}`;
     } catch (e) {
-      await UserVerification.create({
+      return UserVerification.create({
         type: 'CLEARBIT_PERSON',
         verified: false,
         meta: e,
         userId: user.id,
       });
     }
-
-    return `User clearbit verification failed`;
   }
 }
 
-export default runClearbit;
+export default checkClearbit;

@@ -49,16 +49,11 @@ async function createFrontContact(job) {
         .split(' ')
         .splice(-1)[0];
 
-      await UserIntegration.create({
+      return UserIntegration.create({
         type: 'FRONT',
         value: id.substring(0, id.length - 1),
         userId: user.id,
       });
-
-      return `User front account linked: ${userId} ${id.substring(
-        0,
-        id.length - 1,
-      )}`;
     }
   }
 }

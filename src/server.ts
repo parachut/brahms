@@ -6,6 +6,7 @@ import { createContext } from 'dataloader-sequelize';
 import express from 'express';
 import expressJwt from 'express-jwt';
 import fs from 'fs';
+import Honeybadger from 'honeybadger';
 import { createServer } from 'http';
 import jwt from 'jsonwebtoken';
 import requestIp from 'request-ip';
@@ -25,8 +26,10 @@ const PORT = process.env.PORT || 4000;
 const GQLPATH = '/graphql';
 
 const analytics = new Analytics(process.env.SEGMENT);
-
 const jwtSecret = fs.readFileSync('./certs/private.key', 'utf8');
+Honeybadger.configure({
+  apiKey: process.env.HONEYBADGER_API_KEY,
+});
 
 const main = async () => {
   const sequelize = new Sequelize(process.env.DATABASE_URL, {
@@ -56,7 +59,7 @@ const main = async () => {
   });
 
   const app = express();
-
+  app.use(Honeybadger.requestHandler);
   // app.use('/migrator', migrator);
 
   app.use(GQLPATH, cors());
@@ -172,6 +175,8 @@ const main = async () => {
 
   app.use('/hooks', hooks);
   app.use('/cron', cron);
+
+  app.use(Honeybadger.errorHandler);
 
   const wss = createServer(app);
   server.installSubscriptionHandlers(wss);

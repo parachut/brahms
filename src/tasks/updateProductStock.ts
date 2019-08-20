@@ -7,7 +7,7 @@ import { InventoryStatus } from '../enums/inventoryStatus';
 import { pubSub } from '../redis';
 
 async function updateProductStock(job) {
-  const { productId } = job.data;
+  const { productId } = job.data || job;
 
   if (productId) {
     const stock = await Inventory.count({

@@ -33,10 +33,7 @@ import { UserSocialHandle } from './UserSocialHandle';
 import { UserVerification } from './UserVerification';
 import { createQueue } from '../redis';
 
-const createAuthyUserQueue = createQueue('create-authy-user');
-const createFrontContactQueue = createQueue('create-front-contact');
-const createStripeUserQueue = createQueue('create-stripe-user');
-const runClearbitQueue = createQueue('run-clearbit');
+const integrationQueue = createQueue('integration-queue');
 
 @ObjectType()
 @Table
@@ -179,16 +176,16 @@ export class User extends Model<User> {
   @AfterCreate
   static linkAccounts(instance: User) {
     if (!instance.stripeId) {
-      createStripeUserQueue.add({
+      integrationQueue.add('create-stripe-user', {
         userId: instance.get('id'),
       });
-      createAuthyUserQueue.add({
+      integrationQueue.add('create-authy-user', {
         userId: instance.get('id'),
       });
-      createFrontContactQueue.add({
+      integrationQueue.add('create-front-contact', {
         userId: instance.get('id'),
       });
-      runClearbitQueue.add({
+      integrationQueue.add('check-clearbit', {
         userId: instance.get('id'),
       });
     }
@@ -203,7 +200,7 @@ export class User extends Model<User> {
           type: 'AUTHY',
         },
       });
-      createAuthyUserQueue.add({
+      integrationQueue.add('create-authy-user', {
         userId: instance.get('id'),
       });
     }

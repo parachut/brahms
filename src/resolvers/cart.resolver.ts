@@ -33,7 +33,7 @@ import { createQueue } from '../redis';
 const moment = require('moment-business-days');
 const postmark = new Postmark.ServerClient(process.env.POSTMARK);
 const easyPost = new EasyPost(process.env.EASYPOST);
-const checkoutQueue = createQueue('checkout');
+const internalQueue = createQueue('internal-queue');
 
 @Resolver(Cart)
 export default class CartResolver {
@@ -171,12 +171,12 @@ export default class CartResolver {
   @Mutation(() => Cart)
   public async checkout(@Ctx() ctx: IContext) {
     if (ctx.user) {
-      const [user, currentInventory] = await Promise.all([
+      const [user] = await Promise.all([
         User.findByPk(ctx.user.id, {
           include: [
             {
               association: 'carts',
-              where: { completedAt: null, userId: ctx.user.id },
+              where: { completedAt: null },
               limit: 1,
               order: [['createdAt', 'DESC']],
               include: [
@@ -213,25 +213,6 @@ export default class CartResolver {
             },
           ],
         }),
-        Inventory.findAll({
-          where: {
-            memberId: ctx.user.id,
-            status: {
-              [Op.in]: [
-                InventoryStatus.SHIPMENTPREP,
-                InventoryStatus.ENROUTEMEMBER,
-                InventoryStatus.WITHMEMBER,
-                InventoryStatus.RETURNING,
-              ],
-            },
-          },
-          include: [
-            {
-              association: 'product',
-              attributes: ['id', 'points'],
-            },
-          ],
-        }),
       ]);
 
       const cart = user.carts[0];
@@ -256,35 +237,6 @@ export default class CartResolver {
           (r, ii) => r + ii.product.points * ii.quantity,
           0,
         );
-
-        const total = [...cart.items, ...currentInventory].reduce(
-          (r, i) =>
-            r + i.product.points * (i instanceof CartItem ? i.quantity : 1),
-          0,
-        );
-
-        if (process.env.STAGE === 'production') {
-          postmark.sendEmailWithTemplate({
-            From: 'support@parachut.co',
-            TemplateId: 10952889,
-            TemplateModel: {
-              chutItems: cart.items.map((item: any) => ({
-                points: item.product.points,
-                image:
-                  item.product.images && item.product.images.length
-                    ? `https://parachut.imgix.net/${item.product.images[0]}`
-                    : null,
-                name: item.product.name,
-                quantity: item.quantity,
-              })),
-              name: user.name.split(' ')[0],
-              protectionPlan: !!cart.protectionPlan,
-              purchase_date: new Date().toDateString(),
-              total,
-            },
-            To: user.email,
-          });
-        }
 
         await Inventory.update(
           {
@@ -332,7 +284,7 @@ export default class CartResolver {
           userId: user.id,
         });
 
-        checkoutQueue.add({
+        internalQueue.add('checkout', {
           cartId: cart.id,
         });
 

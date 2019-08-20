@@ -1,7 +1,7 @@
 import express from 'express';
 import basicAuth from 'express-basic-auth';
 
-import { easyPost } from './easyPost';
+import { easypost } from './easypost';
 
 const router = express.Router();
 
@@ -12,7 +12,7 @@ router.post(
       RW3VLJQf6M6iCzDCRHP32dwLnFqAGQu8: 'cVm86FmuBoBheq74frqBM3hkZxRJVZo4',
     },
   }),
-  easyPost,
+  easypost,
 );
 
 export default router;

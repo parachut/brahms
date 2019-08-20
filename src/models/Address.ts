@@ -23,8 +23,7 @@ import { Shipment } from './Shipment';
 import { User } from './User';
 import { createQueue } from '../redis';
 
-const createEasypostAddressQeue = createQueue('create-easypost-address');
-const updateAddressCensusDataQueue = createQueue('update-address-census-data');
+const integrationQueue = createQueue('integrations-queue');
 
 @ObjectType()
 @Table
@@ -175,10 +174,10 @@ export class Address extends Model<Address> {
 
   @AfterCreate
   static async createEasyPostId(instance: Address) {
-    createEasypostAddressQeue.add({
+    integrationQueue.add('create-easypost-address', {
       addressId: instance.get('id'),
     });
-    updateAddressCensusDataQueue.add({
+    integrationQueue.add('update-address-census-data', {
       addressId: instance.get('id'),
     });
   }

@@ -1,9 +1,11 @@
 import express from 'express';
 import Liana from 'forest-express-sequelize';
-import fetch from 'node-fetch';
 import { Op } from 'sequelize';
 
 import { Cart } from '../models/Cart';
+import { createQueue } from '../redis';
+
+const communicationQueue = createQueue('communication-queue');
 
 const router = express.Router();
 
@@ -22,7 +24,13 @@ router.post(
       },
     );
 
-    res.send({ success: 'Cart(s) are confirmed!' });
+    for (const id of ids) {
+      communicationQueue.add('send-outbound-earn-confirmation-email', {
+        cartId: id,
+      });
+    }
+
+    await res.send({ success: 'Cart(s) are confirmed!' });
   },
 );
 

@@ -28,14 +28,12 @@ async function checkClearbitFraud(job) {
       zip_code: user.addresses.length ? user.addresses[0].zip : undefined,
     });
 
-    await UserVerification.create({
+    return UserVerification.create({
       type: 'CLEARBIT_FRAUD',
       verified: result.risk.level !== 'high',
       meta: result,
       userId: user.id,
     });
-
-    return `User authy account created: ${userId} ${result.id}`;
   }
 }
 

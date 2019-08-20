@@ -20,7 +20,7 @@ import { Address } from '../models/Address';
 import { IContext } from '../utils/context.interface';
 import { createQueue } from '../redis';
 
-const checkClearbitFraudQueue = createQueue('check-clearbit-fraud');
+const fraudQueue = createQueue('fraud-queue');
 
 @Resolver(Address)
 export default class AddressResolver {
@@ -72,7 +72,7 @@ export default class AddressResolver {
         userId: ctx.user.id,
       });
 
-      checkClearbitFraudQueue.add({
+      fraudQueue.add('check-clearbit-fraud', {
         userId: ctx.user.id,
         ipAddress: ctx.clientIp,
       });
