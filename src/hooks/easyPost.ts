@@ -128,15 +128,6 @@ export async function easypost(req, res) {
           };
 
           if (shipment.cartId) {
-            const cart = await Cart.findByPk(shipment.cartId, {
-              include: [
-                {
-                  association: 'items',
-                  include: ['product'],
-                },
-              ],
-            });
-
             communicationQueue.add('send-delivery-email', {
               shipmentId: shipment.id,
             });
