@@ -183,7 +183,7 @@ async function checkout(job) {
       const shipment = await Shipment.create({
         direction: ShipmentDirection.OUTBOUND,
         type: ShipmentType.ACCESS,
-        service: '2ndDayAirAM',
+        service: '2ndDayAir',
         cartId: cart.id,
       });
 
