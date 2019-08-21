@@ -4,8 +4,11 @@ import Stripe from 'stripe';
 
 import { plans } from '../decorators/plans';
 import { Cart } from '../models/Cart';
+import { Shipment } from '../models/Shipment';
 import { UserIntegration } from '../models/UserIntegration';
 import { sendEmail } from '../utils/sendEmail';
+import { ShipmentDirection } from '../enums/shipmentDirection';
+import { ShipmentType } from '../enums/shipmentType';
 
 if (!process.env.STRIPE) {
   throw new Error('Missing environment variable STRIPE');
@@ -176,6 +179,13 @@ async function checkout(job) {
 
     if (stripeMonthlyPlan) {
       cart.confirmedAt = new Date();
+
+      await Shipment.create({
+        direction: ShipmentDirection.OUTBOUND,
+        type: ShipmentType.ACCESS,
+        inventory: cart.inventory,
+        service: '2ndDayAirAM',
+      });
 
       await sendEmail({
         to: cart.user.email,

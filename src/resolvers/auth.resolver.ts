@@ -158,11 +158,6 @@ export default class AuthResolver {
       },
     });
 
-    const payload: IJWTPayLoad = {
-      id: user.get('id'),
-      roles: [UserRole.MEMBER],
-    };
-
     communicationQueue.add('send-simple-email', {
       to: user.email,
       id: 13136612,
@@ -170,6 +165,11 @@ export default class AuthResolver {
         name: user.parsedName.first,
       },
     });
+
+    const payload: IJWTPayLoad = {
+      id: user.get('id'),
+      roles: [UserRole.MEMBER],
+    };
 
     const token = jsonwebtoken.sign(payload, privateKEY, signOptions);
     const refreshToken = crypto.randomBytes(128).toString('hex');
