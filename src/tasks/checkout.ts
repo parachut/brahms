@@ -1,4 +1,5 @@
 import { WebClient } from '@slack/client';
+import numeral from 'numeral';
 import Stripe from 'stripe';
 
 import { plans } from '../decorators/plans';
@@ -262,14 +263,24 @@ async function checkout(job) {
             name: item.product.name,
             points: item.product.points,
           })),
-          planId: cart.planId,
-          monthly: plans[cart.planId],
-          pointsOver: Math.max(0, total - Number(cart.planId)),
-          overage: Math.max(0, total - Number(cart.planId)) * 0.1,
+          planId: numeral(cart.planId).format('0,0'),
+          monthly: numeral(plans[cart.planId]).format('$0,0.00'),
+          pointsOver: numeral(Math.max(0, total - Number(cart.planId))).format(
+            '0,0',
+          ),
+          overage: numeral(
+            Math.max(0, total - Number(cart.planId)) * 0.1,
+          ).format('$0,0.00'),
           protectionPlan: !!cart.protectionPlan,
-          totalMonthly: total + Math.max(0, total - Number(cart.planId)) * 0.1,
-          availablePoints: cart.user.points - total,
-          cartPoints: cart.items.reduce((r, i) => r + i.points, 0),
+          totalMonthly: numeral(
+            plans[cart.planId] +
+              Math.max(0, total - Number(cart.planId)) * 0.1 +
+              (cart.protectionPlan ? 50 : 0),
+          ).format('$0,0.00'),
+          availablePoints: numeral(cart.user.points - total).format('0,0'),
+          cartPoints: numeral(
+            cart.items.reduce((r, i) => r + i.points, 0),
+          ).format('0,0'),
         },
       });
     }

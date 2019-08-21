@@ -25,8 +25,8 @@ async function sendOutboundAccessConfirmationEmail(job) {
     ],
   });
 
-  const total = [...cart.items, ...cart.user.currentInventory].reduce(
-    (r, i) => r + i.product.points * (i instanceof CartItem ? i.quantity : 1),
+  const total = cart.user.currentInventory.reduce(
+    (r, i) => r + i.product.points,
     0,
   );
 

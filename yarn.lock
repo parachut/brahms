@@ -5110,6 +5110,11 @@ readdirp@^2.0.0, readdirp@^2.2.1:
     micromatch "^3.1.10"
     readable-stream "^2.0.2"
 
+recurly@^3.0.0-beta.3:
+  version "3.0.0-beta.3"
+  resolved "https://registry.yarnpkg.com/recurly/-/recurly-3.0.0-beta.3.tgz#45f35290715adb285d0289d1e0669e67a0dd43d2"
+  integrity sha512-x0EX+PiuZNiLuJ3sx2trgt45E5+5VmmA0zYLN24ujRaHgWIhMnhMs5ES4gp26Rhi/p0OWe8r3y/U6CgUaEJVog==
+
 redis-commands@1.5.0:
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/redis-commands/-/redis-commands-1.5.0.tgz#80d2e20698fe688f227127ff9e5164a7dd17e785"

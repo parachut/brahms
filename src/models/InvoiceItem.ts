@@ -41,11 +41,6 @@ export class InvoiceItem extends Model<InvoiceItem> {
   @Column
   public points!: number;
 
-  @Field()
-  @Default(false)
-  @Column
-  public protectionPlan!: boolean;
-
   @BelongsTo(() => Invoice)
   public invoice!: Invoice;
 

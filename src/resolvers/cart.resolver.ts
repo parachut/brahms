@@ -48,11 +48,24 @@ export default class CartResolver {
         },
       });
 
-      const user = await User.findByPk(ctx.user.id, { attributes: ['planId'] });
-
       if (!cart) {
+        const user = await User.findByPk(ctx.user.id, {
+          attributes: ['planId'],
+          include: ['addresses', 'integrations'],
+        });
+
+        const addressId = user.addresses.length
+          ? user.addresses.find((address) => address.primary).id ||
+            user.addresses[0].id
+          : null;
+
         cart = new Cart({
           planId: !!user.planId ? user.planId : '1500',
+          addressId,
+          protectionPlan: !!user.integrations.find(
+            (integration) =>
+              integration.type === 'STRIPE_MONTHLYPROTECTIONPLAN',
+          ),
           userId: ctx.user.id,
         });
 
@@ -280,18 +293,14 @@ export default class CartResolver {
           userId: ctx.user.id,
         });
 
-        const newCart = new Cart({
-          userId: user.id,
-        });
-
         internalQueue.add('checkout', {
           cartId: cart.id,
         });
 
-        return newCart.save();
+        return cart;
       }
 
-      throw new Error('Unauthorized');
+      throw new Error('Unauthorised');
     }
   }
 
