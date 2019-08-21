@@ -1,4 +1,3 @@
-import Honeybadger from 'honeybadger';
 import { Sequelize } from 'sequelize-typescript';
 import throng from 'throng';
 
