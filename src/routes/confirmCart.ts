@@ -33,11 +33,9 @@ router.post(
         cartId: id,
       });
 
-      const [inventory, shipment] = await Promise.all([
-        Inventory.findAll({
-          where: {
-            cartId: id,
-          },
+      const [cart, shipment] = await Promise.all([
+        Cart.findByPk(id, {
+          include: ['inventory'],
         }),
         Shipment.create({
           direction: ShipmentDirection.OUTBOUND,
@@ -47,7 +45,7 @@ router.post(
         }),
       ]);
 
-      await shipment.$set('inventory', inventory);
+      await shipment.$set('inventory', cart.inventory.map((item) => item.id));
     }
 
     await res.send({ success: 'Cart(s) are confirmed!' });
