@@ -42,6 +42,9 @@ async function checkout(job) {
           association: 'items',
           include: ['product'],
         },
+        {
+          association: 'inventory',
+        },
       ],
     });
 
@@ -187,7 +190,7 @@ async function checkout(job) {
         cartId: cart.id,
       });
 
-      await shipment.$set('inventory', cart.inventory);
+      await shipment.$set('inventory', cart.inventory.map((item) => item.id));
 
       await sendEmail({
         to: cart.user.email,

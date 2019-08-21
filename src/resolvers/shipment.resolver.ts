@@ -45,6 +45,7 @@ export default class ShipmentResolver {
     if (ctx.user) {
       return Shipment.findAll({
         where: { userId: ctx.user.id },
+        order: [['createdAt', 'DESC']],
       });
     }
     throw new Error('Unauthorised.');
