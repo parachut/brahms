@@ -15,19 +15,15 @@ export const pubSub = new RedisPubSub({
 
 export function createQueue(name: string): InstanceType<Queue> {
   return new Queue(name, {
-    redis: {
-      opts: {
-        createClient(type) {
-          switch (type) {
-            case 'client':
-              return client;
-            case 'subscriber':
-              return subscriber;
-            default:
-              return new Redis(process.env.REDIS_URL);
-          }
-        },
-      },
+    createClient: function(type) {
+      switch (type) {
+        case 'client':
+          return client;
+        case 'subscriber':
+          return subscriber;
+        default:
+          return new Redis(process.env.REDIS_URL);
+      }
     },
   });
 }
