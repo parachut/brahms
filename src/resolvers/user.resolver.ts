@@ -1,8 +1,10 @@
 import crypto from 'crypto';
+import { Op } from 'sequelize';
 import Stripe from 'stripe';
 import { Ctx, FieldResolver, Resolver, Root } from 'type-graphql';
 
 import { StripeSource } from '../classes/stripeSource';
+import { InventoryStatus } from '../enums/inventoryStatus';
 import { Inventory } from '../models/Inventory';
 import { User } from '../models/User';
 import { UserIntegration } from '../models/UserIntegration';
@@ -16,7 +18,13 @@ const stripe = new Stripe(process.env.STRIPE);
 export default class UserResolver {
   @FieldResolver((type) => [Inventory])
   async currentInventory(@Root() user: User): Promise<Inventory[]> {
-    return ((await user.$get<Inventory>('currentInventory')) as Inventory[])!;
+    return ((await user.$get<Inventory>('currentInventory', {
+      where: {
+        status: {
+          [Op.in]: [InventoryStatus.WITHMEMBER, InventoryStatus.RETURNING],
+        },
+      },
+    })) as Inventory[])!;
   }
 
   @FieldResolver((type) => [Inventory])
