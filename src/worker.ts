@@ -5,6 +5,8 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
+console.log(process.env);
+
 import { createQueue } from './redis';
 import checkClearbit from './tasks/checkClearbit';
 import checkClearbitFraud from './tasks/checkClearbitFraud';
