@@ -40,7 +40,7 @@ router.post(
         Shipment.create({
           direction: ShipmentDirection.OUTBOUND,
           type: ShipmentType.ACCESS,
-          service: '2ndDayAirAM',
+          service: '2ndDayAir',
           cartId: id,
         }),
       ]);
