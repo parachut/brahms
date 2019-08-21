@@ -185,6 +185,7 @@ async function checkout(job) {
         type: ShipmentType.ACCESS,
         inventory: cart.inventory,
         service: '2ndDayAirAM',
+        cartId: cart.id,
       });
 
       await sendEmail({
