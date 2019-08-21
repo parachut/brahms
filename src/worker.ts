@@ -5,8 +5,6 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
-console.log(process.env);
-
 import { createQueue } from './redis';
 import checkClearbit from './tasks/checkClearbit';
 import checkClearbitFraud from './tasks/checkClearbitFraud';
@@ -35,74 +33,78 @@ function start() {
     },
   });
 
-  const communicationQueue = createQueue('communication-queue');
-  const internalQueue = createQueue('internal-queue');
-  const integrationQueue = createQueue('integration-queue');
-  const fraudQueue = createQueue('fraud-queue');
+  try {
+    const communicationQueue = createQueue('communication-queue');
+    const internalQueue = createQueue('internal-queue');
+    const integrationQueue = createQueue('integration-queue');
+    const fraudQueue = createQueue('fraud-queue');
 
-  fraudQueue.process(
-    'check-clearbit-fraud',
-    maxJobsPerWorker,
-    checkClearbitFraud,
-  );
+    fraudQueue.process(
+      'check-clearbit-fraud',
+      maxJobsPerWorker,
+      checkClearbitFraud,
+    );
 
-  internalQueue.process('checkout', maxJobsPerWorker, checkout);
-  integrationQueue.process(
-    'create-authy-user',
-    maxJobsPerWorker,
-    createAuthyUser,
-  );
-  integrationQueue.process(
-    'create-easypost-address',
-    maxJobsPerWorker,
-    createEasyPostAddress,
-  );
-  integrationQueue.process(
-    'create-front-contact',
-    maxJobsPerWorker,
-    createFrontContact,
-  );
-  integrationQueue.process(
-    'create-stripe-user',
-    maxJobsPerWorker,
-    createStripeUser,
-  );
-  integrationQueue.process('check-clearbit', maxJobsPerWorker, checkClearbit);
-  integrationQueue.process(
-    'update-address-census-data',
-    maxJobsPerWorker,
-    updateAddressCensusData,
-  );
-  internalQueue.process(
-    'update-product-stock',
-    maxJobsPerWorker,
-    updateProductStock,
-  );
-  integrationQueue.process(
-    'update-user-geolocation',
-    maxJobsPerWorker,
-    updateUserGeolocation,
-  );
-  communicationQueue.process(
-    'send-simple-email',
-    maxJobsPerWorker,
-    sendSimpleEmail,
-  );
-  communicationQueue.process(
-    'send-delivery-email',
-    maxJobsPerWorker,
-    sendDeliveryEmail,
-  );
-  communicationQueue.process(
-    'send-outbound-access-shipment-email',
-    maxJobsPerWorker,
-    sendOutboundAccessShipmentEmail,
-  );
-  communicationQueue.process(
-    'send-outbound-access-confirmation-email',
-    maxJobsPerWorker,
-    sendOutboundAccessConfirmationEmail,
-  );
+    internalQueue.process('checkout', maxJobsPerWorker, checkout);
+    integrationQueue.process(
+      'create-authy-user',
+      maxJobsPerWorker,
+      createAuthyUser,
+    );
+    integrationQueue.process(
+      'create-easypost-address',
+      maxJobsPerWorker,
+      createEasyPostAddress,
+    );
+    integrationQueue.process(
+      'create-front-contact',
+      maxJobsPerWorker,
+      createFrontContact,
+    );
+    integrationQueue.process(
+      'create-stripe-user',
+      maxJobsPerWorker,
+      createStripeUser,
+    );
+    integrationQueue.process('check-clearbit', maxJobsPerWorker, checkClearbit);
+    integrationQueue.process(
+      'update-address-census-data',
+      maxJobsPerWorker,
+      updateAddressCensusData,
+    );
+    internalQueue.process(
+      'update-product-stock',
+      maxJobsPerWorker,
+      updateProductStock,
+    );
+    integrationQueue.process(
+      'update-user-geolocation',
+      maxJobsPerWorker,
+      updateUserGeolocation,
+    );
+    communicationQueue.process(
+      'send-simple-email',
+      maxJobsPerWorker,
+      sendSimpleEmail,
+    );
+    communicationQueue.process(
+      'send-delivery-email',
+      maxJobsPerWorker,
+      sendDeliveryEmail,
+    );
+    communicationQueue.process(
+      'send-outbound-access-shipment-email',
+      maxJobsPerWorker,
+      sendOutboundAccessShipmentEmail,
+    );
+    communicationQueue.process(
+      'send-outbound-access-confirmation-email',
+      maxJobsPerWorker,
+      sendOutboundAccessConfirmationEmail,
+    );
+  } catch (e) {
+    console.log(process.env.REDIS_URL);
+  }
 
   console.log('listening...');
 }
