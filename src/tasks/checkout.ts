@@ -180,13 +180,14 @@ async function checkout(job) {
     if (stripeMonthlyPlan) {
       cart.confirmedAt = new Date();
 
-      await Shipment.create({
+      const shipment = await Shipment.create({
         direction: ShipmentDirection.OUTBOUND,
         type: ShipmentType.ACCESS,
-        inventory: cart.inventory,
         service: '2ndDayAirAM',
         cartId: cart.id,
       });
+
+      await shipment.$set('inventory', cart.inventory);
 
       await sendEmail({
         to: cart.user.email,
