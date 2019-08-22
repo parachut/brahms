@@ -158,10 +158,10 @@ export class Shipment extends Model<Shipment> {
 
   @ForeignKey(() => Cart)
   @Column(DataType.UUID)
-  public cartId!: string;
+  public cartId?: string;
 
   @BelongsTo(() => Cart)
-  public cart!: Cart;
+  public cart?: Cart;
 
   @ForeignKey(() => Warehouse)
   @Column(DataType.UUID)
