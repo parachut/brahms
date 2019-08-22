@@ -198,22 +198,10 @@ export default class CartResolver {
                   include: [
                     {
                       association: 'product',
-                      attributes: ['id', 'points', 'name', 'images'],
                       include: [
                         {
                           association: 'inventory',
-                          attributes: ['id'],
-                          where: {
-                            status: InventoryStatus.INWAREHOUSE,
-                          },
-                        },
-                        {
-                          association: 'brand',
-                          attributes: ['name'],
-                        },
-                        {
-                          association: 'category',
-                          attributes: ['name'],
+                          attributes: ['id', 'status'],
                         },
                       ],
                     },
@@ -239,9 +227,16 @@ export default class CartResolver {
       if (!cart.completedAt) {
         const inventory = [];
         for (const item of cart.items) {
+          const availableInventory = await Inventory.findAll({
+            where: {
+              productId: item.productId,
+              status: InventoryStatus.INWAREHOUSE,
+            },
+          });
           for (let i = 0; i < item.quantity; i++) {
-            if (item.product.inventory[i]) {
-              inventory.push(item.product.inventory[i].id);
+            console.log(item);
+            if (availableInventory[i]) {
+              inventory.push(availableInventory[i].id);
             }
           }
         }
@@ -277,8 +272,6 @@ export default class CartResolver {
             currency: 'USD',
             order_id: cart.id,
             products: cart.items.map((item) => ({
-              brand: item.product.brand.name,
-              category: item.product.category.name,
               image_url: item.product.images
                 ? `https://parachut.imgix.net/${item.product.images[0]}`
                 : undefined,
