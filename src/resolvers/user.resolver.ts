@@ -1,18 +1,18 @@
+import camelcaseKeys from 'camelcase-keys';
 import crypto from 'crypto';
+import Recurly from 'recurly';
 import { Op } from 'sequelize';
-import Stripe from 'stripe';
 import { Ctx, FieldResolver, Resolver, Root } from 'type-graphql';
 
-import { StripeSource } from '../classes/stripeSource';
+import { PaymentMethod } from '../classes/paymentMethod';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { Inventory } from '../models/Inventory';
 import { User } from '../models/User';
 import { UserIntegration } from '../models/UserIntegration';
 import { UserVerification } from '../models/UserVerification';
 import { IContext } from '../utils/context.interface';
-import { formatStripeSource } from '../utils/formatStripeSource';
 
-const stripe = new Stripe(process.env.STRIPE);
+const recurly = new Recurly.Client(process.env.RECURLY, `subdomain-parachut`);
 
 @Resolver(User)
 export default class UserResolver {
@@ -52,7 +52,7 @@ export default class UserResolver {
   @FieldResolver((type) => String)
   frontHash(@Root() user: User): string {
     if (!process.env.FRONT_CHAT_SECRET) {
-      throw new Error('Missing environment variable STRIPE');
+      throw new Error('Missing environment variable FRONT');
     }
 
     return crypto
@@ -61,45 +61,20 @@ export default class UserResolver {
       .digest('hex');
   }
 
-  @FieldResolver((type) => Boolean)
-  async protectionPlan(@Root() user: User): Promise<boolean> {
-    const integrations = (await user.$get<UserIntegration>(
-      'integrations',
-    )) as UserIntegration[];
-
-    return !!integrations.find(
-      (int) => int.type === 'STRIPE_MONTHLYPROTECTIONPLAN',
-    );
-  }
-
-  @FieldResolver((type) => [StripeSource])
+  @FieldResolver((type) => PaymentMethod, { nullable: true })
   async sources(@Ctx() ctx: IContext, @Root() user: User): Promise<any[]> {
-    if (!user.stripeId) {
-      return [];
-    }
-    const redisId = [user.id, 'stripe-sources'].join(':');
-    const cacheItem = await ctx.redis.get(redisId);
-    let sources: any = cacheItem ? JSON.parse(cacheItem) : null;
-
-    if (!sources) {
-      const stripeCustomer = await stripe.customers.retrieve(user.stripeId);
-      if (
-        !stripeCustomer ||
-        !stripeCustomer.sources ||
-        !stripeCustomer.sources.total_count
-      ) {
-        return [];
-      }
-
-      sources = stripeCustomer.sources.data;
-
-      await ctx.redis.set(redisId, JSON.stringify(sources));
-
-      /* This is on purpose due to @types/stripe being wrong */
-    }
-
-    return sources.map((source) => {
-      return formatStripeSource(source);
+    const recurlyIntegration = await UserIntegration.findOne({
+      where: {
+        type: 'RECURLY',
+        userId: user.id,
+      },
     });
+
+    try {
+      const billingInfo = await recurly.getBillingInfo(
+        recurlyIntegration.value,
+      );
+      return camelcaseKeys(billingInfo.payment_method);
+    } catch (e) {}
   }
 }

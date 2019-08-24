@@ -12,7 +12,7 @@ import checkout from './tasks/checkout';
 import createAuthyUser from './tasks/createAuthyUser';
 import createEasyPostAddress from './tasks/createEasyPostAddress';
 import createFrontContact from './tasks/createFrontContact';
-import createStripeUser from './tasks/createStripeUser';
+import createRecurlyUser from './tasks/createRecurlyUser';
 import sendDeliveryEmail from './tasks/sendDeliveryEmail';
 import sendOutboundAccessConfirmationEmail from './tasks/sendOutboundAccessConfirmationEmail';
 import sendOutboundAccessShipmentEmail from './tasks/sendOutboundAccessShipmentEmail';
@@ -62,9 +62,9 @@ function start() {
       createFrontContact,
     );
     integrationQueue.process(
-      'create-stripe-user',
+      'create-recurly-user',
       maxJobsPerWorker,
-      createStripeUser,
+      createRecurlyUser,
     );
     integrationQueue.process('check-clearbit', maxJobsPerWorker, checkClearbit);
     integrationQueue.process(

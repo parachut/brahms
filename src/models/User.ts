@@ -25,7 +25,6 @@ import { Address } from './Address';
 import { Cart } from './Cart';
 import { Income } from './Income';
 import { Inventory } from './Inventory';
-import { Invoice } from './Invoice';
 import { Queue } from './Queue';
 import { Shipment } from './Shipment';
 import { UserGeolocation } from './UserGeolocation';
@@ -117,12 +116,23 @@ export class User extends Model<User> {
   )
   public status!: UserStatus;
 
-  @Field({ nullable: true })
+  @Field()
   @Column
   public site?: string;
 
+  @Field()
   @Column
   public stripeId?: string;
+
+  @Field()
+  @Default(false)
+  @Column
+  public protectionPlan!: boolean;
+
+  @Field()
+  @Default(false)
+  @Column
+  public vip!: boolean;
 
   @HasMany(() => Cart, 'userId')
   public carts!: Cart[];
@@ -159,9 +169,6 @@ export class User extends Model<User> {
   @HasMany(() => Inventory, 'userId')
   inventory: Inventory[];
 
-  @HasMany(() => Invoice, 'userId')
-  public invoices!: Invoice[];
-
   @HasMany(() => Queue, 'userId')
   public queues?: Queue[];
 
@@ -184,20 +191,18 @@ export class User extends Model<User> {
 
   @AfterCreate
   static async linkAccounts(instance: User) {
-    if (!instance.stripeId) {
-      integrationQueue.add('create-stripe-user', {
-        userId: instance.get('id'),
-      });
-      integrationQueue.add('create-authy-user', {
-        userId: instance.get('id'),
-      });
-      integrationQueue.add('create-front-contact', {
-        userId: instance.get('id'),
-      });
-      integrationQueue.add('check-clearbit', {
-        userId: instance.get('id'),
-      });
-    }
+    integrationQueue.add('create-recurly-user', {
+      userId: instance.get('id'),
+    });
+    integrationQueue.add('create-authy-user', {
+      userId: instance.get('id'),
+    });
+    integrationQueue.add('create-front-contact', {
+      userId: instance.get('id'),
+    });
+    integrationQueue.add('check-clearbit', {
+      userId: instance.get('id'),
+    });
   }
 
   @AfterUpdate

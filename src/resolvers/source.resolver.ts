@@ -1,121 +1,73 @@
-import plaid from 'plaid';
-import Stripe from 'stripe';
-import {
-  Arg,
-  Authorized,
-  Ctx,
-  FieldResolver,
-  Mutation,
-  Query,
-  Resolver,
-  Root,
-} from 'type-graphql';
+import camelcaseKeys from 'camelcase-keys';
+import Recurly from 'recurly';
+import { Arg, Authorized, Ctx, Mutation, Resolver } from 'type-graphql';
 
-import { QueueCreateInput } from '../classes/queueCreate.input';
-import { QueueWhereUniqueInput } from '../classes/queueWhereUnique.input';
+import { BillingInformation } from '../classes/billingInformation';
 import { SourceUpdateInput } from '../classes/sourceUpdate.input';
-import { StripeSource } from '../classes/stripeSource';
 import { UserRole } from '../enums/userRole';
-import { CartItem } from '../models/CartItem';
-import { Product } from '../models/Product';
+import { Address } from '../models/Address';
 import { User } from '../models/User';
-import { UserBankBalance } from '../models/UserBankBalance';
-import { UserIntegration } from '../models/UserIntegration';
 import { IContext } from '../utils/context.interface';
-import { formatStripeSource } from '../utils/formatStripeSource';
 
-const plaidClient = new plaid.Client(
-  process.env.PLAID_ID,
-  process.env.PLAID_SECRET,
-  process.env.PLAID_PUBLIC_KEY,
-  process.env.NODE_ENV === 'production'
-    ? plaid.environments.development
-    : plaid.environments.sandbox,
-);
-const stripe = new Stripe(process.env.STRIPE);
+const recurly = new Recurly.Client(process.env.RECURLY, `subdomain-parachut`);
 
 @Resolver()
 export default class SourceResolver {
   @Authorized([UserRole.MEMBER])
-  @Mutation(() => StripeSource)
+  @Mutation(() => BillingInformation)
   public async sourceUpdate(
     @Arg('input', (type) => SourceUpdateInput)
-    { token: stripeToken, accountId }: SourceUpdateInput,
+    { token, firstName, lastName, addressId }: SourceUpdateInput,
     @Ctx() ctx: IContext,
   ) {
     if (ctx.user) {
       const user = await User.findByPk(ctx.user.id, {
         include: [
-          'integrations',
           {
-            association: 'carts',
-            where: { completedAt: null, userId: ctx.user.id },
-            limit: 1,
-            attributes: ['id'],
-            order: [['createdAt', 'DESC']],
+            association: 'integrations',
+            where: {
+              type: 'RECURLY',
+            },
+          },
+          {
+            association: 'address',
+            where: {
+              type: 'RECURLY',
+            },
           },
         ],
       });
 
-      if (accountId) {
-        try {
-          const {
-            access_token: accessToken,
-          } = await plaidClient.exchangePublicToken(stripeToken);
-          const stripeTokenRes = await plaidClient.createStripeToken(
-            accessToken,
-            accountId,
-          );
-          stripeToken = stripeTokenRes.stripe_bank_account_token;
+      const address = await Address.findByPk(addressId);
 
-          await UserIntegration.create({
-            type: 'PLAID',
-            value: accessToken,
-            userId: ctx.user.id,
-          });
-
-          const { accounts } = await plaidClient.getBalance(accessToken);
-          if (accounts) {
-            for (const account of accounts) {
-              await UserBankBalance.create({
-                available: account.balances.available
-                  ? Math.round(account.balances.available * 100)
-                  : null,
-                name: account.name,
-                limit: account.balances.limit
-                  ? Math.round(account.balances.limit * 100)
-                  : null,
-                current: Math.round(account.balances.current * 100),
-              });
-            }
-          }
-        } catch (e) {
-          console.log(e);
-        }
-      }
-
-      const newSource = await stripe.customers.createSource(user.stripeId, {
-        source: stripeToken,
-      });
-
-      await stripe.customers.update(user.stripeId, {
-        default_source: newSource.id,
-      });
-
-      if (newSource.object === 'card') {
-        ctx.analytics.track({
-          event: 'Payment Info Entered',
-          properties: {
-            checkout_id: user.carts[0].id,
-            payment_method: newSource.brand,
+      const billingInformation = await recurly.updateBillingInfo(
+        user.integrations[0].value,
+        {
+          firstName,
+          lastName,
+          tokenId: token,
+          address: {
+            firstName,
+            lastName,
+            phone: user.phone,
+            street1: address.street,
+            street2: `${address.secondaryUnit} ${address.secondaryNumber}`,
+            city: address.city,
+            region: address.state,
+            postalCode: address.zip,
+            country: address.country,
           },
-          userId: ctx.user.id,
-        });
-      }
+        },
+      );
 
-      return formatStripeSource(newSource);
+      return {
+        firstName,
+        lastName,
+        paymentMethod: camelcaseKeys(billingInformation.payment_method),
+        address,
+      };
     }
 
-    throw new Error('Unauthorized');
+    throw new Error('Unauthorised');
   }
 }

@@ -46,6 +46,12 @@ export default class CartResolver {
           userId: ctx.user.id,
           completedAt: null,
         },
+        include: [
+          {
+            association: 'items',
+            include: ['product'],
+          },
+        ],
       });
 
       if (!cart) {
@@ -62,14 +68,24 @@ export default class CartResolver {
         cart = new Cart({
           planId: !!user.planId ? user.planId : '1500',
           addressId,
-          protectionPlan: !!user.integrations.find(
-            (integration) =>
-              integration.type === 'STRIPE_MONTHLYPROTECTIONPLAN',
-          ),
+          protectionPlan: user.protectionPlan,
           userId: ctx.user.id,
         });
 
-        await cart.save();
+        return cart.save();
+      }
+
+      if (cart.items.length) {
+        for (const item of cart.items) {
+          if (item.product.stock < item.quantity && item.product.stock !== 0) {
+            item.quantity = item.product.stock;
+            await item.save();
+          }
+
+          if (item.product.stock === 0) {
+            await item.destroy();
+          }
+        }
       }
 
       return cart;

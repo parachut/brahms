@@ -116,6 +116,11 @@ export class Address extends Model<Address> {
   @Column
   public primary!: boolean;
 
+  @Field()
+  @Default(true)
+  @Column
+  public billing!: boolean;
+
   @Field({ nullable: true })
   @Column
   public easyPostId?: string;
@@ -169,7 +174,7 @@ export class Address extends Model<Address> {
     instance.phone = user.phone;
     instance.name = user.name;
     instance.formattedStreet = instance.street;
-    instance.formattedAddress = `${instance.street}. ${instance.city} ${instance.state} ${instance.zip}`;
+    instance.formattedAddress = `${instance.street}, ${instance.city}, ${instance.state} ${instance.zip}`;
   }
 
   @AfterCreate

@@ -21,7 +21,6 @@ import { InventoryCondition } from '../enums/inventoryCondition';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { Cart } from './Cart';
 import { CartInventory } from './CartInventory';
-import { InvoiceItem } from './InvoiceItem';
 import { Product } from './Product';
 import { Shipment } from './Shipment';
 import { ShipmentInspection } from './ShipmentInspection';
@@ -131,9 +130,6 @@ export class Inventory extends Model<Inventory> {
   @ForeignKey(() => Warehouse)
   @Column(DataType.UUID)
   public warehouseId!: string;
-
-  @HasMany(() => InvoiceItem, 'inventoryId')
-  public invoiceItems!: InvoiceItem[];
 
   @HasMany(() => ShipmentInspection, 'inventoryId')
   public inspections?: ShipmentInspection[];

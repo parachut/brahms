@@ -6,8 +6,6 @@ import { InventoryStatus } from '../enums/inventoryStatus';
 import { InvoiceStatus } from '../enums/invoiceStatus';
 import { Cart } from '../models/Cart';
 import { Inventory } from '../models/Inventory';
-import { Invoice } from '../models/Invoice';
-import { InvoiceItem } from '../models/InvoiceItem';
 import { User } from '../models/User';
 import {
   calcDailyCommission,
@@ -55,13 +53,6 @@ export async function hourlyBiller(req, res) {
   );
 
   for (const user of users) {
-    const hasPriorCharge = await Invoice.count({
-      where: {
-        userId: user.id,
-        createdAt: { [Op.gte]: twelveHoursAgo },
-      },
-    });
-
     const hasMonthlyPlan = user.integrations.find(
       (int) => int.type === 'STRIPE_MONTHLYPLAN',
     );
@@ -70,112 +61,97 @@ export async function hourlyBiller(req, res) {
       (int) => int.type === 'STRIPE_MONTHLYPROTECTIONPLAN',
     );
 
-    if (!hasPriorCharge) {
-      const currentInventory = await Inventory.findAll({
-        where: {
-          memberId: user.id,
-          status: {
-            [Op.in]: [InventoryStatus.WITHMEMBER, InventoryStatus.RETURNING],
-          },
+    const currentInventory = await Inventory.findAll({
+      where: {
+        memberId: user.id,
+        status: {
+          [Op.in]: [InventoryStatus.WITHMEMBER, InventoryStatus.RETURNING],
         },
-        include: [
-          {
-            association: 'product',
-            attributes: ['id', 'points', 'name'],
+      },
+      include: [
+        {
+          association: 'product',
+          attributes: ['id', 'points', 'name'],
+        },
+      ],
+    });
+
+    const invoiceItems = [];
+
+    for (const item of currentInventory) {
+      let protectionPlan = !!hasMonthlyProtectionPlan;
+
+      if (!protectionPlan && !hasMonthlyPlan) {
+        const cart = await Cart.findOne({
+          where: {
+            userId: user.id,
+            '$inventory.id$': item.id,
           },
-        ],
-      });
-
-      const invoiceItems = [];
-
-      for (const item of currentInventory) {
-        let protectionPlan = !!hasMonthlyProtectionPlan;
-
-        if (!protectionPlan && !hasMonthlyPlan) {
-          const cart = await Cart.findOne({
-            where: {
-              userId: user.id,
-              '$inventory.id$': item.id,
+          include: [
+            {
+              association: 'inventory',
+              attributes: ['id'],
             },
-            include: [
-              {
-                association: 'inventory',
-                attributes: ['id'],
-              },
-            ],
-          });
-          protectionPlan = cart ? cart.protectionPlan : false;
-        }
-
-        const { points } = item.product;
-
-        const dailyRate = calcDailyRate(points);
-
-        const protectionPlanRate = protectionPlan
-          ? calcProtectionDailyRate(points)
-          : 0;
-
-        invoiceItems.push({
-          dailyRate: dailyRate + protectionPlanRate,
-          commission: calcDailyCommission(points),
-          points: item.product.points,
-          protectionPlan: protectionPlan,
-          inventoryId: item.id,
+          ],
         });
+        protectionPlan = cart ? cart.protectionPlan : false;
       }
 
-      totalItems = totalItems + invoiceItems.length;
-      const total = invoiceItems.reduce((r, i) => r + i.points, 0);
+      const { points } = item.product;
 
-      let status = true;
-      let stripeInvoice;
+      const dailyRate = calcDailyRate(points);
 
-      try {
-        const mapper = async (item) => {
-          return stripe.invoiceItems.create({
-            customer: user.stripeId,
-            amount: item.dailyRate * 100,
-            currency: 'usd',
-            description: currentInventory.find(
-              (itemr) => itemr.id === item.inventoryId,
-            ).product.name,
-            metadata: {
-              id: item.inventoryId,
-            },
-          });
-        };
+      const protectionPlanRate = protectionPlan
+        ? calcProtectionDailyRate(points)
+        : 0;
 
-        if (!hasMonthlyPlan) {
-          await pMap(invoiceItems, mapper, { concurrency: 5 });
-          stripeInvoice = await stripe.invoices.create({
-            customer: user.stripeId,
-            auto_advance: true,
-            billing: 'charge_automatically',
-          });
-
-          if (stripeInvoice.paid) {
-            totalBilled = totalBilled + total;
-          } else {
-            totalCollections = totalCollections + total;
-          }
-        }
-      } catch (e) {
-        totalCollections = totalCollections + total;
-        status = false;
-      }
-
-      const invoice = await Invoice.create({
-        total,
-        userId: user.id,
-        status: status ? InvoiceStatus.COLLECTED : InvoiceStatus.FAILED,
-        subscription: !!hasMonthlyPlan,
-        stripeId: stripeInvoice ? stripeInvoice.id : null,
-        collectedAt: status ? new Date() : null,
+      invoiceItems.push({
+        dailyRate: dailyRate + protectionPlanRate,
+        commission: calcDailyCommission(points),
+        points: item.product.points,
+        protectionPlan: protectionPlan,
+        inventoryId: item.id,
       });
+    }
 
-      await pMap(invoiceItems, (item) =>
-        InvoiceItem.create({ ...item, invoiceId: invoice.id }),
-      );
+    totalItems = totalItems + invoiceItems.length;
+    const total = invoiceItems.reduce((r, i) => r + i.points, 0);
+
+    let status = true;
+    let stripeInvoice;
+
+    try {
+      const mapper = async (item) => {
+        return stripe.invoiceItems.create({
+          customer: user.stripeId,
+          amount: item.dailyRate * 100,
+          currency: 'usd',
+          description: currentInventory.find(
+            (itemr) => itemr.id === item.inventoryId,
+          ).product.name,
+          metadata: {
+            id: item.inventoryId,
+          },
+        });
+      };
+
+      if (!hasMonthlyPlan) {
+        await pMap(invoiceItems, mapper, { concurrency: 5 });
+        stripeInvoice = await stripe.invoices.create({
+          customer: user.stripeId,
+          auto_advance: true,
+          billing: 'charge_automatically',
+        });
+
+        if (stripeInvoice.paid) {
+          totalBilled = totalBilled + total;
+        } else {
+          totalCollections = totalCollections + total;
+        }
+      }
+    } catch (e) {
+      totalCollections = totalCollections + total;
+      status = false;
     }
   }
 
