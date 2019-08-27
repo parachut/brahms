@@ -52,10 +52,14 @@ export class User extends Model<User> {
   @Column
   public bio?: string;
 
-  @Field()
+  @Field((type) => Int)
   @Default(1)
-  @Column
+  @Column(DataType.SMALLINT)
   public billingHour!: number;
+
+  @Field((type) => Int, { nullable: true })
+  @Column(DataType.SMALLINT)
+  public billingDay?: number;
 
   @Field({ nullable: true })
   @Column

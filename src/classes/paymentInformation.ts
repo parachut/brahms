@@ -4,12 +4,9 @@ import { Address } from '../models/Address';
 import { PaymentMethod } from './paymentMethod';
 
 @ObjectType()
-export class BillingInformation {
+export class PaymentInformation {
   @Field()
   public id!: string;
-
-  @Field((type) => Address)
-  public address!: Address;
 
   @Field((type) => PaymentMethod)
   public paymentMethod!: PaymentMethod;
@@ -18,5 +15,5 @@ export class BillingInformation {
   public firstName!: string;
 
   @Field()
-  public lastname!: string;
+  public lastName!: string;
 }

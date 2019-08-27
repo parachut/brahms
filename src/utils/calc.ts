@@ -1,3 +1,6 @@
+import addMonths from 'date-fns/addMonths';
+import differenceInCalendarDays from 'date-fns/differenceInCalendarDays';
+
 export function calcDailyRate(points: number): number {
   if (!process.env.DAILY_RATE_PERCENT_MAX) {
     throw new Error('Missing environment variable DAILY_RATE_PERCENT_MAX');
@@ -52,4 +55,24 @@ export function calcUnlimitedTier(total: number): string {
   } else {
     return '750';
   }
+}
+
+/**
+ *
+ * @param alpha New Monthly Price
+ * @param beta Old Monthly Price
+ * @param day Day of billing
+ */
+export function prorate(alpha: number, beta: number, day: number) {
+  const dt = new Date();
+  const month = dt.getMonth();
+  const year = dt.getFullYear();
+
+  const nextBillingDay = addMonths(new Date(year, month, day), 1);
+  const remaining = differenceInCalendarDays(nextBillingDay, dt);
+
+  var oldRemaining = beta / remaining;
+  var newRemaining = alpha / remaining;
+
+  return remaining * (newRemaining - oldRemaining);
 }

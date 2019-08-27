@@ -5,8 +5,8 @@ export class AddressCreateInput {
   @Field()
   public city!: string;
 
-  @Field()
-  public primary!: boolean;
+  @Field({ nullable: true })
+  public primary?: boolean;
 
   @Field({ nullable: true })
   public country?: string;

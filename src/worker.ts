@@ -8,7 +8,6 @@ if (process.env.NODE_ENV !== 'production') {
 import { createQueue } from './redis';
 import checkClearbit from './tasks/checkClearbit';
 import checkClearbitFraud from './tasks/checkClearbitFraud';
-import checkout from './tasks/checkout';
 import createAuthyUser from './tasks/createAuthyUser';
 import createEasyPostAddress from './tasks/createEasyPostAddress';
 import createFrontContact from './tasks/createFrontContact';
@@ -45,7 +44,6 @@ function start() {
       checkClearbitFraud,
     );
 
-    internalQueue.process('checkout', maxJobsPerWorker, checkout);
     integrationQueue.process(
       'create-authy-user',
       maxJobsPerWorker,

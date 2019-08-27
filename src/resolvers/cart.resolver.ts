@@ -1,7 +1,5 @@
 import EasyPost from '@easypost/api';
-import Queue from 'bull';
 import isUndefined from 'lodash/isUndefined';
-import * as Postmark from 'postmark';
 import { Op } from 'sequelize';
 import {
   Arg,
@@ -19,7 +17,6 @@ import { CartUpdateInput } from '../classes/cartUpdate.input';
 import { CartWhereUniqueInput } from '../classes/cartWhereUnique.input';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { UserRole } from '../enums/userRole';
-import { UserStatus } from '../enums/userStatus';
 import { Address } from '../models/Address';
 import { Cart } from '../models/Cart';
 import { CartItem } from '../models/CartItem';
@@ -28,12 +25,9 @@ import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
 import { Warehouse } from '../models/Warehouse';
 import { IContext } from '../utils/context.interface';
-import { createQueue } from '../redis';
 
 const moment = require('moment-business-days');
-const postmark = new Postmark.ServerClient(process.env.POSTMARK);
 const easyPost = new EasyPost(process.env.EASYPOST);
-const internalQueue = createQueue('internal-queue');
 
 @Resolver(Cart)
 export default class CartResolver {
@@ -194,123 +188,6 @@ export default class CartResolver {
     }
 
     throw new Error('Unauthorized');
-  }
-
-  @Authorized([UserRole.MEMBER])
-  @Mutation(() => Cart)
-  public async checkout(@Ctx() ctx: IContext) {
-    if (ctx.user) {
-      const [user] = await Promise.all([
-        User.findByPk(ctx.user.id, {
-          include: [
-            {
-              association: 'carts',
-              where: { completedAt: null },
-              limit: 1,
-              order: [['createdAt', 'DESC']],
-              include: [
-                {
-                  association: 'items',
-                  include: [
-                    {
-                      association: 'product',
-                      include: [
-                        {
-                          association: 'inventory',
-                          attributes: ['id', 'status'],
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              association: 'integrations',
-            },
-          ],
-        }),
-      ]);
-
-      const cart = user.carts[0];
-
-      if (!cart.completedAt && user.status === UserStatus.BLACKLISTED) {
-        cart.completedAt = new Date();
-        cart.canceledAt = new Date();
-        return cart.save();
-      }
-
-      if (!cart.completedAt) {
-        const inventory = [];
-        for (const item of cart.items) {
-          const availableInventory = await Inventory.findAll({
-            where: {
-              productId: item.productId,
-              status: InventoryStatus.INWAREHOUSE,
-            },
-          });
-          for (let i = 0; i < item.quantity; i++) {
-            console.log(item);
-            if (availableInventory[i]) {
-              inventory.push(availableInventory[i].id);
-            }
-          }
-        }
-
-        const cartPoints = user.carts[0].items.reduce(
-          (r, ii) => r + ii.product.points * ii.quantity,
-          0,
-        );
-
-        await Inventory.update(
-          {
-            status: 'SHIPMENTPREP',
-            memberId: user.id,
-          },
-          {
-            where: {
-              id: {
-                [Op.in]: inventory,
-              },
-            },
-          },
-        );
-
-        cart.completedAt = new Date();
-        await cart.save();
-
-        cart.$set('inventory', inventory);
-
-        ctx.analytics.track({
-          event: 'Order Completed',
-          properties: {
-            checkout_id: cart.id,
-            currency: 'USD',
-            order_id: cart.id,
-            products: cart.items.map((item) => ({
-              image_url: item.product.images
-                ? `https://parachut.imgix.net/${item.product.images[0]}`
-                : undefined,
-              name: item.product.name,
-              price: item.product.points,
-              product_id: item.product.id,
-              quantity: item.quantity,
-            })),
-            shipping: cart.service !== 'Ground' ? 25 : 0,
-            total: cartPoints,
-          },
-          userId: ctx.user.id,
-        });
-
-        internalQueue.add('checkout', {
-          cartId: cart.id,
-        });
-
-        return cart;
-      }
-
-      throw new Error('Unauthorised');
-    }
   }
 
   @FieldResolver((type) => [CartItem])

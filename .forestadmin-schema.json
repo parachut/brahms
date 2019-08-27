@@ -687,7 +687,7 @@
       "validations": []
     }, {
       "field": "inventory",
-      "type": ["Number"],
+      "type": ["String"],
       "defaultValue": null,
       "enums": null,
       "integration": null,
@@ -1919,7 +1919,7 @@
       "validations": []
     }, {
       "field": "carts",
-      "type": ["Number"],
+      "type": ["String"],
       "defaultValue": null,
       "enums": null,
       "integration": null,
@@ -2125,7 +2125,7 @@
       "validations": []
     }, {
       "field": "shipments",
-      "type": ["Number"],
+      "type": ["String"],
       "defaultValue": null,
       "enums": null,
       "integration": null,
@@ -2922,7 +2922,7 @@
       "validations": []
     }, {
       "field": "inventory",
-      "type": ["Number"],
+      "type": ["String"],
       "defaultValue": null,
       "enums": null,
       "integration": null,
@@ -3595,6 +3595,20 @@
     }, {
       "field": "avatar",
       "type": "String",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "billingDay",
+      "type": "Number",
       "defaultValue": null,
       "enums": null,
       "integration": null,
@@ -6359,7 +6373,7 @@
   "meta": {
     "database_type": "postgres",
     "liana": "forest-express-sequelize",
-    "liana_version": "3.2.6",
-    "orm_version": "5.12.3"
+    "liana_version": "3.3.3",
+    "orm_version": "5.16.0"
   }
 }
