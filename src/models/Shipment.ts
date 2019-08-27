@@ -199,7 +199,6 @@ export class Shipment extends Model<Shipment> {
   @AfterUpdate
   static async checkDelivered(instance: Shipment) {
     if (
-      instance.cartId &&
       instance.changed('status') &&
       instance.status === ShipmentStatus.DELIVERED &&
       instance.direction === ShipmentDirection.OUTBOUND &&
@@ -209,9 +208,16 @@ export class Shipment extends Model<Shipment> {
         shipmentId: instance.id,
       });
 
+      const user = await User.findByPk(instance.userId);
+      if (!user.billingDay) {
+        user.billingDay = new Date().getDate();
+        await user.save();
+      }
+
       const inventory = (await instance.$get<Inventory>(
         'inventory',
       )) as Inventory[];
+
       await Inventory.update(
         {
           status: InventoryStatus.WITHMEMBER,
