@@ -15,6 +15,7 @@ import {
   Table,
   UpdatedAt,
   BeforeCreate,
+  BeforeValidate,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType, Root } from 'type-graphql';
 

@@ -1,10 +1,10 @@
-import { registerEnumType } from "type-graphql";
+import { registerEnumType } from 'type-graphql';
 
 export enum ShipmentDirection {
-  INBOUND = "INBOUND",
-  OUTBOUND = "OUTBOUND",
+  INBOUND = 'INBOUND',
+  OUTBOUND = 'OUTBOUND',
 }
 
 registerEnumType(ShipmentDirection, {
-  name: "ShipmentDirection",
+  name: 'ShipmentDirection',
 });

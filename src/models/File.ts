@@ -63,7 +63,7 @@ export class File extends Model<File> {
 
   @ForeignKey(() => ShipmentInspection)
   @Column(DataType.UUID)
-  public shipmentInspectionid?: string;
+  public shipmentInspectionId?: string;
 
   @CreatedAt
   public createdAt!: Date;
