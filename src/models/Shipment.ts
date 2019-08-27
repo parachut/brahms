@@ -311,18 +311,18 @@ export class Shipment extends Model<Shipment> {
         to_address: address.easyPostId,
       };
 
-      if (ShipmentDirection.OUTBOUND) {
-        shipment.service = instance.service;
-      }
-
       const easyPostShipment = new easyPost.Shipment(shipment);
 
       try {
         await easyPostShipment.save();
 
-        const rates = groupBy(easyPostShipment.rates, ['delivery_days']);
+        const rates = groupBy(easyPostShipment.rates, (o) => {
+          return Number(o.delivery_days);
+        });
         const levels = Object.keys(rates);
-        const level = instance.expedited ? 0 : 1;
+        const level = String(
+          instance.expedited ? 0 : Math.min(levels.length - 1, 1),
+        );
 
         const costSort = sortBy(rates[levels[level]], [
           (o) => {
@@ -331,10 +331,11 @@ export class Shipment extends Model<Shipment> {
         ]);
         instance.service = costSort[0].service;
 
-        await shipment.buy(instance.service);
+        await easyPostShipment.buy(costSort[0]);
 
         await easyPostShipment.convertLabelFormat('ZPL');
       } catch (e) {
+        console.log(JSON.stringify(e));
         throw new Error('Unable to create shipment label.');
       }
 
