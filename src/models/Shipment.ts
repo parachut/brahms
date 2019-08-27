@@ -331,6 +331,8 @@ export class Shipment extends Model<Shipment> {
         ]);
         instance.service = costSort[0].service;
 
+        await shipment.buy(instance.service);
+
         await easyPostShipment.convertLabelFormat('ZPL');
       } catch (e) {
         throw new Error('Unable to create shipment label.');
