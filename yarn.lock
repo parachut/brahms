@@ -1018,9 +1018,9 @@ await-to-js@^2.1.1:
   integrity sha512-CHBC6gQGCIzjZ09tJ+XmpQoZOn4GdWePB4qUweCaKNJ0D3f115YdhmYVTZ4rMVpiJ3cFzZcTYK1VMYEICV4YXw==
 
 awesome-phonenumber@^2.13.1:
-  version "2.16.0"
-  resolved "https://registry.yarnpkg.com/awesome-phonenumber/-/awesome-phonenumber-2.16.0.tgz#16e436a2c4b21b957d3876a9a3ade07aec177560"
-  integrity sha512-JMPXjOg5EIKr2rCekXIpnpVAsQSNneZV5OtZ0Ofn1owfpXYNVX9jA9za04tf1m3Ert/y3T1oP+PbdWlXTpT28Q==
+  version "2.17.0"
+  resolved "https://registry.yarnpkg.com/awesome-phonenumber/-/awesome-phonenumber-2.17.0.tgz#e26af5be3396322f0de66ef83fb21a0b72f54469"
+  integrity sha512-SKw7o7+LWR/M02iWImJJ19M5I5eR+Nyi0umoi0NdNMB1wIS3SeR878yr5v1tsqqylP9kZday1DcVcT3Tvm2weg==
 
 aws-sign2@~0.5.0:
   version "0.5.0"
@@ -2639,10 +2639,9 @@ for-own@^0.1.4:
   dependencies:
     for-in "^1.0.1"
 
-forest-express-sequelize@^3.2.6:
+forest-express-sequelize@parachut/forest-express-sequelize:
   version "3.3.3"
-  resolved "https://registry.yarnpkg.com/forest-express-sequelize/-/forest-express-sequelize-3.3.3.tgz#ccbcf21ddf08af3b74335d297204c29a51466b95"
-  integrity sha512-mnlOw3nLRZwPAfr22Z2dft9Qb8c8vCyLIdzHKq7JGEsdU/dnWU6nfK0fqUCYCGgIADeqwaTRQOBLclKqUTQipg==
+  resolved "https://codeload.github.com/parachut/forest-express-sequelize/tar.gz/5d008701078c9a30c44f2e8760e438729437ac01"
   dependencies:
     babel-runtime "7.0.0-beta.3"
     bluebird "2.9.25"
@@ -4349,7 +4348,7 @@ needle@^2.2.1:
     iconv-lite "^0.4.4"
     sax "^1.2.4"
 
-"needle@github:clearbit/needle#84d28b5f2c3916db1e7eb84aeaa9d976cc40054b":
+needle@clearbit/needle#84d28b5f2c3916db1e7eb84aeaa9d976cc40054b:
   version "0.7.10"
   resolved "https://codeload.github.com/clearbit/needle/tar.gz/84d28b5f2c3916db1e7eb84aeaa9d976cc40054b"
   dependencies:
