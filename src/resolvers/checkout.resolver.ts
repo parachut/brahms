@@ -47,11 +47,7 @@ export default class CheckoutResolver {
             include: [
               {
                 association: 'items',
-                include: [
-                  {
-                    association: 'product',
-                  },
-                ],
+                include: ['product'],
               },
             ],
           },
@@ -64,6 +60,30 @@ export default class CheckoutResolver {
       });
 
       const [cart] = user.carts;
+
+      const inventory = [];
+      const availableInventory = await Inventory.findAll({
+        where: {
+          productId: { [Op.in]: cart.items.map((item) => item.productId) },
+          status: InventoryStatus.INWAREHOUSE,
+        },
+      });
+
+      for (const item of cart.items) {
+        const itemInventory = availableInventory.filter(
+          (i) => i.productId === item.productId,
+        );
+
+        if (itemInventory.length < item.quantity) {
+          throw new Error(`${item.product.name} is out of stock.`);
+        }
+
+        for (let i = 0; i < item.quantity; i++) {
+          if ([i]) {
+            inventory.push(itemInventory[i].id);
+          }
+        }
+      }
 
       if (!cart.completedAt && user.status === UserStatus.BLACKLISTED) {
         cart.completedAt = new Date();
@@ -93,19 +113,26 @@ export default class CheckoutResolver {
         (int) => int.type === 'RECURLY_SUBSCRIPTION',
       );
 
+      const overage = Math.max(0, total - Number(cart.planId));
+
       const subscriptionReq: any = {
         planCode: cart.planId,
-        addOns: [
-          {
-            code: 'protection',
-            quantity: cart.protectionPlan ? 1 : 0,
-          },
-          {
-            code: 'overage',
-            quantity: Math.max(0, total - Number(cart.planId)),
-          },
-        ],
+        addOns: [],
       };
+
+      if (cart.protectionPlan) {
+        subscriptionReq.addOns.push({
+          code: 'protection',
+          quantity: 1,
+        });
+      }
+
+      if (overage) {
+        subscriptionReq.addOns.push({
+          code: 'overage',
+          quantity: Math.max(0, total - Number(cart.planId)),
+        });
+      }
 
       let _continue = false;
 
@@ -173,21 +200,23 @@ export default class CheckoutResolver {
             },
           });
         } else {
-          if (cart.service !== 'Ground') {
-            await recurly.createPurchase({
-              currency: 'USD',
-              account: {
-                id: recurlyId.value,
-              },
-              lineItems: {
-                type: 'charge',
+          /** if (cart.service !== 'Ground') {
+           
+              await recurly.createPurchase({
                 currency: 'USD',
-                quantity: 1,
-                unitAmount: 25,
-                description: 'Expedited Shipping',
-              },
-            });
-          }
+                account: {
+                  id: recurlyId.value,
+                },
+                lineItems: {
+                  type: 'charge',
+                  currency: 'USD',
+                  quantity: 1,
+                  unitAmount: 25,
+                  description: 'Expedited Shipping',
+                },
+              });
+            
+          }*/
 
           try {
             await recurly.createSubscriptionChange(
@@ -208,21 +237,6 @@ export default class CheckoutResolver {
         }
       } catch (e) {
         throw e;
-      }
-
-      const inventory = [];
-      for (const item of cart.items) {
-        const availableInventory = await Inventory.findAll({
-          where: {
-            productId: item.productId,
-            status: InventoryStatus.INWAREHOUSE,
-          },
-        });
-        for (let i = 0; i < item.quantity; i++) {
-          if (availableInventory[i]) {
-            inventory.push(availableInventory[i].id);
-          }
-        }
       }
 
       await Inventory.update(
@@ -249,7 +263,7 @@ export default class CheckoutResolver {
           cartId: cart.id,
         });
 
-        await shipment.$set('inventory', inventory.map((item) => item.id));
+        await shipment.$set('inventory', inventory);
 
         await sendEmail({
           to: user.email,
@@ -278,7 +292,7 @@ export default class CheckoutResolver {
       await user.save();
 
       cart.completedAt = new Date();
-      cart.$set('inventory', inventory);
+      await cart.$set('inventory', inventory);
       await cart.save();
 
       ctx.analytics.track({
