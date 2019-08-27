@@ -141,7 +141,7 @@ export class Inventory extends Model<Inventory> {
   public updatedAt!: Date;
 
   @AfterUpdate
-  releaseUserPoints(instance: Inventory) {
+  static releaseUserPoints(instance: Inventory) {
     if (instance.changed('memberId')) {
       internalQueue.add('update-user-points', {
         userId: instance.previous('memberId'),

@@ -18,6 +18,7 @@ import sendOutboundAccessShipmentEmail from './tasks/sendOutboundAccessShipmentE
 import sendSimpleEmail from './tasks/sendSimpleEmail';
 import updateAddressCensusData from './tasks/updateAddressCensusData';
 import updateProductStock from './tasks/updateProductStock';
+import updateUserPoints from './tasks/updateUserPoints';
 import updateUserGeolocation from './tasks/updateUserGeolocation';
 
 const workers = process.env.WEB_CONCURRENCY || 2;
@@ -74,6 +75,11 @@ function start() {
       'update-product-stock',
       maxJobsPerWorker,
       updateProductStock,
+    );
+    internalQueue.process(
+      'update-user-points',
+      maxJobsPerWorker,
+      updateUserPoints,
     );
     integrationQueue.process(
       'update-user-geolocation',
