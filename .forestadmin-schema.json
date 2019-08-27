@@ -2864,6 +2864,20 @@
       "relationship": "HasMany",
       "validations": []
     }, {
+      "field": "expedited",
+      "type": "Boolean",
+      "defaultValue": false,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "height",
       "type": "Number",
       "defaultValue": 12,

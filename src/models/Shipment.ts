@@ -19,6 +19,8 @@ import {
   AfterUpdate,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType, Root } from 'type-graphql';
+import sortBy from 'lodash/sortBy';
+import groupBy from 'lodash/groupBy';
 
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentStatus } from '../enums/shipmentStatus';
@@ -71,6 +73,11 @@ export class Shipment extends Model<Shipment> {
   @Field({ nullable: true })
   @Column
   public estDeliveryDate?: Date;
+
+  @Field()
+  @Default(false)
+  @Column
+  public expedited?: boolean;
 
   @Field()
   @Column(DataType.FLOAT)
@@ -301,7 +308,6 @@ export class Shipment extends Model<Shipment> {
           label_size: '4X6',
         },
         parcel,
-        service: instance.service,
         to_address: address.easyPostId,
       };
 
@@ -313,6 +319,18 @@ export class Shipment extends Model<Shipment> {
 
       try {
         await easyPostShipment.save();
+
+        const rates = groupBy(easyPostShipment.rates, ['delivery_days']);
+        const levels = Object.keys(rates);
+        const level = instance.expedited ? 0 : 1;
+
+        const costSort = sortBy(rates[levels[level]], [
+          (o) => {
+            return Number(o.rate);
+          },
+        ]);
+        instance.service = costSort[0].service;
+
         await easyPostShipment.convertLabelFormat('ZPL');
       } catch (e) {
         throw new Error('Unable to create shipment label.');
