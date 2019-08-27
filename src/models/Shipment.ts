@@ -1,5 +1,5 @@
 import EasyPost from '@easypost/api';
-import Sequelize from 'sequelize';
+import Sequelize, { Op } from 'sequelize';
 import {
   AfterCreate,
   BelongsTo,
@@ -16,6 +16,7 @@ import {
   UpdatedAt,
   BeforeCreate,
   BeforeValidate,
+  AfterUpdate,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType, Root } from 'type-graphql';
 
@@ -25,6 +26,7 @@ import { ShipmentType } from '../enums/shipmentType';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Inventory } from './Inventory';
+import { InventoryStatus } from '../enums/inventoryStatus';
 import { ShipmentEvent } from './ShipmentEvent';
 import { ShipmentInspection } from './ShipmentInspection';
 import { ShipmentInventory } from './ShipmentInventory';
@@ -193,6 +195,35 @@ export class Shipment extends Model<Shipment> {
 
   @UpdatedAt
   public updatedAt!: Date;
+
+  @AfterUpdate
+  static async checkDelivered(instance: Shipment) {
+    if (
+      instance.cartId &&
+      instance.changed('status') &&
+      instance.status === ShipmentStatus.DELIVERED &&
+      instance.direction === ShipmentDirection.OUTBOUND &&
+      instance.type === ShipmentType.ACCESS
+    ) {
+      communicationQueue.add('send-delivery-email', {
+        shipmentId: instance.id,
+      });
+
+      const inventory = (await instance.$get<Inventory>(
+        'inventory',
+      )) as Inventory[];
+      await Inventory.update(
+        {
+          status: InventoryStatus.WITHMEMBER,
+        },
+        {
+          where: {
+            id: { [Op.in]: inventory.map((item) => item.id) },
+          },
+        },
+      );
+    }
+  }
 
   @BeforeCreate
   static async findRelatedInformation(instance: Shipment) {

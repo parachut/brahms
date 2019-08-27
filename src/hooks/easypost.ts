@@ -126,12 +126,6 @@ export async function easypost(req, res) {
           update = {
             status: InventoryStatus.WITHMEMBER,
           };
-
-          if (shipment.cartId) {
-            communicationQueue.add('send-delivery-email', {
-              shipmentId: shipment.id,
-            });
-          }
         }
         if (update.status) {
           Inventory.update(update, {
