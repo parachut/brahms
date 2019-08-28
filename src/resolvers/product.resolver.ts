@@ -74,7 +74,9 @@ export default class ProductResolver {
 
       let searchIds: any = [];
 
-      if (filter.search) {
+      console.log(filter);
+
+      if (filter && filter.search) {
         searchIds = await ctx.sequelize.query(
           `
             SELECT id
@@ -93,6 +95,7 @@ export default class ProductResolver {
         where: (key, value) => {
           if (value) {
             if (key === 'where') {
+              console.log(key, value);
               const where: any = {};
               if (value.inStock) {
                 where.stock = { [Op.gt]: 0 };
@@ -103,6 +106,8 @@ export default class ProductResolver {
                   [Op.in]: map(searchIds, 'id'),
                 };
               }
+
+              return where;
             }
           }
         },
