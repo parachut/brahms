@@ -69,7 +69,7 @@ export default class ProductResolver {
         const direction = splitSort.pop().toLowerCase();
         const column = camelCase(splitSort.join('_'));
 
-        orderBy = [['stock', 'DESC'], [column, direction]];
+        orderBy = [[column, direction]];
       }
 
       let searchIds: any = [];
