@@ -58,6 +58,7 @@ export class Shipment extends Model<Shipment> {
   public pickup!: boolean;
 
   @Field({ nullable: true })
+  @Default('UPS')
   @Column
   public carrier?: string;
 
@@ -70,6 +71,7 @@ export class Shipment extends Model<Shipment> {
   public carrierReceivedAt?: Date;
 
   @Field({ nullable: true })
+  @Default(Sequelize.NOW)
   @Column
   public estDeliveryDate?: Date;
 
@@ -248,6 +250,17 @@ export class Shipment extends Model<Shipment> {
 
       if (!instance.userId) {
         instance.userId = cart.userId;
+      }
+    }
+
+    if (!instance.addressId) {
+      const address = await Address.findOne({
+        where: { userId: instance.userId },
+        order: [['primary', 'DESC']],
+      });
+
+      if (address) {
+        instance.addressId = address.id;
       }
     }
 

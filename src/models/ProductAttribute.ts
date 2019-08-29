@@ -9,6 +9,7 @@ import {
   PrimaryKey,
   Table,
   UpdatedAt,
+  Unique,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
 
@@ -24,6 +25,7 @@ export class ProductAttribute extends Model<ProductAttribute> {
   public id!: string;
 
   @Field()
+  @Unique
   @Column
   public name!: string;
 
