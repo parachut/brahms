@@ -14,13 +14,14 @@ import {
   Unique,
   UpdatedAt,
 } from 'sequelize-typescript';
-import { Field, ID, Int, ObjectType, Root } from 'type-graphql';
+import { Field, ID, Int, ObjectType } from 'type-graphql';
 import urlSlug from 'url-slug';
 
 import { Brand } from './Brand';
 import { Category } from './Category';
 import { File } from './File';
 import { Inventory } from './Inventory';
+import { ProductAttributeValue } from './ProductAttributeValue';
 import { Queue } from './Queue';
 
 @ObjectType()
@@ -108,6 +109,9 @@ export class Product extends Model<Product> {
 
   @HasMany(() => Queue, 'productId')
   public queues?: Queue[];
+
+  @HasMany(() => ProductAttributeValue, 'productId')
+  public attributesValues?: ProductAttributeValue[];
 
   @Field((type) => Brand)
   @BelongsTo(() => Brand)

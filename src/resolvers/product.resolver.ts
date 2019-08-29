@@ -74,8 +74,6 @@ export default class ProductResolver {
 
       let searchIds: any = [];
 
-      console.log(filter);
-
       if (filter && filter.search) {
         searchIds = await ctx.sequelize.query(
           `

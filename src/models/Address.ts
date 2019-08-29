@@ -117,7 +117,7 @@ export class Address extends Model<Address> {
   public primary!: boolean;
 
   @Field()
-  @Default(true)
+  @Default(false)
   @Column
   public billing!: boolean;
 

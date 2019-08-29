@@ -1,7 +1,11 @@
 import EasyPost from '@easypost/api';
+import groupBy from 'lodash/groupBy';
+import sortBy from 'lodash/sortBy';
 import Sequelize, { Op } from 'sequelize';
 import {
   AfterCreate,
+  AfterUpdate,
+  BeforeCreate,
   BelongsTo,
   BelongsToMany,
   Column,
@@ -14,27 +18,22 @@ import {
   PrimaryKey,
   Table,
   UpdatedAt,
-  BeforeCreate,
-  BeforeValidate,
-  AfterUpdate,
 } from 'sequelize-typescript';
-import { Field, ID, ObjectType, Root } from 'type-graphql';
-import sortBy from 'lodash/sortBy';
-import groupBy from 'lodash/groupBy';
+import { Field, ID, ObjectType } from 'type-graphql';
 
+import { InventoryStatus } from '../enums/inventoryStatus';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentStatus } from '../enums/shipmentStatus';
 import { ShipmentType } from '../enums/shipmentType';
+import { createQueue } from '../redis';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Inventory } from './Inventory';
-import { InventoryStatus } from '../enums/inventoryStatus';
 import { ShipmentEvent } from './ShipmentEvent';
 import { ShipmentInspection } from './ShipmentInspection';
 import { ShipmentInventory } from './ShipmentInventory';
 import { User } from './User';
 import { Warehouse } from './Warehouse';
-import { createQueue } from '../redis';
 
 const easyPost = new EasyPost(process.env.EASYPOST);
 const communicationQueue = createQueue('communication-queue');
