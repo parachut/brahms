@@ -120,7 +120,7 @@ export default class AuthResolver {
     });
 
     if (userExists) {
-      throw new Error('User already exists with these parameters.');
+      throw new Error('Sorry, this user already exists, please try again.');
     }
 
     const phoneInformation = await authy.getPhoneInformation({

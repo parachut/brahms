@@ -22,9 +22,9 @@ const geocodio = new Geocodio({
 const geocodioPromise = util.promisify(geocodio.get).bind(geocodio);
 
 export async function easypost(req, res) {
-  const { result } = req.body;
+  const { result, description } = req.body;
 
-  if (result && result.description === 'tracker.updated') {
+  if (result && description === 'tracker.updated') {
     const shipment = await Shipment.findOne({
       where: { easyPostId: result.shipment_id },
       include: ['user'],
