@@ -1,6 +1,7 @@
 import Geocodio from 'geocodio';
 import pick from 'lodash/pick';
 import util from 'util';
+import { Op } from 'sequelize';
 
 import { Inventory } from '../models/Inventory';
 import { Cart } from '../models/Cart';
@@ -13,8 +14,6 @@ import { ShipmentDirection } from '../enums/shipmentDirection';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { createQueue } from '../redis';
 
-const communicationQueue = createQueue('communication-queue');
-
 const geocodio = new Geocodio({
   api_key: process.env.GEOCODIO,
 });
@@ -24,11 +23,15 @@ const geocodioPromise = util.promisify(geocodio.get).bind(geocodio);
 export async function easypost(req, res) {
   const { result, description } = req.body;
 
+  console.log(result, description);
+
   if (result && description === 'tracker.updated') {
     const shipment = await Shipment.findOne({
       where: { easyPostId: result.shipment_id },
       include: ['user'],
     });
+
+    console.log(shipment);
 
     if (!shipment) {
       return res.send('OK');
@@ -62,23 +65,31 @@ export async function easypost(req, res) {
         where: { shipmentId: shipment.id, datetime: detail.datetime },
       });
 
-      if (!exists) {
-        const response = await geocodioPromise('geocode', {
-          q: `${detail.tracking_location.city}, ${detail.tracking_location.state}`,
-        });
+      if (
+        !exists &&
+        detail.tracking_location &&
+        detail.tracking_location.city
+      ) {
+        try {
+          const response = await geocodioPromise('geocode', {
+            q: `${detail.tracking_location.city}, ${detail.tracking_location.state}`,
+          });
 
-        let { results } = JSON.parse(response);
-        let [result] = results;
+          let { results } = JSON.parse(response);
+          let [result] = results;
 
-        await ShipmentEvent.create({
-          ...pick(detail, ['message', 'source']),
-          datetime: new Date(detail.datetime),
-          status: <ShipmentStatus>ShipmentStatus[detail.status.toUpperCase()],
-          cordinates: {
-            type: 'Point',
-            coordinates: [result.location.lat, result.location.lng],
-          },
-        });
+          await ShipmentEvent.create({
+            ...pick(detail, ['message', 'source']),
+            datetime: new Date(detail.datetime),
+            status: <ShipmentStatus>ShipmentStatus[detail.status.toUpperCase()],
+            cordinates: {
+              type: 'Point',
+              coordinates: [result.location.lat, result.location.lng],
+            },
+          });
+        } catch (e) {
+          console.log(e);
+        }
       }
     }
 
@@ -100,6 +111,10 @@ export async function easypost(req, res) {
         status: null,
       };
 
+      const shipmentInventory = (await shipment.$get<Inventory>(
+        'inventory',
+      )) as Inventory[];
+
       if (shipment.direction === ShipmentDirection.INBOUND) {
         if (!shipment.carrierDeliveredAt && shipment.carrierReceivedAt) {
           update = {
@@ -113,7 +128,7 @@ export async function easypost(req, res) {
         if (update.status) {
           Inventory.update(update, {
             where: {
-              shipmentId: shipment.id,
+              id: { [Op.in]: shipmentInventory.map((s) => s.id) },
             },
           });
         }
@@ -130,7 +145,7 @@ export async function easypost(req, res) {
         if (update.status) {
           Inventory.update(update, {
             where: {
-              shipmentId: shipment.id,
+              id: { [Op.in]: shipmentInventory.map((s) => s.id) },
             },
           });
         }
