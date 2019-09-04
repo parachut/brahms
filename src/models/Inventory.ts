@@ -152,8 +152,8 @@ export class Inventory extends Model<Inventory> {
 
   @AfterUpdate
   @AfterCreate
-  static updateProductStock(instance: Inventory) {
-    internalQueue.add('update-product-stock', {
+  static async updateProductStock(instance: Inventory) {
+    await internalQueue.add('update-product-stock', {
       productId: instance.productId,
     });
   }

@@ -1,9 +1,7 @@
 import { Sequelize } from 'sequelize-typescript';
 import throng from 'throng';
 
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
-}
+require('dotenv').config();
 
 import { createQueue } from './redis';
 import checkClearbit from './tasks/checkClearbit';
