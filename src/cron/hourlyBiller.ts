@@ -1,9 +1,10 @@
+import { WebClient } from '@slack/client';
+import numeral from 'numeral';
 import pMap from 'p-map';
 import { Op } from 'sequelize';
 import Stripe from 'stripe';
 
 import { InventoryStatus } from '../enums/inventoryStatus';
-import { InvoiceStatus } from '../enums/invoiceStatus';
 import { Cart } from '../models/Cart';
 import { Inventory } from '../models/Inventory';
 import { User } from '../models/User';
@@ -14,6 +15,7 @@ import {
 } from '../utils/calc';
 
 const stripe = new Stripe(process.env.STRIPE);
+const slack = new WebClient(process.env.SLACK_TOKEN);
 
 export async function hourlyBiller(req, res) {
   if (
@@ -47,10 +49,6 @@ export async function hourlyBiller(req, res) {
       },
     ],
   });
-
-  const twelveHoursAgo = new Date(
-    new Date().getTime() - 1 * 12 * 60 * 60 * 1000,
-  );
 
   for (const user of users) {
     const hasMonthlyPlan = user.integrations.find(
@@ -154,6 +152,41 @@ export async function hourlyBiller(req, res) {
       status = false;
     }
   }
+
+  await slack.chat.postMessage({
+    channel: 'C3NG3KU4E',
+    text: '',
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '*Invoice hourly report:* ' + new Date().toLocaleString(),
+        },
+      },
+      {
+        type: 'section',
+        fields: [
+          {
+            type: 'mrkdwn',
+            text: '*Successful:*\n' + numeral(totalBilled).format('$0,0[.]00'),
+          },
+          {
+            type: 'mrkdwn',
+            text: '*Failed:*\n' + numeral(totalCollections).format('($0,0)'),
+          },
+          {
+            type: 'mrkdwn',
+            text: '*Members:*\n' + numeral(totalMembers).format('0,0'),
+          },
+          {
+            type: 'mrkdwn',
+            text: '*Items:*\n' + numeral(totalItems).format('0,0'),
+          },
+        ],
+      },
+    ],
+  });
 
   res.send(users);
 }

@@ -74,6 +74,7 @@ export class Inventory extends Model<Inventory> {
   @Column
   public minPoints?: number;
 
+  @Field((type) => [String])
   @Default([])
   @Column(DataType.ARRAY(DataType.STRING(1024)))
   public missingEssentials!: string[];

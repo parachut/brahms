@@ -20,4 +20,16 @@ module.exports = {
       ssl: true,
     },
   },
+  staging: {
+    username: 'u5t7dp4se9qdo2',
+    password:
+      'p759f021afa4382d193b3f9096022f55fe831ef539841e0cf38275a8c6c02434c',
+    port: 5432,
+    database: 'd92p2ghoig3ies',
+    host: 'ec2-18-210-209-254.compute-1.amazonaws.com',
+    dialect: 'postgres',
+    dialectOptions: {
+      ssl: true,
+    },
+  },
 };

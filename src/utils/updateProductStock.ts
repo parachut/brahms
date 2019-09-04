@@ -1,4 +1,3 @@
-import { Op } from 'sequelize';
 import uuid from 'uuid/v4';
 
 import { InventoryStatus } from '../enums/inventoryStatus';
@@ -11,7 +10,7 @@ export async function updateProductStock(productId: string) {
     const stock = await Inventory.count({
       where: {
         productId,
-        status: { [Op.contains]: InventoryStatus.INWAREHOUSE },
+        status: InventoryStatus.INWAREHOUSE,
       },
     });
 

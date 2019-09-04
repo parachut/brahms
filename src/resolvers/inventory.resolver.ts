@@ -21,17 +21,23 @@ import { IContext } from '../utils/context.interface';
 import { UserRole } from '../enums/userRole';
 import { InventoryCreateInput } from '../classes/inventoryCreate.input';
 import { InventoryUpdateInput } from '../classes/inventoryUpdate.input';
+import { InventoryWhereInput } from '../classes/inventoryWhere.input';
 import { InventoryWhereUniqueInput } from '../classes/inventoryWhereUnique.input';
 
 @Resolver(Inventory)
 export default class InventoryResolver {
   @Authorized([UserRole.MEMBER])
   @Query((returns) => [Inventory])
-  public async inventory(@Ctx() ctx: IContext) {
+  public async inventory(
+    @Arg('where', (type) => InventoryWhereInput, { nullable: true })
+    where: InventoryWhereInput,
+    @Ctx() ctx: IContext,
+  ) {
     if (ctx.user) {
       return Inventory.findAll({
         where: {
           userId: ctx.user.id,
+          status: where.status ? { [Op.in]: where.status } : undefined,
         },
       });
     }
