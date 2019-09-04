@@ -38,7 +38,7 @@ export class Product extends Model<Product> {
   public active!: boolean;
 
   @Column(DataType.FLOAT)
-  public depth?: number;
+  public length?: number;
 
   @Field({ nullable: true })
   @Column(DataType.TEXT)
