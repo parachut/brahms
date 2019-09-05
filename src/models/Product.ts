@@ -51,7 +51,7 @@ export class Product extends Model<Product> {
   @Column(DataType.FLOAT)
   public height?: number;
 
-  @Field((type) => [String], { nullable: true })
+  @Field((type) => [String])
   @Column(DataType.ARRAY(DataType.STRING(1024)))
   public images?: string[];
 
