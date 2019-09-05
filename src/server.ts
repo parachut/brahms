@@ -19,6 +19,7 @@ import cron from './cron';
 import hooks from './hooks';
 import { pubSub, redis } from './redis';
 import { customAuthChecker } from './utils/customAuthChecker';
+import { updateProductStats } from './utils/updateProductStats';
 
 // import { migrator } from './migrator';
 const PORT = process.env.PORT || 4000;
@@ -36,6 +37,10 @@ const main = async () => {
       ssl: true,
     },
   });
+
+  setTimeout(() => {
+    updateProductStats('954d3e83-95d5-4f6b-a3f0-7c911dba0661');
+  }, 1000);
 
   const dataloaderContext = createContext(sequelize);
 

@@ -156,5 +156,8 @@ export class Inventory extends Model<Inventory> {
     await internalQueue.add('update-product-stock', {
       productId: instance.productId,
     });
+    await internalQueue.add('update-product-stats', {
+      productId: instance.productId,
+    });
   }
 }

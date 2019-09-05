@@ -15,6 +15,7 @@ import sendOutboundAccessConfirmationEmail from './tasks/sendOutboundAccessConfi
 import sendOutboundAccessShipmentEmail from './tasks/sendOutboundAccessShipmentEmail';
 import sendSimpleEmail from './tasks/sendSimpleEmail';
 import updateAddressCensusData from './tasks/updateAddressCensusData';
+import updateProductStats from './tasks/updateProductStats';
 import updateProductStock from './tasks/updateProductStock';
 import updateUserPoints from './tasks/updateUserPoints';
 import updateUserGeolocation from './tasks/updateUserGeolocation';
@@ -73,6 +74,11 @@ function start() {
       'update-product-stock',
       maxJobsPerWorker,
       updateProductStock,
+    );
+    internalQueue.process(
+      'update-product-stats',
+      maxJobsPerWorker,
+      updateProductStats,
     );
     internalQueue.process(
       'update-user-points',

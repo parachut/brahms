@@ -95,6 +95,11 @@ export class Product extends Model<Product> {
   @Column
   public stock!: number;
 
+  @Field((type) => Int)
+  @Default(0)
+  @Column
+  public demand!: number;
+
   @Column
   public weight?: number;
 
