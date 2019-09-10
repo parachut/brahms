@@ -1,14 +1,45 @@
 import crypto from 'crypto';
 import { Op } from 'sequelize';
-import { FieldResolver, Resolver, Root } from 'type-graphql';
+import {
+  Arg,
+  Authorized,
+  Ctx,
+  FieldResolver,
+  Mutation,
+  Resolver,
+  Root,
+} from 'type-graphql';
 
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { Inventory } from '../models/Inventory';
 import { User } from '../models/User';
 import { UserVerification } from '../models/UserVerification';
+import { UserRole } from '../enums/userRole';
+import { IContext } from '../utils/context.interface';
+import { UserUpdateInput } from '../classes/userUpdate.input';
 
 @Resolver(User)
 export default class UserResolver {
+  @Authorized([UserRole.MEMBER])
+  @Mutation(() => User)
+  public async userUpdate(
+    @Arg('input', (type) => UserUpdateInput)
+    { email, phone, name }: UserUpdateInput,
+    @Ctx() ctx: IContext,
+  ) {
+    if (ctx.user) {
+      const user = await User.findByPk(ctx.user.id);
+
+      user.email = email;
+      user.phone = phone;
+      user.name = name;
+
+      return user.save();
+    }
+
+    throw new Error('Unauthorized');
+  }
+
   @FieldResolver((type) => [Inventory])
   async currentInventory(@Root() user: User): Promise<Inventory[]> {
     return ((await user.$get<Inventory>('currentInventory', {

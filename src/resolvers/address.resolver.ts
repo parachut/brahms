@@ -12,6 +12,7 @@ import {
 } from 'type-graphql';
 
 import { AddressCreateInput } from '../classes/addressCreate.input';
+import { AddressUpdateInput } from '../classes/addressUpdate.input';
 import { AddressWhereUniqueInput } from '../classes/addressWhereUnique.input';
 import { Notification, NotificationPayload } from '../classes/notification';
 import { Phone } from '../decorators/phone';
@@ -61,6 +62,35 @@ export default class AddressResolver {
   @Authorized([UserRole.MEMBER])
   @Mutation(() => Address)
   @Phone()
+  public async addressSetPrimary(
+    @Arg('input')
+    where: AddressWhereUniqueInput,
+    @Ctx() ctx: IContext,
+  ) {
+    if (ctx.user) {
+      await Address.update(
+        {
+          primary: false,
+        },
+        {
+          where: {
+            userId: ctx.user.id,
+          },
+        },
+      );
+
+      const address = await Address.findByPk(where.id);
+      address.primary = true;
+
+      return address.save();
+    }
+
+    throw new Error('Unauthorized');
+  }
+
+  @Authorized([UserRole.MEMBER])
+  @Mutation(() => Address)
+  @Phone()
   public async addressCreate(
     @Arg('input')
     input: AddressCreateInput,
@@ -77,6 +107,37 @@ export default class AddressResolver {
         ipAddress: ctx.clientIp,
       });
 
+      return newAddress;
+    }
+
+    throw new Error('Unauthorized');
+  }
+
+  @Authorized([UserRole.MEMBER])
+  @Mutation(() => Address)
+  @Phone()
+  public async addressUpdate(
+    @Arg('input')
+    input: AddressUpdateInput,
+    @Arg('where')
+    where: AddressWhereUniqueInput,
+    @Ctx() ctx: IContext,
+  ) {
+    if (ctx.user) {
+      const address = await Address.findByPk(where.id);
+
+      const newAddress = await Address.create({
+        ...address,
+        ...input,
+        userId: ctx.user.id,
+      });
+
+      fraudQueue.add('check-clearbit-fraud', {
+        userId: ctx.user.id,
+        ipAddress: ctx.clientIp,
+      });
+
+      await address.destroy();
       return newAddress;
     }
 
