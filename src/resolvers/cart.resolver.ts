@@ -1,4 +1,3 @@
-import EasyPost from '@easypost/api';
 import isUndefined from 'lodash/isUndefined';
 import { Op } from 'sequelize';
 import {
@@ -12,7 +11,6 @@ import {
   Root,
 } from 'type-graphql';
 
-import { CartTransitTime } from '../classes/cartTransitTime';
 import { CartUpdateInput } from '../classes/cartUpdate.input';
 import { CartWhereUniqueInput } from '../classes/cartWhereUnique.input';
 import { InventoryStatus } from '../enums/inventoryStatus';
@@ -23,11 +21,7 @@ import { CartItem } from '../models/CartItem';
 import { Inventory } from '../models/Inventory';
 import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
-import { Warehouse } from '../models/Warehouse';
 import { IContext } from '../utils/context.interface';
-
-const moment = require('moment-business-days');
-const easyPost = new EasyPost(process.env.EASYPOST);
 
 @Resolver(Cart)
 export default class CartResolver {
@@ -46,6 +40,7 @@ export default class CartResolver {
             include: ['product'],
           },
         ],
+        order: [['createdAt', 'DESC']],
       });
 
       if (!cart) {
