@@ -236,7 +236,60 @@ export default class CheckoutResolver {
           }
         }
       } catch (e) {
-        throw e;
+        if (process.env.STAGE === 'production') {
+          await slack.chat.postMessage({
+            channel: 'CGX5HELCT',
+            text: '',
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text:
+                    '*Order billing failed:* ' +
+                    user.name +
+                    '\n<https://app.forestadmin.com/48314/data/2108279/index/record/2108279/' +
+                    cart.id +
+                    '/summary|' +
+                    cart.id +
+                    '>',
+                },
+              },
+              {
+                type: 'section',
+                fields: [
+                  {
+                    type: 'mrkdwn',
+                    text: '*Completed:*\n' + new Date().toLocaleString(),
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: '*Total Points:*\n' + total,
+                  },
+
+                  {
+                    type: 'mrkdwn',
+                    text:
+                      '*Protection Plan:*\n' +
+                      (cart.protectionPlan ? 'YES' : 'NO'),
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: '*Service:*\n' + cart.service,
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: '*Plan:*\n' + cart.planId || user.planId,
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: '*Reason:*\n' + e.message,
+                  },
+                ],
+              },
+            ],
+          });
+        }
       }
 
       await Inventory.update(
@@ -265,9 +318,9 @@ export default class CheckoutResolver {
                 text:
                   '*New order for:* ' +
                   user.name +
-                  '\n<https://team.parachut.co/ops/order/' +
+                  '\n<https://app.forestadmin.com/48314/data/2108279/index/record/2108279/' +
                   cart.id +
-                  '|' +
+                  '/summary|' +
                   cart.id +
                   '>',
               },
