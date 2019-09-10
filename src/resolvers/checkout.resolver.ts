@@ -80,9 +80,7 @@ export default class CheckoutResolver {
         }
 
         for (let i = 0; i < item.quantity; i++) {
-          if ([i]) {
-            inventory.push(itemInventory[i].id);
-          }
+          inventory.push(itemInventory[i].id);
         }
       }
 
