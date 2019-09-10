@@ -93,6 +93,7 @@ export default class CartResolver {
           canceledAt: null,
           completedAt: { [Op.ne]: null },
         },
+        order: [['createdAt', 'DESC']],
       });
 
       return carts;
@@ -143,6 +144,7 @@ export default class CartResolver {
     if (ctx.user) {
       const cart = await Cart.findOne({
         where: { userId: ctx.user.id, completedAt: null },
+        order: [['createdAt', 'DESC']],
       });
 
       const event: any = {
