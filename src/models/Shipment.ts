@@ -29,6 +29,7 @@ import { createQueue } from '../redis';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Inventory } from './Inventory';
+import { Request } from './Request';
 import { ShipmentEvent } from './ShipmentEvent';
 import { ShipmentInspection } from './ShipmentInspection';
 import { ShipmentInventory } from './ShipmentInventory';
@@ -167,6 +168,13 @@ export class Shipment extends Model<Shipment> {
   @BelongsTo(() => User)
   public user!: User;
 
+  @ForeignKey(() => Request)
+  @Column(DataType.UUID)
+  public requestId?: string;
+
+  @BelongsTo(() => Request)
+  public request?: Request;
+
   @ForeignKey(() => Cart)
   @Column(DataType.UUID)
   public cartId?: string;
@@ -283,6 +291,8 @@ export class Shipment extends Model<Shipment> {
         width: instance.width,
       });
 
+      console.log(instance.addressId);
+
       if (!instance.addressId) {
         const addresses = await Address.findAll({
           where: {
@@ -293,7 +303,9 @@ export class Shipment extends Model<Shipment> {
           attributes: ['id', 'primary', 'easyPostId'],
         });
 
-        instance.addressId = addresses ? addresses[0].id : instance.addressId;
+        instance.addressId = addresses.length
+          ? addresses[0].id
+          : instance.addressId;
       }
 
       const [address, warehouse] = await Promise.all([
@@ -303,9 +315,14 @@ export class Shipment extends Model<Shipment> {
         }),
       ]);
 
+      console.log(address, warehouse);
+
       if (!address || !warehouse) {
         throw new Error('Unabled to purchase label without address.');
       }
+
+      easyPost.Address.retrieve(address.easyPostId).then(console.log);
+      easyPost.Address.retrieve(warehouse.easyPostId).then(console.log);
 
       const shipment: any = {
         buyer_address: warehouse.easyPostId,
@@ -328,6 +345,8 @@ export class Shipment extends Model<Shipment> {
       try {
         await easyPostShipment.save();
 
+        console.log(JSON.stringify(easyPostShipment));
+
         const rates = groupBy(easyPostShipment.rates, (o) => {
           return Number(o.delivery_days);
         });
@@ -342,6 +361,8 @@ export class Shipment extends Model<Shipment> {
           },
         ]);
         instance.service = costSort[0].service;
+
+        console.log(instance.service);
 
         await easyPostShipment.buy(costSort[0]);
 

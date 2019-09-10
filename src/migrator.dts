@@ -1,0 +1,50 @@
+const MongoClient = require('mongodb').MongoClient;
+const url =
+  'mongodb://rpkbJtavDavLWyeqge2i7ULrv8VzUx:cnc3kExaN2wHyR6XxNJqqURxUcBaqz@parachut-shard-00-00-kto6u.mongodb.net:27017,parachut-shard-00-01-kto6u.mongodb.net:27017,parachut-shard-00-02-kto6u.mongodb.net:27017/parachut?ssl=true&replicaSet=Parachut-shard-0&authSource=admin';
+
+// Database Name
+const dbName = 'parachut';
+
+import { User } from './models/User';
+
+// Use connect method to connect to the server
+
+export const migrator = (req, res) => {
+  MongoClient.connect(url, async function(err, client) {
+    console.log('Connected successfully to server');
+
+    const db = client.db(dbName);
+
+    const collection = db.collection('users');
+    const docs = await collection
+      .find({
+        isContributor: true,
+      })
+      .toArray();
+
+    for (const doc of docs) {
+      const user = await User.findOne({
+        where: { email: doc.email },
+        include: ['addresses'],
+      });
+
+      if (user && !user.addresses.length) {
+        if (doc.address.street1) {
+          const address = await user.$create('address', {
+            street: doc.address.street1 + ' ' + doc.address.street2,
+            city: doc.address.suburb,
+            state: doc.address.state,
+            country: doc.address.country,
+            zip: doc.address.postcode,
+          });
+
+          console.log(address);
+        }
+      }
+    }
+
+    client.close();
+  });
+
+  res.send(200);
+};

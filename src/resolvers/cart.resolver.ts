@@ -54,14 +54,14 @@ export default class CartResolver {
           include: ['addresses', 'integrations'],
         });
 
-        const addressId = user.addresses.length
-          ? user.addresses.find((address) => address.primary).id ||
-            user.addresses[0].id
+        const address = user.addresses.length
+          ? user.addresses.find((address) => address.primary) ||
+            user.addresses[0]
           : null;
 
         cart = new Cart({
           planId: !!user.planId ? user.planId : '1500',
-          addressId,
+          addressId: address.id,
           protectionPlan: user.protectionPlan,
           userId: ctx.user.id,
         });
@@ -195,7 +195,7 @@ export default class CartResolver {
     return ((await cart.$get<CartItem>('items')) as CartItem[])!;
   }
 
-  @FieldResolver((type) => [CartItem])
+  @FieldResolver((type) => [Inventory])
   async inventory(@Root() cart: Cart): Promise<Inventory[]> {
     return ((await cart.$get<Inventory>('inventory')) as Inventory[])!;
   }
@@ -208,99 +208,5 @@ export default class CartResolver {
   @FieldResolver((type) => [Shipment], { nullable: true })
   async shipments(@Root() cart: Cart): Promise<Shipment[]> {
     return (await cart.$get<Shipment>('shipments')) as Shipment[];
-  }
-
-  @FieldResolver((type) => [CartTransitTime], { nullable: true })
-  async transitTimes(
-    @Root() cart: Cart,
-    @Ctx() ctx: IContext,
-  ): Promise<CartTransitTime[]> | null {
-    if (!cart.addressId) {
-      return null;
-    }
-
-    let transitTimes: any = await ctx.redis.get(
-      `${cart.addressId}:TRANSITTIMES`,
-    );
-
-    if (transitTimes) {
-      const parsedTimes = JSON.parse(transitTimes);
-      return parsedTimes.map((t) => ({
-        ...t,
-        arrival: new Date(t.arrival),
-      }));
-    }
-
-    const [address, warehouse] = await Promise.all([
-      Address.findByPk(cart.addressId, { attributes: ['easyPostId'] }),
-      Warehouse.findOne({
-        where: {},
-        attributes: ['easyPostId'],
-      }),
-    ]);
-
-    if (
-      !address ||
-      !warehouse ||
-      !address.easyPostId ||
-      !warehouse.easyPostId
-    ) {
-      return null;
-    }
-
-    const parcel = new easyPost.Parcel({
-      height: 14,
-      length: 14,
-      weight: 1,
-      width: 14,
-    });
-
-    const easyPostShipment = new easyPost.Shipment({
-      carrier_account: process.env.EASYPOST_CARRIER_ACCOUNT,
-      from_address: warehouse.easyPostId,
-      parcel,
-      to_address: address.easyPostId,
-    });
-
-    try {
-      await easyPostShipment.save();
-    } catch (e) {
-      return null;
-    }
-
-    const ground = easyPostShipment.rates.find(
-      (x: any) => x.service === 'Ground',
-    );
-    const expedited = easyPostShipment.rates.find(
-      (x: any) => x.service === '2ndDayAir',
-    );
-
-    const actualGroundDate = moment(ground.delivery_date).nextBusinessDay()._d;
-    let expeditedDate =
-      expedited && !!expedited.delivery_date
-        ? expedited.delivery_date
-        : actualGroundDate;
-
-    if (!moment(expeditedDate).isBusinessDay()) {
-      expeditedDate = moment(expeditedDate).nextBusinessDay()._d;
-    }
-
-    transitTimes = [
-      {
-        arrival: new Date(actualGroundDate),
-        service: 'Ground',
-      },
-      {
-        arrival: new Date(expeditedDate),
-        service: '2ndDayAir',
-      },
-    ];
-
-    ctx.redis.set(
-      `${cart.addressId}:TRANSITTIMES`,
-      JSON.stringify(transitTimes),
-    );
-
-    return transitTimes;
   }
 }

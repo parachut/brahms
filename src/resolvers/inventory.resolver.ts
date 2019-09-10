@@ -34,10 +34,14 @@ export default class InventoryResolver {
     @Ctx() ctx: IContext,
   ) {
     if (ctx.user) {
+      if (where.status) {
+        where.status = { [Op.in]: where.status } as any;
+      }
+
       return Inventory.findAll({
         where: {
+          ...where,
           userId: ctx.user.id,
-          status: where.status ? { [Op.in]: where.status } : undefined,
         },
       });
     }
@@ -118,6 +122,43 @@ export default class InventoryResolver {
       });
 
       return inventory.save();
+    }
+
+    throw new Error('Unauthorized');
+  }
+
+  @Authorized([UserRole.MEMBER])
+  @Mutation(() => Inventory)
+  public async inventoryDestroy(
+    @Arg('where', (type) => InventoryWhereUniqueInput)
+    { id }: InventoryWhereUniqueInput,
+    @Ctx() ctx: IContext,
+  ) {
+    if (ctx.user) {
+      const inventory = await Inventory.findOne({
+        where: {
+          id,
+          userId: ctx.user.id,
+        },
+      });
+
+      if (!inventory) {
+        throw new Error('Unauthorized');
+      }
+
+      await inventory.destroy();
+
+      ctx.analytics.track({
+        userId: ctx.user.id,
+        event: 'Inventory Destroyed',
+        properties: {
+          product_id: inventory.productId,
+          condition: inventory.condition,
+          missing_essentials: inventory.missingEssentials,
+        },
+      });
+
+      return inventory;
     }
 
     throw new Error('Unauthorized');

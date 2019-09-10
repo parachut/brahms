@@ -83,7 +83,13 @@ export default class ProductResolver {
           `,
           {
             model: Product,
-            replacements: { query: filter.search },
+            replacements: {
+              query:
+                filter.search
+                  .trim()
+                  .split(' ')
+                  .join('&') + ':*',
+            },
           },
         );
       }
@@ -93,7 +99,6 @@ export default class ProductResolver {
         where: (key, value) => {
           if (value) {
             if (key === 'where') {
-              console.log(key, value);
               const where: any = {};
               if (value.inStock) {
                 where.stock = { [Op.gt]: 0 };

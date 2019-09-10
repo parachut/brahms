@@ -52,10 +52,12 @@ export class Product extends Model<Product> {
   public height?: number;
 
   @Field((type) => [String])
+  @Default([])
   @Column(DataType.ARRAY(DataType.STRING(1024)))
   public images?: string[];
 
-  @Field((type) => [String], { nullable: true })
+  @Field((type) => [String])
+  @Default([])
   @Column(DataType.ARRAY(DataType.STRING(1024)))
   public inTheBox?: string[];
 

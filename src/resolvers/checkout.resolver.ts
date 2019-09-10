@@ -253,6 +253,57 @@ export default class CheckoutResolver {
         },
       );
 
+      if (process.env.STAGE === 'production') {
+        await slack.chat.postMessage({
+          channel: 'CGX5HELCT',
+          text: '',
+          blocks: [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text:
+                  '*New order for:* ' +
+                  user.name +
+                  '\n<https://team.parachut.co/ops/order/' +
+                  cart.id +
+                  '|' +
+                  cart.id +
+                  '>',
+              },
+            },
+            {
+              type: 'section',
+              fields: [
+                {
+                  type: 'mrkdwn',
+                  text: '*Completed:*\n' + new Date().toLocaleString(),
+                },
+                {
+                  type: 'mrkdwn',
+                  text: '*Total Points:*\n' + total,
+                },
+
+                {
+                  type: 'mrkdwn',
+                  text:
+                    '*Protection Plan:*\n' +
+                    (cart.protectionPlan ? 'YES' : 'NO'),
+                },
+                {
+                  type: 'mrkdwn',
+                  text: '*Service:*\n' + cart.service,
+                },
+                {
+                  type: 'mrkdwn',
+                  text: '*Plan:*\n' + cart.planId || user.planId,
+                },
+              ],
+            },
+          ],
+        });
+      }
+
       if (_continue) {
         cart.confirmedAt = new Date();
 
@@ -315,57 +366,6 @@ export default class CheckoutResolver {
         },
         userId: ctx.user.id,
       });
-
-      if (process.env.STAGE === 'production') {
-        await slack.chat.postMessage({
-          channel: 'CGX5HELCT',
-          text: '',
-          blocks: [
-            {
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text:
-                  '*New order for:* ' +
-                  user.name +
-                  '\n<https://team.parachut.co/ops/order/' +
-                  cart.id +
-                  '|' +
-                  cart.id +
-                  '>',
-              },
-            },
-            {
-              type: 'section',
-              fields: [
-                {
-                  type: 'mrkdwn',
-                  text: '*Completed:*\n' + new Date().toLocaleString(),
-                },
-                {
-                  type: 'mrkdwn',
-                  text: '*Total Points:*\n' + total,
-                },
-
-                {
-                  type: 'mrkdwn',
-                  text:
-                    '*Protection Plan:*\n' +
-                    (cart.protectionPlan ? 'YES' : 'NO'),
-                },
-                {
-                  type: 'mrkdwn',
-                  text: '*Service:*\n' + cart.service,
-                },
-                {
-                  type: 'mrkdwn',
-                  text: '*Plan:*\n' + cart.planId || user.planId,
-                },
-              ],
-            },
-          ],
-        });
-      }
 
       for (const item of cart.items) {
         internalQueue.add('update-product-stock', {

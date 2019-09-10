@@ -1,4 +1,5 @@
 import { Op } from 'sequelize';
+import map from 'lodash/map';
 import { Arg, Authorized, Ctx, Query, Resolver } from 'type-graphql';
 
 import { CatalogSearchResult } from '../classes/catalogSearchResult';
@@ -59,8 +60,26 @@ export default class SearchResolver {
     @Ctx() ctx: IContext,
   ) {
     if (ctx.user) {
+      const searchIds = await ctx.sequelize.query(
+        `
+          SELECT id
+          FROM "Products"
+          WHERE _search @@ to_tsquery('english', :query);
+        `,
+        {
+          model: Product,
+          replacements: {
+            query:
+              search
+                .trim()
+                .split(' ')
+                .join('&') + ':*',
+          },
+        },
+      );
+
       const products = await Product.findAll({
-        where: { name: { [Op.iLike]: `%${search}%` } },
+        where: { id: { [Op.in]: map(searchIds, 'id') } },
         limit: 25,
       });
 
