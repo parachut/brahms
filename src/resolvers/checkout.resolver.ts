@@ -3,6 +3,7 @@ import numeral from 'numeral';
 import Recurly from 'recurly';
 import { Op } from 'sequelize';
 import { Authorized, Ctx, Mutation, Resolver } from 'type-graphql';
+import pMap from 'p-map';
 
 import { plans } from '../decorators/plans';
 import { InventoryStatus } from '../enums/inventoryStatus';
@@ -307,54 +308,58 @@ export default class CheckoutResolver {
       );
 
       if (process.env.STAGE === 'production') {
-        await slack.chat.postMessage({
-          channel: 'CGX5HELCT',
-          text: '',
-          blocks: [
-            {
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text:
-                  '*New order for:* ' +
-                  user.name +
-                  '\n<https://app.forestadmin.com/48314/data/2108279/index/record/2108279/' +
-                  cart.id +
-                  '/summary|' +
-                  cart.id +
-                  '>',
-              },
-            },
-            {
-              type: 'section',
-              fields: [
+        try {
+          await pMap(['CGX5HELCT', 'CA8M5UG1K'], (c) =>
+            slack.chat.postMessage({
+              channel: c,
+              text: '',
+              blocks: [
                 {
-                  type: 'mrkdwn',
-                  text: '*Completed:*\n' + new Date().toLocaleString(),
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text:
+                      '*New order for:* ' +
+                      user.name +
+                      '\n<https://app.forestadmin.com/48314/data/2108279/index/record/2108279/' +
+                      cart.id +
+                      '/summary|' +
+                      cart.id +
+                      '>',
+                  },
                 },
                 {
-                  type: 'mrkdwn',
-                  text: '*Total Points:*\n' + total,
-                },
+                  type: 'section',
+                  fields: [
+                    {
+                      type: 'mrkdwn',
+                      text: '*Completed:*\n' + new Date().toLocaleString(),
+                    },
+                    {
+                      type: 'mrkdwn',
+                      text: '*Total Points:*\n' + total,
+                    },
 
-                {
-                  type: 'mrkdwn',
-                  text:
-                    '*Protection Plan:*\n' +
-                    (cart.protectionPlan ? 'YES' : 'NO'),
-                },
-                {
-                  type: 'mrkdwn',
-                  text: '*Service:*\n' + cart.service,
-                },
-                {
-                  type: 'mrkdwn',
-                  text: '*Plan:*\n' + cart.planId || user.planId,
+                    {
+                      type: 'mrkdwn',
+                      text:
+                        '*Protection Plan:*\n' +
+                        (cart.protectionPlan ? 'YES' : 'NO'),
+                    },
+                    {
+                      type: 'mrkdwn',
+                      text: '*Service:*\n' + cart.service,
+                    },
+                    {
+                      type: 'mrkdwn',
+                      text: '*Plan:*\n' + cart.planId || user.planId,
+                    },
+                  ],
                 },
               ],
-            },
-          ],
-        });
+            }),
+          );
+        } catch (e) {}
       }
 
       if (_continue) {
