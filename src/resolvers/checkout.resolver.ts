@@ -335,6 +335,8 @@ export default class CheckoutResolver {
             ],
           });
         }
+
+        throw new Error(e.message);
       }
 
       await Inventory.update(
