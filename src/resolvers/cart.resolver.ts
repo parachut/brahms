@@ -47,7 +47,7 @@ export default class CartResolver {
 
       if (!cart) {
         const user = await User.findByPk(ctx.user.id, {
-          attributes: ['planId'],
+          attributes: ['planId', 'protectionPlan'],
           include: ['addresses', 'integrations'],
         });
 

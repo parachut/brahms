@@ -4,6 +4,7 @@ import Recurly from 'recurly';
 import { Op } from 'sequelize';
 import { Authorized, Ctx, Mutation, Resolver } from 'type-graphql';
 import pMap from 'p-map';
+import Stripe from 'stripe';
 
 import { plans } from '../decorators/plans';
 import { InventoryStatus } from '../enums/inventoryStatus';
@@ -17,6 +18,7 @@ import { User } from '../models/User';
 import { Shipment } from '../models/Shipment';
 import { UserIntegration } from '../models/UserIntegration';
 import { createQueue } from '../redis';
+import { prorate } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
 import { sendEmail } from '../utils/sendEmail';
 
@@ -27,6 +29,8 @@ if (!process.env.RECURLY) {
 if (!process.env.SLACK_TOKEN) {
   throw new Error('Missing environment variable SLACK_TOKEN');
 }
+
+const stripe = new Stripe(process.env.STRIPE);
 
 const recurly = new Recurly.Client(process.env.RECURLY, `subdomain-parachut`);
 const slack = new WebClient(process.env.SLACK_TOKEN);
@@ -43,7 +47,6 @@ export default class CheckoutResolver {
           {
             association: 'carts',
             where: { completedAt: null },
-            limit: 1,
             order: [['createdAt', 'DESC']],
             include: [
               {
@@ -106,6 +109,21 @@ export default class CheckoutResolver {
 
       const total = inUse + cartPoints;
 
+      const currentBilling =
+        plans[user.planId || cart.planId] +
+        Math.max(0, user.points - Number(user.planId)) * 0.1 +
+        (user.protectionPlan ? 49 : 0);
+
+      const futureBilling =
+        plans[cart.planId] +
+        Math.max(
+          0,
+          total - Number(cart.planId),
+          user.points - Number(cart.planId),
+        ) *
+          0.1 +
+        (cart.protectionPlan ? 49 : 0);
+
       const recurlyId = user.integrations.find((int) => int.type === 'RECURLY');
 
       const recurlySubscription = user.integrations.find(
@@ -150,10 +168,38 @@ export default class CheckoutResolver {
             purchaseReq.lineItems.push({
               type: 'charge',
               currency: 'USD',
-              unitAmount: 25,
+              unitAmount: 50,
               quantity: 1,
               description: 'Expedited Shipping',
             });
+          }
+
+          const stripeSub = user.integrations.find(
+            (inte) => inte.type === 'STRIPE_MONTHLYPLAN',
+          );
+
+          if (stripeSub) {
+            const stripeSubRecord = await stripe.subscriptions.retrieve(
+              stripeSub.value,
+            );
+
+            const prorated = prorate(
+              futureBilling,
+              currentBilling,
+              user.billingDay,
+            );
+
+            subscriptionReq.trailEndsAt = prorated.nextBillingDate;
+
+            if (prorated.amount > 0) {
+              purchaseReq.lineItems.push({
+                type: 'charge',
+                currency: 'USD',
+                unitAmount: prorated.amount,
+                quantity: 1,
+                description: 'Prorated overage',
+              });
+            }
           }
 
           const purchase = await recurly.createPurchase(purchaseReq);
@@ -366,7 +412,7 @@ export default class CheckoutResolver {
         const shipment = await Shipment.create({
           direction: ShipmentDirection.OUTBOUND,
           type: ShipmentType.ACCESS,
-          service: '2ndDayAir',
+          service: cart.service,
           cartId: cart.id,
         });
 

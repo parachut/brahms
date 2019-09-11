@@ -68,11 +68,20 @@ export function prorate(alpha: number, beta: number, day: number) {
   const month = dt.getMonth();
   const year = dt.getFullYear();
 
-  const nextBillingDay = addMonths(new Date(year, month, day), 1);
-  const remaining = differenceInCalendarDays(nextBillingDay, dt);
+  const _day = day || new Date().getDate();
 
-  var oldRemaining = beta / remaining;
-  var newRemaining = alpha / remaining;
+  const nextBillingDate = addMonths(new Date(year, month, _day), 1);
+  const remaining = differenceInCalendarDays(nextBillingDate, dt);
+  const billingDays = differenceInCalendarDays(
+    nextBillingDate,
+    new Date(year, month, _day),
+  );
 
-  return remaining * (newRemaining - oldRemaining);
+  const oldRemaining = beta / billingDays;
+  const newRemaining = alpha / billingDays;
+
+  return {
+    amount: day ? remaining * (newRemaining - oldRemaining) : alpha,
+    nextBillingDate,
+  };
 }
