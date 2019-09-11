@@ -61,9 +61,8 @@ export default class AddressResolver {
 
   @Authorized([UserRole.MEMBER])
   @Mutation(() => Address)
-  @Phone()
   public async addressSetPrimary(
-    @Arg('input')
+    @Arg('where')
     where: AddressWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
