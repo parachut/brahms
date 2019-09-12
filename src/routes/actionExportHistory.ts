@@ -24,6 +24,7 @@ router.post(
         {
           association: 'inventory',
           attributes: ['id'],
+          include: ['product'],
         },
         {
           association: 'items',
