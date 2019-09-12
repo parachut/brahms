@@ -8,5 +8,10 @@ Liana.collection('Cart', {
     {
       name: 'Cancel Cart',
     },
+    {
+      name: 'Export History',
+      type: 'global',
+      download: true,
+    },
   ],
 });

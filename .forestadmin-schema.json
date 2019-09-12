@@ -835,6 +835,15 @@
       "redirect": null,
       "download": false,
       "fields": []
+    }, {
+      "name": "Export History",
+      "type": "global",
+      "baseUrl": null,
+      "endpoint": "/forest/actions/export-history",
+      "httpMethod": "POST",
+      "redirect": null,
+      "download": true,
+      "fields": []
     }]
   }, {
     "name": "CartInventory",
@@ -2214,7 +2223,16 @@
       "validations": []
     }],
     "segments": [],
-    "actions": []
+    "actions": [{
+      "name": "Export Commissions",
+      "type": "bulk",
+      "baseUrl": null,
+      "endpoint": "/forest/actions/export-commissions",
+      "httpMethod": "POST",
+      "redirect": null,
+      "download": false,
+      "fields": []
+    }]
   }, {
     "name": "Product",
     "nameOld": "Product",
