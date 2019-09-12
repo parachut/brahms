@@ -3,13 +3,13 @@ import Liana from 'forest-express-sequelize';
 Liana.collection('Cart', {
   actions: [
     {
-      name: 'Confirm Cart',
+      name: 'Confirm cart',
     },
     {
-      name: 'Cancel Cart',
+      name: 'Cancel cart',
     },
     {
-      name: 'Export History',
+      name: 'Export history',
       type: 'global',
       download: true,
     },

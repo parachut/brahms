@@ -18,8 +18,11 @@ router.post(
         ids && ids.length
           ? {
               '$inventory.id$': { id: { [Op.in]: ids } },
+              completedAt: { [Op.not]: null },
             }
-          : {},
+          : {
+              completedAt: { [Op.not]: null },
+            },
       include: [
         {
           association: 'inventory',

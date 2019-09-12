@@ -818,7 +818,7 @@
     }],
     "segments": [],
     "actions": [{
-      "name": "Cancel Cart",
+      "name": "Cancel cart",
       "type": "bulk",
       "baseUrl": null,
       "endpoint": "/forest/actions/cancel-cart",
@@ -827,7 +827,7 @@
       "download": false,
       "fields": []
     }, {
-      "name": "Confirm Cart",
+      "name": "Confirm cart",
       "type": "bulk",
       "baseUrl": null,
       "endpoint": "/forest/actions/confirm-cart",
@@ -836,7 +836,7 @@
       "download": false,
       "fields": []
     }, {
-      "name": "Export History",
+      "name": "Export history",
       "type": "global",
       "baseUrl": null,
       "endpoint": "/forest/actions/export-history",
@@ -2224,14 +2224,34 @@
     }],
     "segments": [],
     "actions": [{
-      "name": "Export Commissions",
-      "type": "bulk",
+      "name": "Export commissions",
+      "type": "global",
       "baseUrl": null,
       "endpoint": "/forest/actions/export-commissions",
       "httpMethod": "POST",
       "redirect": null,
-      "download": false,
-      "fields": []
+      "download": true,
+      "fields": [{
+        "field": "Start date",
+        "type": "Dateonly",
+        "defaultValue": null,
+        "enums": null,
+        "isRequired": true,
+        "reference": null,
+        "description": null,
+        "position": 0,
+        "widget": null
+      }, {
+        "field": "End date",
+        "type": "Dateonly",
+        "defaultValue": null,
+        "enums": null,
+        "isRequired": true,
+        "reference": null,
+        "description": null,
+        "position": 1,
+        "widget": null
+      }]
     }]
   }, {
     "name": "Product",
@@ -3618,7 +3638,7 @@
     }],
     "segments": [],
     "actions": [{
-      "name": "Print Label",
+      "name": "Print label",
       "type": "bulk",
       "baseUrl": null,
       "endpoint": "/forest/actions/print-label",
