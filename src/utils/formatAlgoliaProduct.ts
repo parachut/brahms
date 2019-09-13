@@ -37,6 +37,7 @@ export const formatAlgoliaProduct = async (product) => {
       'features',
       'lastInventoryCreated',
       'mfr',
+      'images',
       'stock',
       'slug',
       'points',
