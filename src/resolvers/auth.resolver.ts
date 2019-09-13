@@ -14,6 +14,7 @@ import { Token } from '../classes/token.object';
 import { Phone } from '../decorators/phone';
 import { UserRole } from '../enums/userRole';
 import { User } from '../models/User';
+import { UserMarketingSource } from '../models/UserMarketingSource';
 import { IContext, IJWTPayLoad } from '../utils/context.interface';
 import { createQueue } from '../redis';
 
@@ -111,7 +112,7 @@ export default class AuthResolver {
   @Phone()
   public async register(
     @Arg('input')
-    { email, phone, name }: RegisterInput,
+    { email, phone, name, marketingSource }: RegisterInput,
     @Ctx() ctx: IContext,
   ) {
     // Find if there is an existing account
@@ -137,6 +138,13 @@ export default class AuthResolver {
       name,
       phone,
     });
+
+    if (marketingSource) {
+      await UserMarketingSource.create({
+        ...marketingSource,
+        userId: user.get('id'),
+      });
+    }
 
     integrationQueue.add('update-user-geolocation', {
       userId: user.get('id'),

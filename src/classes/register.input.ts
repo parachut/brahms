@@ -1,6 +1,8 @@
 import { IsEmail, Length } from 'class-validator';
 import { InputType, Field } from 'type-graphql';
 
+import { MarketingSourceInput } from './marketingSource.input';
+
 @InputType()
 export class RegisterInput {
   @Field()
@@ -13,4 +15,7 @@ export class RegisterInput {
   @Field()
   @Length(10)
   public phone!: string;
+
+  @Field((type) => MarketingSourceInput, { nullable: true })
+  public marketingSource?: MarketingSourceInput;
 }
