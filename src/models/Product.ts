@@ -1,5 +1,8 @@
+import algoliasearch from 'algoliasearch';
 import Sequelize from 'sequelize';
 import {
+  AfterCreate,
+  AfterUpdate,
   BeforeCreate,
   BelongsTo,
   Column,
@@ -23,6 +26,14 @@ import { File } from './File';
 import { Inventory } from './Inventory';
 import { ProductAttributeValue } from './ProductAttributeValue';
 import { Queue } from './Queue';
+import { formatAlgoliaProduct } from '../utils/formatAlgoliaProduct';
+
+const client = algoliasearch(
+  process.env.ALGOLIA_APPID,
+  process.env.ALGOLIA_SECRET,
+);
+
+const index = client.initIndex('prod_Products');
 
 @ObjectType()
 @Table
@@ -144,5 +155,17 @@ export class Product extends Model<Product> {
   @BeforeCreate
   static createSlug(instance: Product) {
     instance.slug = urlSlug(instance.name);
+  }
+
+  @AfterCreate
+  static async createAlgolia(instance: Product) {
+    const record = await formatAlgoliaProduct(instance);
+    await index.addObjects([record]);
+  }
+
+  @AfterUpdate
+  static async updateAlgolia(instance: Product) {
+    const record = await formatAlgoliaProduct(instance);
+    await index.saveObjects([record]);
   }
 }

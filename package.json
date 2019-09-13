@@ -3,6 +3,7 @@
     "@easypost/api": "^3.7.0",
     "@now/node": "^0.11.1",
     "@slack/client": "^5.0.2",
+    "algoliasearch": "^3.34.0",
     "analytics-node": "^3.4.0-beta.1",
     "another-name-parser": "^0.0.7",
     "apollo-server-express": "^2.3.1",
@@ -58,6 +59,7 @@
   },
   "description": "Monolith",
   "devDependencies": {
+    "@types/algoliasearch": "^3.30.19",
     "@types/analytics-node": "^3.1.1",
     "@types/bcrypt": "^3.0.0",
     "@types/cors": "^2.8.4",

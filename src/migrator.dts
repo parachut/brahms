@@ -1,49 +1,78 @@
-const MongoClient = require('mongodb').MongoClient;
-const url =
-  'mongodb://rpkbJtavDavLWyeqge2i7ULrv8VzUx:cnc3kExaN2wHyR6XxNJqqURxUcBaqz@parachut-shard-00-00-kto6u.mongodb.net:27017,parachut-shard-00-01-kto6u.mongodb.net:27017,parachut-shard-00-02-kto6u.mongodb.net:27017/parachut?ssl=true&replicaSet=Parachut-shard-0&authSource=admin';
+import algoliasearch from 'algoliasearch';
+import pick from 'lodash/pick';
 
-// Database Name
-const dbName = 'parachut';
+import { Category } from './models/Category';
+import { Product } from './models/Product';
 
-import { User } from './models/User';
+const client = algoliasearch(
+  process.env.ALGOLIA_APPID,
+  process.env.ALGOLIA_SECRET,
+);
 
-// Use connect method to connect to the server
+const index = client.initIndex('prod_Products');
 
-export const migrator = (req, res) => {
-  MongoClient.connect(url, async function(err, client) {
-    console.log('Connected successfully to server');
+export const migrator = async (req, res) => {
+  const products = await Product.findAll({
+    include: ['brand', 'category'],
+  });
 
-    const db = client.db(dbName);
+  const categories = await Category.findAll({});
 
-    const collection = db.collection('users');
-    const docs = await collection
-      .find({
-        isContributor: true,
-      })
-      .toArray();
+  function findBreadCrumbs(cat: Category) {
+    const _categories = [cat];
 
-    for (const doc of docs) {
-      const user = await User.findOne({
-        where: { email: doc.email },
-        include: ['addresses'],
-      });
+    const getParent = async (child: Category) => {
+      if (child.parentId) {
+        const parent = categories.find((cate) => cate.id === child.parentId);
 
-      if (user && !user.addresses.length) {
-        if (doc.address.street1) {
-          const address = await user.$create('address', {
-            street: doc.address.street1 + ' ' + doc.address.street2,
-            city: doc.address.suburb,
-            state: doc.address.state,
-            country: doc.address.country,
-            zip: doc.address.postcode,
-          });
+        if (parent) {
+          _categories.push(parent);
 
-          console.log(address);
+          if (parent.parentId) {
+            getParent(parent);
+          }
         }
       }
-    }
+    };
 
-    client.close();
+    getParent(cat);
+
+    return _categories;
+  }
+
+  const records = [];
+
+  for (const product of products) {
+    const record = {
+      objectID: product.id,
+      ...pick(product, [
+        'name',
+        'popularity',
+        'demand',
+        'description',
+        'features',
+        'lastInventoryCreated',
+        'mfr',
+        'stock',
+        'slug',
+        'points',
+      ]),
+      brand: product.brand.name,
+      categories: product.category
+        ? findBreadCrumbs(product.category)
+            .reverse()
+            .reduce((r, c, i) => {
+              r[`lvl${i}`] = c.name;
+              return r;
+            }, {})
+        : {},
+    };
+
+    records.push(record);
+  }
+
+  index.saveObjects(records, (err, content) => {
+    console.log(content);
   });
 
   res.send(200);
