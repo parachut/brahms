@@ -6,7 +6,7 @@ import { Inventory } from '../models/Inventory';
 
 const router = express.Router();
 
-router.get(
+router.post(
   '/stats/inventory-status-points',
   Liana.ensureAuthenticated,
   async (req, res) => {
