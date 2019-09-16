@@ -11,7 +11,7 @@ import jwt from 'jsonwebtoken';
 import requestIp from 'request-ip';
 import { Sequelize } from 'sequelize-typescript';
 import { buildSchema } from 'type-graphql';
-import jsonwebtoken from 'jsonwebtoken';
+// import jsonwebtoken from 'jsonwebtoken';
 
 require('dotenv').config();
 
@@ -38,7 +38,7 @@ const main = async () => {
     },
   });
 
-  const token = jsonwebtoken.sign(
+  /** const token = jsonwebtoken.sign(
     {
       id: '367c7df6-3f36-4df6-abf3-5ea7c2418878',
       roles: ['MEMBER'],
@@ -47,7 +47,7 @@ const main = async () => {
     signOptions,
   );
 
-  console.log(token);
+  console.log(token); */
 
   const dataloaderContext = createContext(sequelize);
 
