@@ -52,7 +52,7 @@ export default class RequestResolver {
           : null;
 
         request = new Request({
-          addressId: address.id,
+          addressId: address ? address.id : null,
           userId: ctx.user.id,
         });
 
