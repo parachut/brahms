@@ -52,9 +52,7 @@ export async function easypost(req, res) {
       shipment.carrierDeliveredAt = new Date(carrierDelivered.datetime);
     }
 
-    shipment.status = <ShipmentStatus>(
-      ShipmentStatus[result.status.toUpperCase()]
-    );
+    shipment.status = result.status.toUpperCase();
 
     shipment.signedBy = result.signed_by;
     shipment.estDeliveryDate = new Date(result.est_delivery_date);
