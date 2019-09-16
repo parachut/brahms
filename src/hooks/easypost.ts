@@ -12,7 +12,6 @@ import { ShipmentStatus } from '../enums/shipmentStatus';
 import { ShipmentType } from '../enums/shipmentType';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { InventoryStatus } from '../enums/inventoryStatus';
-import { createQueue } from '../redis';
 
 const geocodio = new Geocodio({
   api_key: process.env.GEOCODIO,
@@ -23,15 +22,11 @@ const geocodioPromise = util.promisify(geocodio.get).bind(geocodio);
 export async function easypost(req, res) {
   const { result, description } = req.body;
 
-  console.log(result, description);
-
   if (result && description === 'tracker.updated') {
     const shipment = await Shipment.findOne({
       where: { easyPostId: result.shipment_id },
       include: ['user'],
     });
-
-    console.log(shipment);
 
     if (!shipment) {
       return res.send('OK');
