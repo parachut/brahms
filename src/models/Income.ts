@@ -41,6 +41,10 @@ export class Income extends Model<Income> {
 
   @Field({ nullable: true })
   @Column
+  public planId?: string;
+
+  @Field({ nullable: true })
+  @Column
   public notes?: string;
 
   @Field({ nullable: true })

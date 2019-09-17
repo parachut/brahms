@@ -1815,6 +1815,20 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "planId",
+      "type": "String",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "transferId",
       "type": "String",
       "defaultValue": null,

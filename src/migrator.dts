@@ -1,79 +1,74 @@
-import algoliasearch from 'algoliasearch';
-import pick from 'lodash/pick';
+import { calcDailyCommission, calcDailyRate } from './utils/calc';
+import { differenceInCalendarDays, addDays } from 'date-fns';
 
-import { Category } from './models/Category';
-import { Product } from './models/Product';
-
-const client = algoliasearch(
-  process.env.ALGOLIA_APPID,
-  process.env.ALGOLIA_SECRET,
-);
-
-const index = client.initIndex('prod_Products');
+import { User } from './models/User';
+import { Income } from './models/Income';
+import { Shipment } from './models/Shipment';
+import { ShipmentDirection } from './enums/shipmentDirection';
 
 export const migrator = async (req, res) => {
-  const products = await Product.findAll({
-    include: ['brand', 'category'],
+  const user = await User.findByPk('760e585b-ae7f-4146-81aa-e783d0b9a218', {
+    include: [
+      {
+        association: 'inventory',
+        include: [
+          {
+            association: 'shipments',
+            where: { type: 'ACCESS' },
+            include: ['user'],
+            order: [['carrierReceivedAt', 'DESC']],
+          },
+          {
+            association: 'product',
+          },
+        ],
+      },
+    ],
   });
 
-  const categories = await Category.findAll({});
+  for (const item of user.inventory) {
+    const groups: {
+      shipment: Shipment;
+      out: Date;
+      in: Date;
+    }[] = [];
 
-  function findBreadCrumbs(cat: Category) {
-    const _categories = [cat];
+    item.shipments.forEach((shipment, i) => {
+      if (shipment.direction === ShipmentDirection.OUTBOUND) {
+        const access = {
+          shipment,
+          out: shipment.carrierDeliveredAt,
+          in: null,
+        };
 
-    const getParent = async (child: Category) => {
-      if (child.parentId) {
-        const parent = categories.find((cate) => cate.id === child.parentId);
-
-        if (parent) {
-          _categories.push(parent);
-
-          if (parent.parentId) {
-            getParent(parent);
-          }
+        if (i + 1 === item.shipments.length) {
+          access.in = new Date();
         }
+
+        groups.push(access);
+      } else {
+        groups[groups.length - 1].in = shipment.carrierReceivedAt;
       }
-    };
+    });
 
-    getParent(cat);
+    for (const access of groups) {
+      const timeOut = differenceInCalendarDays(access.in, access.out);
+      console.log(timeOut);
 
-    return _categories;
+      for (let i = 0; i < timeOut; i++) {
+        await Income.create({
+          planId: access.shipment.user.planId,
+          commission: calcDailyCommission(item.product.points),
+          membership: !!access.shipment.user.planId,
+          dailyRate: calcDailyRate(item.product.points),
+          memberId: access.shipment.user.id,
+          userId: user.id,
+          inventoryId: item.id,
+          createdAt: addDays(access.in, i),
+        });
+      }
+    }
   }
-
-  const records = [];
-
-  for (const product of products) {
-    const record = {
-      objectID: product.id,
-      ...pick(product, [
-        'name',
-        'popularity',
-        'demand',
-        'description',
-        'features',
-        'lastInventoryCreated',
-        'mfr',
-        'stock',
-        'slug',
-        'points',
-      ]),
-      brand: product.brand.name,
-      categories: product.category
-        ? findBreadCrumbs(product.category)
-            .reverse()
-            .reduce((r, c, i) => {
-              r[`lvl${i}`] = c.name;
-              return r;
-            }, {})
-        : {},
-    };
-
-    records.push(record);
-  }
-
-  index.saveObjects(records, (err, content) => {
-    console.log(content);
-  });
 
   res.send(200);
 };
