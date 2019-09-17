@@ -1782,7 +1782,7 @@
       "isRequired": false,
       "isSortable": true,
       "isVirtual": false,
-      "reference": "User.userId",
+      "reference": "User.memberId",
       "inverseOf": null,
       "relationship": "BelongsTo",
       "validations": []

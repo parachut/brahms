@@ -55,6 +55,8 @@ export const migrator = async (req, res) => {
       const timeOut = differenceInCalendarDays(access.in, access.out);
       console.log(timeOut);
 
+      console.log(access.shipment.user.id, user.id);
+
       for (let i = 0; i < timeOut; i++) {
         await Income.create({
           planId: access.shipment.user.planId,
@@ -62,7 +64,7 @@ export const migrator = async (req, res) => {
           membership: !!access.shipment.user.planId,
           dailyRate: calcDailyRate(item.product.points),
           memberId: access.shipment.user.id,
-          userId: user.id,
+          userId: item.userId,
           inventoryId: item.id,
           createdAt: addDays(access.in, i),
         });

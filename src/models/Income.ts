@@ -51,14 +51,14 @@ export class Income extends Model<Income> {
   @Column
   public transferId?: string;
 
-  @BelongsTo(() => User)
+  @BelongsTo(() => User, 'userId')
   public user!: User;
 
   @ForeignKey(() => User)
   @Column(DataType.UUID)
   public userId!: string;
 
-  @BelongsTo(() => User)
+  @BelongsTo(() => User, 'memberId')
   public member!: User;
 
   @ForeignKey(() => User)
