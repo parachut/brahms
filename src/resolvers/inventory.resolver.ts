@@ -1,28 +1,31 @@
+import { differenceInCalendarDays } from 'date-fns';
+import { last } from 'lodash';
 import { Op } from 'sequelize';
 import {
   Arg,
   Authorized,
   Ctx,
   FieldResolver,
-  Info,
-  Int,
   Mutation,
   Query,
   Resolver,
   Root,
 } from 'type-graphql';
 
+import { InventoryCreateInput } from '../classes/inventoryCreate.input';
+import { InventoryHistory } from '../classes/inventoryHistory';
+import { InventoryUpdateInput } from '../classes/inventoryUpdate.input';
+import { InventoryWhereInput } from '../classes/inventoryWhere.input';
+import { InventoryWhereUniqueInput } from '../classes/inventoryWhereUnique.input';
 import { ShipmentDirection } from '../enums/shipmentDirection';
+import { ShipmentType } from '../enums/shipmentType';
+import { UserRole } from '../enums/userRole';
 import { Cart } from '../models/Cart';
 import { Inventory } from '../models/Inventory';
 import { Product } from '../models/Product';
 import { Shipment } from '../models/Shipment';
+import { calcDailyCommission } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
-import { UserRole } from '../enums/userRole';
-import { InventoryCreateInput } from '../classes/inventoryCreate.input';
-import { InventoryUpdateInput } from '../classes/inventoryUpdate.input';
-import { InventoryWhereInput } from '../classes/inventoryWhere.input';
-import { InventoryWhereUniqueInput } from '../classes/inventoryWhereUnique.input';
 
 @Resolver(Inventory)
 export default class InventoryResolver {
@@ -224,5 +227,57 @@ export default class InventoryResolver {
     } catch (e) {
       console.log(e);
     }
+  }
+
+  @FieldResolver((type) => Shipment)
+  async history(
+    @Root() inventory: Inventory,
+    @Ctx() ctx: IContext,
+  ): Promise<InventoryHistory[]> {
+    const groups: InventoryHistory[] = [];
+
+    if (!inventory.shipments) {
+      await inventory.$get('shipments', {
+        where: {
+          type: ShipmentType.ACCESS,
+        },
+      });
+    }
+
+    if (!inventory.product) {
+      await inventory.$get('shipments', {
+        where: {
+          type: ShipmentType.ACCESS,
+        },
+      });
+    }
+
+    inventory.shipments.forEach((shipment, i) => {
+      if (shipment.direction === ShipmentDirection.OUTBOUND) {
+        const access: InventoryHistory = {
+          out: shipment.carrierDeliveredAt,
+          in: null,
+          amount: 0,
+          days: 0,
+        };
+
+        if (i + 1 === inventory.shipments.length) {
+          access.in = new Date();
+        }
+
+        groups.push(access);
+      } else {
+        last(groups).in = shipment.carrierReceivedAt;
+      }
+
+      const final = last(groups);
+
+      if (final.in) {
+        final.days = differenceInCalendarDays(final.in, final.out);
+        final.amount = calcDailyCommission(inventory.product.points);
+      }
+    });
+
+    return groups;
   }
 }

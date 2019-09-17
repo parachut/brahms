@@ -151,6 +151,10 @@ export default class CheckoutResolver {
         });
       }
 
+      if (!subscriptionReq.addOns.length) {
+        delete subscriptionReq.addOns;
+      }
+
       let _continue = false;
 
       try {
@@ -179,10 +183,6 @@ export default class CheckoutResolver {
           );
 
           if (stripeSub) {
-            const stripeSubRecord = await stripe.subscriptions.retrieve(
-              stripeSub.value,
-            );
-
             const prorated = prorate(
               futureBilling,
               currentBilling,
@@ -200,7 +200,11 @@ export default class CheckoutResolver {
                 description: 'Prorated overage',
               });
             }
+
+            await stripe.subscriptions.del(stripeSub.value);
           }
+
+          console.log(purchaseReq);
 
           const purchase = await recurly.createPurchase(purchaseReq);
 
@@ -336,6 +340,8 @@ export default class CheckoutResolver {
           });
         }
 
+        console.log(e);
+
         throw new Error(e.message);
       }
 
@@ -413,6 +419,7 @@ export default class CheckoutResolver {
 
         const shipment = await Shipment.create({
           direction: ShipmentDirection.OUTBOUND,
+          expedited: cart.service !== 'Ground',
           type: ShipmentType.ACCESS,
           service: cart.service,
           cartId: cart.id,
