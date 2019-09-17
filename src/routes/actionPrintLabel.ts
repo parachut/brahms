@@ -19,7 +19,7 @@ router.post(
 
     for (const shipment of shipments) {
       const body = {
-        printerId: 69013352,
+        printerId: 69050655,
         title: 'Shipping Label for ' + shipment.id,
         contentType: 'raw_uri',
         content: shipment.labelUrlZPL,
