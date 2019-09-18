@@ -1,7 +1,7 @@
 import { Category } from '../models/Category';
 import { Product } from '../models/Product';
 
-async function updateProductStock(job) {
+async function updateAlgolia(job) {
   const { productId } = job.data || job;
 
   if (productId) {

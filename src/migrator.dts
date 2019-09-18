@@ -1,72 +1,17 @@
 import { calcDailyCommission, calcDailyRate } from './utils/calc';
 import { differenceInCalendarDays, addDays } from 'date-fns';
 
-import { User } from './models/User';
-import { Income } from './models/Income';
-import { Shipment } from './models/Shipment';
-import { ShipmentDirection } from './enums/shipmentDirection';
+import { Bin } from './models/Bin';
 
 export const migrator = async (req, res) => {
-  const user = await User.findByPk('760e585b-ae7f-4146-81aa-e783d0b9a218', {
-    include: [
-      {
-        association: 'inventory',
-        include: [
-          {
-            association: 'shipments',
-            where: { type: 'ACCESS' },
-            include: ['user'],
-            order: [['carrierReceivedAt', 'DESC']],
-          },
-          {
-            association: 'product',
-          },
-        ],
-      },
-    ],
-  });
-
-  for (const item of user.inventory) {
-    const groups: {
-      shipment: Shipment;
-      out: Date;
-      in: Date;
-    }[] = [];
-
-    item.shipments.forEach((shipment, i) => {
-      if (shipment.direction === ShipmentDirection.OUTBOUND) {
-        const access = {
-          shipment,
-          out: shipment.carrierDeliveredAt,
-          in: null,
-        };
-
-        if (i + 1 === item.shipments.length) {
-          access.in = new Date();
-        }
-
-        groups.push(access);
-      } else {
-        groups[groups.length - 1].in = shipment.carrierReceivedAt;
-      }
-    });
-
-    for (const access of groups) {
-      const timeOut = differenceInCalendarDays(access.in, access.out);
-      console.log(timeOut);
-
-      console.log(access.shipment.user.id, user.id);
-
-      for (let i = 0; i < timeOut; i++) {
-        await Income.create({
-          planId: access.shipment.user.planId,
-          commission: calcDailyCommission(item.product.points),
-          membership: !!access.shipment.user.planId,
-          dailyRate: calcDailyRate(item.product.points),
-          memberId: access.shipment.user.id,
-          userId: item.userId,
-          inventoryId: item.id,
-          createdAt: addDays(access.in, i),
+  for (let location = 1; location < 9; location++) {
+    for (let row = 1; row < 5; row++) {
+      for (let column = 1; column < 7; column++) {
+        await Bin.create({
+          location: 'A' + location,
+          row,
+          column,
+          cell: 1,
         });
       }
     }
