@@ -503,6 +503,20 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "fullName",
+      "type": "String",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": false,
+      "isReadOnly": true,
+      "isRequired": false,
+      "isSortable": false,
+      "isVirtual": true,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "id",
       "type": "String",
       "defaultValue": null,
@@ -2058,7 +2072,7 @@
       "isRequired": false,
       "isSortable": true,
       "isVirtual": false,
-      "reference": "Product.productId",
+      "reference": "Bin.binId",
       "inverseOf": null,
       "relationship": "BelongsTo",
       "validations": []
