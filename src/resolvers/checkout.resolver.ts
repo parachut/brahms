@@ -189,7 +189,7 @@ export default class CheckoutResolver {
               user.billingDay,
             );
 
-            subscriptionReq.trailEndsAt = prorated.nextBillingDate;
+            subscriptionReq.trialEndsAt = prorated.nextBillingDate;
 
             if (prorated.amount > 0) {
               purchaseReq.lineItems.push({

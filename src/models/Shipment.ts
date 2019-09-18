@@ -291,8 +291,6 @@ export class Shipment extends Model<Shipment> {
         width: instance.width,
       });
 
-      console.log(instance.addressId);
-
       if (!instance.addressId) {
         const addresses = await Address.findAll({
           where: {
@@ -314,8 +312,6 @@ export class Shipment extends Model<Shipment> {
           where: {},
         }),
       ]);
-
-      console.log(address, warehouse);
 
       if (!address || !warehouse) {
         throw new Error('Unabled to purchase label without address.');
@@ -345,8 +341,6 @@ export class Shipment extends Model<Shipment> {
       try {
         await easyPostShipment.save();
 
-        console.log(JSON.stringify(easyPostShipment));
-
         const rates = groupBy(easyPostShipment.rates, (o) => {
           return Number(o.delivery_days);
         });
@@ -361,8 +355,6 @@ export class Shipment extends Model<Shipment> {
           },
         ]);
         instance.service = costSort[0].service;
-
-        console.log(instance.service);
 
         await easyPostShipment.buy(costSort[0]);
 
@@ -385,6 +377,18 @@ export class Shipment extends Model<Shipment> {
         communicationQueue.add('send-outbound-access-shipment-email', {
           shipmentId: shipment.id,
         });
+      }
+
+      if (instance.direction === ShipmentDirection.INBOUND) {
+        const inventory = (await instance.$get<Inventory>(
+          'inventory',
+        )) as Inventory[];
+
+        inventory.forEach((i) => {
+          i.status = InventoryStatus.SHIPMENTPREP;
+        });
+
+        await Promise.all(inventory.map((i) => i.save()));
       }
 
       await instance.save();
