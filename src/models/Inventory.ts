@@ -19,6 +19,7 @@ import { Field, ID, ObjectType } from 'type-graphql';
 
 import { InventoryCondition } from '../enums/inventoryCondition';
 import { InventoryStatus } from '../enums/inventoryStatus';
+import { Bin } from './Bin';
 import { Cart } from './Cart';
 import { CartInventory } from './CartInventory';
 import { Product } from './Product';
@@ -47,9 +48,6 @@ export class Inventory extends Model<Inventory> {
   @Default(true)
   @Column
   public autoPoints!: boolean;
-
-  @Column
-  public bin?: string;
 
   @Field((type) => InventoryCondition)
   @Default(InventoryCondition.NEW)
@@ -103,6 +101,13 @@ export class Inventory extends Model<Inventory> {
 
   @BelongsToMany(() => Cart, () => CartInventory)
   carts: Cart[];
+
+  @BelongsTo(() => Bin)
+  bin: Bin;
+
+  @ForeignKey(() => Bin)
+  @Column(DataType.UUID)
+  public binId!: string;
 
   @BelongsTo(() => Product)
   product: Product;

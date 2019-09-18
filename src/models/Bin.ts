@@ -1,10 +1,10 @@
 import Sequelize from 'sequelize';
 import {
-  BelongsToMany,
   Column,
   CreatedAt,
   DataType,
   Default,
+  HasMany,
   Model,
   PrimaryKey,
   Table,
@@ -12,7 +12,6 @@ import {
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
 
-import { BinInventory } from './BinInventory';
 import { Inventory } from './Inventory';
 
 @ObjectType()
@@ -40,7 +39,7 @@ export class Bin extends Model<Bin> {
   @Column
   public location!: String;
 
-  @BelongsToMany(() => Inventory, () => BinInventory)
+  @HasMany(() => Inventory, 'binId')
   public inventory: Inventory[];
 
   @CreatedAt

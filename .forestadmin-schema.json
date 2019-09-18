@@ -518,7 +518,7 @@
       "validations": []
     }, {
       "field": "inventory",
-      "type": ["String"],
+      "type": ["Number"],
       "defaultValue": null,
       "enums": null,
       "integration": null,
@@ -529,7 +529,7 @@
       "isVirtual": false,
       "reference": "Inventory.binId",
       "inverseOf": null,
-      "relationship": "BelongsToMany",
+      "relationship": "HasMany",
       "validations": []
     }, {
       "field": "location",
@@ -585,61 +585,6 @@
       "download": true,
       "fields": []
     }]
-  }, {
-    "name": "BinInventory",
-    "nameOld": "BinInventory",
-    "icon": null,
-    "integration": null,
-    "isReadOnly": false,
-    "isSearchable": true,
-    "isVirtual": false,
-    "onlyForRelationships": false,
-    "paginationType": "page",
-    "fields": [{
-      "field": "createdAt",
-      "type": "Date",
-      "defaultValue": null,
-      "enums": null,
-      "integration": null,
-      "isFilterable": true,
-      "isReadOnly": false,
-      "isRequired": false,
-      "isSortable": true,
-      "isVirtual": false,
-      "reference": null,
-      "inverseOf": null,
-      "validations": []
-    }, {
-      "field": "id",
-      "type": "String",
-      "defaultValue": null,
-      "enums": null,
-      "integration": null,
-      "isFilterable": true,
-      "isReadOnly": false,
-      "isRequired": false,
-      "isSortable": true,
-      "isVirtual": false,
-      "reference": null,
-      "inverseOf": null,
-      "validations": []
-    }, {
-      "field": "updatedAt",
-      "type": "Date",
-      "defaultValue": null,
-      "enums": null,
-      "integration": null,
-      "isFilterable": true,
-      "isReadOnly": false,
-      "isRequired": false,
-      "isSortable": true,
-      "isVirtual": false,
-      "reference": null,
-      "inverseOf": null,
-      "validations": []
-    }],
-    "segments": [],
-    "actions": []
   }, {
     "name": "Brand",
     "nameOld": "Brand",
@@ -2113,8 +2058,9 @@
       "isRequired": false,
       "isSortable": true,
       "isVirtual": false,
-      "reference": null,
+      "reference": "Product.productId",
       "inverseOf": null,
+      "relationship": "BelongsTo",
       "validations": []
     }, {
       "field": "carts",
