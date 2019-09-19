@@ -1,21 +1,16 @@
-import { calcDailyCommission, calcDailyRate } from './utils/calc';
-import { differenceInCalendarDays, addDays } from 'date-fns';
+import { updateProductStock } from './utils/updateProductStock';
+import pMap from 'p-map';
 
-import { Bin } from './models/Bin';
+import { Product } from './models/Product';
 
 export const migrator = async (req, res) => {
-  for (let location = 1; location < 9; location++) {
-    for (let row = 1; row < 5; row++) {
-      for (let column = 1; column < 7; column++) {
-        await Bin.create({
-          location: 'A' + location,
-          row,
-          column,
-          cell: 1,
-        });
-      }
-    }
-  }
+  const products = await Product.findAll({});
+
+  await pMap(products, (product) => updateProductStock(product.id), {
+    concurrency: 250,
+  });
+
+  console.log('yeah');
 
   res.send(200);
 };

@@ -1,8 +1,16 @@
 import pick from 'lodash/pick';
 
 import { Category } from '../models/Category';
+import { Product } from '../models/Product';
 
-export const formatAlgoliaProduct = async (product) => {
+export const formatAlgoliaProduct = async (instance) => {
+  const product = instance.where
+    ? await Product.findAll({
+        where: instance.where,
+        include: ['brand', 'category'],
+      })
+    : await Product.findByPk(instance.id, { include: ['brand', 'category'] });
+
   const categories = await Category.findAll({});
 
   function findBreadCrumbs(cat: Category) {
@@ -27,29 +35,37 @@ export const formatAlgoliaProduct = async (product) => {
     return _categories;
   }
 
-  return {
-    objectID: product.id,
-    ...pick(product, [
-      'name',
-      'popularity',
-      'demand',
-      'description',
-      'features',
-      'lastInventoryCreated',
-      'mfr',
-      'images',
-      'stock',
-      'slug',
-      'points',
-    ]),
-    brand: product.brand.name,
-    categories: product.category
-      ? findBreadCrumbs(product.category)
-          .reverse()
-          .reduce((r, c, i) => {
-            r[`lvl${i}`] = c.name;
-            return r;
-          }, {})
-      : {},
-  };
+  function mapProduct(product) {
+    return {
+      objectID: product.id,
+      ...pick(product, [
+        'name',
+        'popularity',
+        'demand',
+        'description',
+        'features',
+        'lastInventoryCreated',
+        'mfr',
+        'images',
+        'stock',
+        'slug',
+        'points',
+      ]),
+      brand: product.brand.name,
+      categories: product.category
+        ? findBreadCrumbs(product.category)
+            .reverse()
+            .reduce((r, c, i) => {
+              r[`lvl${i}`] = c.name;
+              return r;
+            }, {})
+        : {},
+    };
+  }
+
+  if (Array.isArray(product)) {
+    return product.map(mapProduct);
+  } else {
+    return [mapProduct(product)];
+  }
 };
