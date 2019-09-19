@@ -1,5 +1,6 @@
 import Sequelize from 'sequelize';
 import {
+  BeforeUpdate,
   BelongsTo,
   BelongsToMany,
   Column,
@@ -29,6 +30,7 @@ import { ShipmentInventory } from './ShipmentInventory';
 import { User } from './User';
 import { Warehouse } from './Warehouse';
 import { createQueue } from '../redis';
+import { getParentCategories } from '../utils/getParentCategories';
 
 const internalQueue = createQueue('internal-queue');
 
@@ -146,12 +148,46 @@ export class Inventory extends Model<Inventory> {
   @UpdatedAt
   public updatedAt!: Date;
 
-  @AfterUpdate
-  static releaseUserPoints(instance: Inventory) {
-    if (instance.changed('memberId')) {
-      internalQueue.add('update-user-points', {
-        userId: instance.previous('memberId'),
-      });
+  @BeforeUpdate
+  static async assignBin(instance: Inventory) {
+    if (instance.changed('status')) {
+      if (instance.status === InventoryStatus.INWAREHOUSE) {
+        const product = await Product.findByPk(instance.productId, {
+          include: ['category'],
+        });
+        const parentCategory = product.category
+          ? (await getParentCategories(product.category)).pop()
+          : null;
+
+        const direction = product.demand > 30 ? 'DESC' : 'ASC';
+
+        const bins: any = await Bin.findAll({
+          group: ['Bin.id'],
+          include: [
+            {
+              attributes: [],
+              model: Inventory,
+              duplicating: false,
+              required: false,
+            },
+          ],
+          attributes: {
+            include: [
+              [Sequelize.fn('COUNT', Sequelize.col('inventory.id')), 'count'],
+            ],
+          },
+          order: [['location', direction]],
+        });
+
+        if (parentCategory && parentCategory.name === 'Lenses') {
+          console.log(bins[0].get('count'));
+          instance.binId = bins.find((b) => Number(b.get('count')) < 3).id;
+        } else {
+          instance.binId = bins.find((b) => Number(b.get('count')) === 0).id;
+        }
+      } else {
+        instance.binId = null;
+      }
     }
   }
 
