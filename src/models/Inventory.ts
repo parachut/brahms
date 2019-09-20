@@ -1,4 +1,5 @@
 import Sequelize from 'sequelize';
+import fetch from 'node-fetch';
 import {
   BeforeUpdate,
   BelongsTo,
@@ -155,6 +156,7 @@ export class Inventory extends Model<Inventory> {
         const product = await Product.findByPk(instance.productId, {
           include: ['category'],
         });
+        const user = await User.findByPk(instance.userId);
         const parentCategory = product.category
           ? (await getParentCategories(product.category)).pop()
           : null;
@@ -179,12 +181,56 @@ export class Inventory extends Model<Inventory> {
           order: [['location', direction]],
         });
 
+        let bin = null;
+
         if (parentCategory && parentCategory.name === 'Lenses') {
-          console.log(bins[0].get('count'));
-          instance.binId = bins.find((b) => Number(b.get('count')) < 3).id;
+          bin = bins.find((b) => Number(b.get('count')) < 3);
         } else {
-          instance.binId = bins.find((b) => Number(b.get('count')) === 0).id;
+          bin = bins.find((b) => Number(b.get('count')) === 0);
         }
+
+        instance.binId = bin.id;
+
+        const binName = `${bin.location}-${bin.row}-${bin.column}-${bin.cell}`;
+
+        const body = {
+          printerId: 69114235,
+          title: 'License Plate Label for ' + instance.id,
+          contentType: 'raw_base64',
+          content: Buffer.from(
+            `^XA
+
+            ^FO24,48^BY0,0,0^BQN,2,7^FD${instance.id}^FS
+            
+            ^FWR
+            ^CF0,30
+            ^FO150,260^FD${product.name}^FS
+            ^CF0,30
+            ^FO100,260^FD${user.name}^FS
+            ^FO70,260^FD${instance.serial}^FS
+            ^FO40,260^FD${binName}^FS
+            
+            ^XZ`,
+          ).toString('base64'),
+          source: 'Forest',
+          expireAfter: 600,
+          options: {},
+        };
+
+        const res = await fetch('https://api.printnode.com/printjobs', {
+          method: 'post',
+          body: JSON.stringify(body),
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization:
+              'Basic ' +
+              Buffer.from(
+                '39duKfjG0etJ4YeQCk7WsHj2k_blwriaj9F-VPIBB5g',
+              ).toString('base64'),
+          },
+        });
+
+        console.log(res);
       } else {
         instance.binId = null;
       }

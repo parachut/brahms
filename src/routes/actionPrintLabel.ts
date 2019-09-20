@@ -19,7 +19,7 @@ router.post(
 
     for (const shipment of shipments) {
       const body = {
-        printerId: 69050655,
+        printerId: 69114233,
         title: 'Shipping Label for ' + shipment.id,
         contentType: 'raw_uri',
         content: shipment.labelUrlZPL,
@@ -28,7 +28,7 @@ router.post(
         options: {},
       };
 
-      const response = await fetch('https://api.printnode.com/printjobs', {
+      await fetch('https://api.printnode.com/printjobs', {
         method: 'post',
         body: JSON.stringify(body),
         headers: {
