@@ -204,11 +204,11 @@ export class Inventory extends Model<Inventory> {
             
             ^FWR
             ^CF0,30
-            ^FO150,260^FD${product.name}^FS
+            ^FO150,260^FD ${product.name} ^FS
             ^CF0,30
-            ^FO100,260^FD${user.name}^FS
-            ^FO70,260^FD${instance.serial}^FS
-            ^FO40,260^FD${binName}^FS
+            ^FO100,260^FD ${user.name} ^FS
+            ^FO70,260^FD ${instance.serial} ^FS
+            ^FO40,260^FD ${binName} ^FS
             
             ^XZ`,
           ).toString('base64'),
