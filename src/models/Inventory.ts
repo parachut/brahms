@@ -200,7 +200,7 @@ export class Inventory extends Model<Inventory> {
           content: Buffer.from(
             `^XA
 
-            ^FO24,48^BY0,0,0^BQN,2,7^FD${instance.id}^FS
+            ^FO24,48^BY0,0,0^BQN,2,7^FDMM, ${instance.id} ^FS
             
             ^FWR
             ^CF0,30
