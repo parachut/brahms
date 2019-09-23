@@ -3,7 +3,7 @@ import groupBy from 'lodash/groupBy';
 import sortBy from 'lodash/sortBy';
 import Sequelize, { Op } from 'sequelize';
 import {
-  AfterCreate,
+  BeforeUpdate,
   AfterUpdate,
   BeforeCreate,
   BelongsTo,
@@ -281,7 +281,7 @@ export class Shipment extends Model<Shipment> {
     }
   }
 
-  @AfterCreate
+  @BeforeUpdate
   static async createEasyPostShipment(instance: Shipment) {
     if (!instance.pickup && !instance.easyPostId) {
       const parcel = new easyPost.Parcel({
@@ -317,9 +317,6 @@ export class Shipment extends Model<Shipment> {
         throw new Error('Unabled to purchase label without address.');
       }
 
-      easyPost.Address.retrieve(address.easyPostId).then(console.log);
-      easyPost.Address.retrieve(warehouse.easyPostId).then(console.log);
-
       const shipment: any = {
         buyer_address: warehouse.easyPostId,
         carrier_account: process.env.EASYPOST_CARRIER_ACCOUNT,
@@ -338,8 +335,12 @@ export class Shipment extends Model<Shipment> {
 
       const easyPostShipment = new easyPost.Shipment(shipment);
 
+      console.log(easyPostShipment);
+
       try {
         await easyPostShipment.save();
+
+        console.log(JSON.stringify(easyPostShipment.rates));
 
         const rates = groupBy(easyPostShipment.rates, (o) => {
           return Number(o.delivery_days);
@@ -379,7 +380,7 @@ export class Shipment extends Model<Shipment> {
         });
       }
 
-      if (instance.direction === ShipmentDirection.INBOUND) {
+      if (instance.direction === ShipmentDirection.OUTBOUND) {
         const inventory = (await instance.$get<Inventory>(
           'inventory',
         )) as Inventory[];
