@@ -282,6 +282,7 @@ export class Shipment extends Model<Shipment> {
   }
 
   @BeforeUpdate
+  @BeforeCreate
   static async createEasyPostShipment(instance: Shipment) {
     if (!instance.pickup && !instance.easyPostId) {
       const parcel = new easyPost.Parcel({
@@ -335,12 +336,8 @@ export class Shipment extends Model<Shipment> {
 
       const easyPostShipment = new easyPost.Shipment(shipment);
 
-      console.log(easyPostShipment);
-
       try {
         await easyPostShipment.save();
-
-        console.log(JSON.stringify(easyPostShipment.rates));
 
         const rates = groupBy(easyPostShipment.rates, (o) => {
           return Number(o.delivery_days);
