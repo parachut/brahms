@@ -3,7 +3,7 @@ import groupBy from 'lodash/groupBy';
 import sortBy from 'lodash/sortBy';
 import Sequelize, { Op } from 'sequelize';
 import {
-  BeforeUpdate,
+  AfterCreate,
   AfterUpdate,
   BeforeCreate,
   BelongsTo,
@@ -248,7 +248,7 @@ export class Shipment extends Model<Shipment> {
   }
 
   @BeforeCreate
-  static async findRelatedInformation(instance: Shipment) {
+  static async createEasyPostShipment(instance: Shipment) {
     if (instance.cartId) {
       const cart = await Cart.findByPk(instance.cartId);
 
@@ -279,11 +279,7 @@ export class Shipment extends Model<Shipment> {
 
       instance.warehouseId = warehouse.id;
     }
-  }
 
-  @BeforeUpdate
-  @BeforeCreate
-  static async createEasyPostShipment(instance: Shipment) {
     if (!instance.pickup && !instance.easyPostId) {
       const parcel = new easyPost.Parcel({
         height: instance.height,
@@ -291,21 +287,6 @@ export class Shipment extends Model<Shipment> {
         weight: 1,
         width: instance.width,
       });
-
-      if (!instance.addressId) {
-        const addresses = await Address.findAll({
-          where: {
-            userId: instance.userId,
-          },
-          order: [['primary', 'DESC'], ['createdAt', 'DESC']],
-          limit: 2,
-          attributes: ['id', 'primary', 'easyPostId'],
-        });
-
-        instance.addressId = addresses.length
-          ? addresses[0].id
-          : instance.addressId;
-      }
 
       const [address, warehouse] = await Promise.all([
         Address.findByPk(instance.addressId),
@@ -371,25 +352,25 @@ export class Shipment extends Model<Shipment> {
         easyPostShipment.rates[0].delivery_date,
       );
 
-      if (instance.cartId) {
-        communicationQueue.add('send-outbound-access-shipment-email', {
+      if (instance.cartId && instance.type === ShipmentType.ACCESS) {
+        await communicationQueue.add('send-outbound-access-shipment-email', {
           shipmentId: shipment.id,
         });
       }
+    }
+  }
 
-      if (instance.direction === ShipmentDirection.OUTBOUND) {
-        const inventory = (await instance.$get<Inventory>(
-          'inventory',
-        )) as Inventory[];
+  @AfterCreate
+  static async updateInventory(instance: Shipment) {
+    const inventory = (await instance.$get<Inventory>(
+      'inventory',
+    )) as Inventory[];
 
-        inventory.forEach((i) => {
-          i.status = InventoryStatus.SHIPMENTPREP;
-        });
-
-        await Promise.all(inventory.map((i) => i.save()));
+    if (inventory && inventory.length) {
+      for (const i of inventory) {
+        i.status = InventoryStatus.SHIPMENTPREP;
+        await i.save();
       }
-
-      await instance.save();
     }
   }
 }
