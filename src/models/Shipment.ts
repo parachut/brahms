@@ -35,6 +35,7 @@ import { ShipmentInspection } from './ShipmentInspection';
 import { ShipmentInventory } from './ShipmentInventory';
 import { User } from './User';
 import { Warehouse } from './Warehouse';
+import { createEasyPostAddress } from '../utils/createEasyPostAddress';
 
 const easyPost = new EasyPost(process.env.EASYPOST);
 const communicationQueue = createQueue('communication-queue');
@@ -288,7 +289,7 @@ export class Shipment extends Model<Shipment> {
         width: instance.width,
       });
 
-      const [address, warehouse] = await Promise.all([
+      let [address, warehouse] = await Promise.all([
         Address.findByPk(instance.addressId),
         Warehouse.findOne({
           where: {},
@@ -299,7 +300,25 @@ export class Shipment extends Model<Shipment> {
         throw new Error('Unabled to purchase label without address.');
       }
 
-      await easyPost.Address.retrieve(warehouse.easyPostId).then(console.log);
+      let warehouseEasyPostAddress = null;
+      let addressEasyPostAddress = null;
+
+      try {
+        warehouseEasyPostAddress = await easyPost.Address.retrieve(
+          warehouse.easyPostId,
+        );
+        addressEasyPostAddress = await easyPost.Address.retrieve(
+          address.easyPostId,
+        );
+      } catch (e) {}
+
+      if (!addressEasyPostAddress) {
+        address = await createEasyPostAddress(address);
+      }
+
+      if (!warehouseEasyPostAddress) {
+        warehouse = await createEasyPostAddress(warehouse);
+      }
 
       const shipment: any = {
         buyer_address: warehouse.easyPostId,
@@ -342,8 +361,7 @@ export class Shipment extends Model<Shipment> {
           instance.service = costSort[0].service;
           await easyPostShipment.buy(costSort[0]);
         } else {
-          instance.service = '2ndDayAirSaver';
-          await easyPostShipment.buy();
+          throw new Error('No rates available');
         }
 
         await easyPostShipment.convertLabelFormat('ZPL');
