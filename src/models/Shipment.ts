@@ -299,20 +299,24 @@ export class Shipment extends Model<Shipment> {
         throw new Error('Unabled to purchase label without address.');
       }
 
+      await easyPost.Address.retrieve(warehouse.easyPostId).then(console.log);
+
       const shipment: any = {
         buyer_address: warehouse.easyPostId,
         carrier_account: process.env.EASYPOST_CARRIER_ACCOUNT,
-        from_address: warehouse.easyPostId,
-        is_return: instance.direction === ShipmentDirection.INBOUND,
+        from_address:
+          instance.direction === ShipmentDirection.INBOUND
+            ? address.easyPostId
+            : warehouse.easyPostId,
         options: {
-          delivery_confirmation:
-            instance.direction !== ShipmentDirection.INBOUND
-              ? 'ADULT_SIGNATURE'
-              : undefined,
+          delivery_confirmation: 'ADULT_SIGNATURE',
           label_size: '4X6',
         },
         parcel,
-        to_address: address.easyPostId,
+        to_address:
+          instance.direction === ShipmentDirection.INBOUND
+            ? warehouse.easyPostId
+            : address.easyPostId,
       };
 
       const easyPostShipment = new easyPost.Shipment(shipment);
@@ -323,23 +327,28 @@ export class Shipment extends Model<Shipment> {
         const rates = groupBy(easyPostShipment.rates, (o) => {
           return Number(o.delivery_days);
         });
+
         const levels = Object.keys(rates);
-        const level = String(
-          instance.expedited ? 0 : Math.min(levels.length - 1, 1),
-        );
+        if (levels && levels.length) {
+          const level = String(
+            instance.expedited ? 0 : Math.min(levels.length - 1, 1),
+          );
 
-        const costSort = sortBy(rates[levels[level]], [
-          (o) => {
-            return Number(o.rate);
-          },
-        ]);
-        instance.service = costSort[0].service;
-
-        await easyPostShipment.buy(costSort[0]);
+          const costSort = sortBy(rates[levels[level]], [
+            (o) => {
+              return Number(o.rate);
+            },
+          ]);
+          instance.service = costSort[0].service;
+          await easyPostShipment.buy(costSort[0]);
+        } else {
+          instance.service = '2ndDayAirSaver';
+          await easyPostShipment.buy();
+        }
 
         await easyPostShipment.convertLabelFormat('ZPL');
       } catch (e) {
-        console.log(JSON.stringify(e));
+        console.log(JSON.stringify(e), 'error');
         throw new Error('Unable to create shipment label.');
       }
 
