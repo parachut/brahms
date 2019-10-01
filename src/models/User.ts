@@ -23,6 +23,7 @@ import { UserStatus } from '../enums/userStatus';
 import { createQueue } from '../redis';
 import { Address } from './Address';
 import { Cart } from './Cart';
+import { Deposit } from './Deposit';
 import { Income } from './Income';
 import { Inventory } from './Inventory';
 import { Queue } from './Queue';
@@ -143,6 +144,9 @@ export class User extends Model<User> {
 
   @HasMany(() => Address, 'userId')
   public addresses!: Address[];
+
+  @HasMany(() => Deposit, 'userId')
+  public deposit!: Deposit[];
 
   @HasMany(() => Income, 'userId')
   public incomes!: Income[];
