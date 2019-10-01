@@ -50,11 +50,15 @@ export const updateProductStats = async (productId: string) => {
   const popularityPercentage =
     (popularity - minPopularity.value) /
     (maxPopularity.value - minPopularity.value);
-  const outStockPercentage = total ? (total - inStock) / total : 0;
+  const outStockPercentage = total
+    ? (total - inStock) / total
+    : popularityPercentage;
   product.demand = Math.round(
-    ((popularityPercentage + outStockPercentage) / 2) * 100,
+    ((popularityPercentage * 2 + outStockPercentage) / 3) * 100,
   );
-  product.popularity = popularity - minPopularity.value;
+  product.popularity = Math.round(popularity - minPopularity.value);
+
+  console.log(product.id, product.popularity, product.demand);
 
   await product.save();
   return product;
