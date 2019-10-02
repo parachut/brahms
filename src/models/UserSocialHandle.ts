@@ -16,7 +16,7 @@ import { User } from './User';
 
 @ObjectType()
 @Table({
-  tableName: 'user_social_handle',
+  tableName: 'user_social_handles',
   underscored: true,
 })
 export class UserSocialHandle extends Model<UserSocialHandle> {

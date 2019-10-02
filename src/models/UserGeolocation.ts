@@ -14,7 +14,7 @@ import {
 import { User } from './User';
 
 @Table({
-  tableName: 'user_geolocation',
+  tableName: 'user_geolocations',
   underscored: true,
 })
 export class UserGeolocation extends Model<UserGeolocation> {

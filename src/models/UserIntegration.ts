@@ -16,7 +16,7 @@ import { User } from './User';
 
 @ObjectType()
 @Table({
-  tableName: 'user_integration',
+  tableName: 'user_integrations',
   underscored: true,
 })
 export class UserIntegration extends Model<UserIntegration> {

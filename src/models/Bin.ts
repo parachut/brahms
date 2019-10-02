@@ -16,7 +16,7 @@ import { Inventory } from './Inventory';
 
 @ObjectType()
 @Table({
-  tableName: 'bin',
+  tableName: 'bins',
   underscored: true,
 })
 export class Bin extends Model<Bin> {

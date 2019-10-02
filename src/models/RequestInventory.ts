@@ -14,7 +14,7 @@ import { Inventory } from './Inventory';
 import { Request } from './Request';
 
 @Table({
-  tableName: 'request_inventory',
+  tableName: 'request_inventories',
   underscored: true,
 })
 export class RequestInventory extends Model<RequestInventory> {

@@ -22,7 +22,7 @@ import { User } from './User';
 
 @ObjectType()
 @Table({
-  tableName: 'shipment_inspection',
+  tableName: 'shipment_inspections',
   underscored: true,
 })
 export class ShipmentInspection extends Model<ShipmentInspection> {

@@ -37,7 +37,7 @@ const internalQueue = createQueue('internal-queue');
 
 @ObjectType()
 @Table({
-  tableName: 'inventory',
+  tableName: 'inventories',
   underscored: true,
 })
 export class Inventory extends Model<Inventory> {

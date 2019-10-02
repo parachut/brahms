@@ -15,7 +15,7 @@ import { Field, ID, ObjectType } from 'type-graphql';
 import { User } from './User';
 
 @Table({
-  tableName: 'user_bank_balance',
+  tableName: 'user_bank_balances',
   underscored: true,
 })
 export class UserBankBalance extends Model<UserBankBalance> {

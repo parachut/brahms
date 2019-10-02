@@ -38,7 +38,7 @@ const index = client.initIndex('prod_Products');
 
 @ObjectType()
 @Table({
-  tableName: 'product',
+  tableName: 'products',
   underscored: true,
 })
 export class Product extends Model<Product> {

@@ -18,7 +18,7 @@ import { Shipment } from './Shipment';
 
 @ObjectType()
 @Table({
-  tableName: 'shipment_event',
+  tableName: 'shipment_events',
   underscored: true,
 })
 export class ShipmentEvent extends Model<ShipmentEvent> {

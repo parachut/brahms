@@ -16,7 +16,7 @@ import { User } from './User';
 
 @ObjectType()
 @Table({
-  tableName: 'user_verification',
+  tableName: 'user_verifications',
   underscored: true,
 })
 export class UserVerification extends Model<UserVerification> {

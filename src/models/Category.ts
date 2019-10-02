@@ -19,7 +19,7 @@ import urlSlug from 'url-slug';
 
 @ObjectType()
 @Table({
-  tableName: 'category',
+  tableName: 'categories',
   underscored: true,
 })
 export class Category extends Model<Category> {

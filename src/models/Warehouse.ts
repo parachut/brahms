@@ -23,7 +23,7 @@ const easyPost = new EasyPost(process.env.EASYPOST);
 
 @ObjectType()
 @Table({
-  tableName: 'warehouse',
+  tableName: 'warehouses',
   underscored: true,
 })
 export class Warehouse extends Model<Warehouse> {

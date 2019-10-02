@@ -30,7 +30,7 @@ import { User } from './User';
 
 @ObjectType()
 @Table({
-  tableName: 'request',
+  tableName: 'requests',
   underscored: true,
 })
 export class Request extends Model<Request> {

@@ -14,7 +14,7 @@ import { Inventory } from './Inventory';
 import { Cart } from './Cart';
 
 @Table({
-  tableName: 'cart_inventory',
+  tableName: 'cart_inventories',
   underscored: true,
 })
 export class CartInventory extends Model<CartInventory> {

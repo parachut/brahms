@@ -20,7 +20,7 @@ import { ShipmentInspection } from './ShipmentInspection';
 
 @ObjectType()
 @Table({
-  tableName: 'file',
+  tableName: 'files',
   underscored: true,
 })
 export class File extends Model<File> {

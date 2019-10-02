@@ -18,7 +18,7 @@ import { ProductAttribute } from './ProductAttribute';
 
 @ObjectType()
 @Table({
-  tableName: 'product_attribute_value',
+  tableName: 'product_attribute_values',
   underscored: true,
 })
 export class ProductAttributeValue extends Model<ProductAttributeValue> {

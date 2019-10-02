@@ -24,7 +24,7 @@ import { User } from './User';
 
 @ObjectType()
 @Table({
-  tableName: 'cart',
+  tableName: 'carts',
   underscored: true,
 })
 export class Cart extends Model<Cart> {

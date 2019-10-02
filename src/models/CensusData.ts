@@ -14,7 +14,7 @@ import { Address } from './Address';
 import { CensusRangeBlock } from './CensusRangeBlock';
 
 @Table({
-  tableName: 'census_data',
+  tableName: 'census_datas',
   underscored: true,
 })
 export class CensusData extends Model<CensusData> {

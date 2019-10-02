@@ -20,7 +20,7 @@ import { Product } from './Product';
 
 @ObjectType()
 @Table({
-  tableName: 'cart_item',
+  tableName: 'cart_items',
   underscored: true,
 })
 export class CartItem extends Model<CartItem> {

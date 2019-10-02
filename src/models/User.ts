@@ -38,7 +38,7 @@ const integrationQueue = createQueue('integration-queue');
 
 @ObjectType()
 @Table({
-  tableName: 'user',
+  tableName: 'users',
   underscored: true,
 })
 export class User extends Model<User> {

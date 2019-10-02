@@ -19,7 +19,7 @@ import { File } from './File';
 
 @ObjectType()
 @Table({
-  tableName: 'brand',
+  tableName: 'brands',
   underscored: true,
 })
 export class Brand extends Model<Brand> {

@@ -18,7 +18,7 @@ import { User } from './User';
 
 @ObjectType()
 @Table({
-  tableName: 'queue',
+  tableName: 'queues',
   underscored: true,
 })
 export class Queue extends Model<Queue> {

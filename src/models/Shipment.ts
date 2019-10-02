@@ -42,7 +42,7 @@ const communicationQueue = createQueue('communication-queue');
 
 @ObjectType()
 @Table({
-  tableName: 'shipment',
+  tableName: 'shipments',
   underscored: true,
 })
 export class Shipment extends Model<Shipment> {
