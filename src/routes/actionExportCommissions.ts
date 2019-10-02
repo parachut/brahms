@@ -8,6 +8,7 @@ import numeral from 'numeral';
 import findLast from 'lodash/findLast';
 import startOfDay from 'date-fns/startOfDay';
 import endOfDay from 'date-fns/endOfDay';
+import sortBy from 'lodash/sortBy';
 
 import { calcDailyCommission } from '../utils/calc';
 import { Inventory } from '../models/Inventory';
@@ -45,31 +46,34 @@ router.post(
     const report = items.map((item) => {
       let lastOutbound: number = 0;
 
-      const monthShipments = item.shipments.filter((shipment) => {
-        return (
-          (new Date(shipment.carrierDeliveredAt).getTime() >
-            startDate.getTime() &&
-            new Date(shipment.carrierDeliveredAt).getTime() <
-              endDate.getTime() &&
-            shipment.direction === ShipmentDirection.OUTBOUND) ||
-          (new Date(shipment.carrierReceivedAt).getTime() >
-            startDate.getTime() &&
-            new Date(shipment.carrierReceivedAt).getTime() <
-              endDate.getTime() &&
-            shipment.direction === ShipmentDirection.INBOUND)
-        );
-      });
+      const monthShipments = sortBy(
+        item.shipments.filter((shipment) => {
+          return (
+            (shipment.carrierDeliveredAt &&
+              (shipment.carrierDeliveredAt.getTime() > startDate.getTime() &&
+                shipment.carrierDeliveredAt.getTime() < endDate.getTime() &&
+                shipment.direction === ShipmentDirection.OUTBOUND)) ||
+            (shipment.carrierReceivedAt &&
+              (shipment.carrierReceivedAt.getTime() > startDate.getTime() &&
+                shipment.carrierReceivedAt.getTime() < endDate.getTime() &&
+                shipment.direction === ShipmentDirection.INBOUND))
+          );
+        }),
+        [
+          function(o) {
+            return o.carrierReceivedAt.getTime();
+          },
+        ],
+      );
 
       let secondsInCirculation = monthShipments.reduce((r: number, i: any) => {
         if (lastOutbound > 0 && i.direction === 'INBOUND') {
-          return r + (new Date(i.carrierReceivedAt).getTime() - lastOutbound);
+          return r + (i.carrierReceivedAt.getTime() - lastOutbound);
         } else if (i.direction === 'OUTBOUND') {
-          lastOutbound = new Date(i.carrierDeliveredAt).getTime();
+          lastOutbound = i.carrierDeliveredAt.getTime();
           return r;
         } else if (r === 0 && lastOutbound === 0 && i.direction === 'INBOUND') {
-          return (
-            r + (new Date(i.carrierReceivedAt).getTime() - startDate.getTime())
-          );
+          return r + (i.carrierReceivedAt.getTime() - startDate.getTime());
         }
       }, 0);
 
@@ -81,8 +85,7 @@ router.post(
         ) {
           secondsInCirculation =
             secondsInCirculation +
-            (endDate.getTime() -
-              new Date(lastShipment.carrierDeliveredAt).getTime());
+            (endDate.getTime() - lastShipment.carrierDeliveredAt.getTime());
         }
       }
 
@@ -91,8 +94,7 @@ router.post(
           item.shipments,
           (shipment) =>
             shipment.carrierDeliveredAt &&
-            new Date(shipment.carrierDeliveredAt).getTime() <
-              startDate.getTime() &&
+            shipment.carrierDeliveredAt.getTime() < startDate.getTime() &&
             shipment.direction === ShipmentDirection.OUTBOUND,
         );
 
@@ -101,14 +103,14 @@ router.post(
             (shipment) =>
               shipment.userId === prevousToShipment.userId &&
               shipment.direction === ShipmentDirection.INBOUND &&
-              new Date(shipment.carrierReceivedAt).getTime() >
-                new Date(prevousToShipment.carrierDeliveredAt).getTime(),
+              (shipment.carrierReceivedAt &&
+                shipment.carrierReceivedAt.getTime() >
+                  prevousToShipment.carrierDeliveredAt.getTime()),
           );
 
           if (
             (nextToShipment &&
-              new Date(nextToShipment.carrierReceivedAt).getTime() >
-                endDate.getTime()) ||
+              nextToShipment.carrierReceivedAt.getTime() > endDate.getTime()) ||
             !nextToShipment
           ) {
             secondsInCirculation = endDate.getTime() - startDate.getTime();
