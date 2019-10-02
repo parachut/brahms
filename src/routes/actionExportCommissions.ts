@@ -85,6 +85,7 @@ router.post(
         const prevousToShipment: Shipment = findLast(
           item.shipments,
           (shipment) =>
+            shipment.carrierDeliveredAt &&
             new Date(shipment.carrierDeliveredAt).getTime() <
               startDate.getTime() &&
             shipment.direction === ShipmentDirection.OUTBOUND,
@@ -96,7 +97,7 @@ router.post(
               shipment.userId === prevousToShipment.userId &&
               shipment.direction === ShipmentDirection.INBOUND &&
               new Date(shipment.carrierReceivedAt).getTime() >
-                new Date(prevousToShipment.carrierReceivedAt).getTime(),
+                new Date(prevousToShipment.carrierDeliveredAt).getTime(),
           );
 
           if (
