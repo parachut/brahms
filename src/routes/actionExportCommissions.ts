@@ -12,6 +12,7 @@ import endOfDay from 'date-fns/endOfDay';
 import { calcDailyCommission } from '../utils/calc';
 import { Inventory } from '../models/Inventory';
 import { Shipment } from '../models/Shipment';
+import { ShipmentType } from '../enums/ShipmentType';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 
 const router = express.Router();
@@ -26,8 +27,6 @@ router.post(
     const startDate = startOfDay(new Date(attrs['Start date']));
     const endDate = endOfDay(new Date(attrs['End date']));
 
-    console.log(startDate, endDate);
-
     const items = await Inventory.findAll({
       where: ids && ids.length ? { id: { [Op.in]: ids } } : {},
       include: [
@@ -35,6 +34,9 @@ router.post(
         'product',
         {
           association: 'shipments',
+          where: {
+            type: ShipmentType.ACCESS,
+          },
           order: [['carrierReceivedAt', 'ASC']],
         },
       ],
