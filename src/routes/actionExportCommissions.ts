@@ -6,6 +6,8 @@ import stringify from 'csv-stringify';
 import tmp from 'tmp';
 import numeral from 'numeral';
 import findLast from 'lodash/findLast';
+import startOfDay from 'date-fns/startOfDay';
+import endOfDay from 'date-fns/startOfDay';
 
 import { calcDailyCommission } from '../utils/calc';
 import { Inventory } from '../models/Inventory';
@@ -21,8 +23,8 @@ router.post(
     const { ids } = req.body.data.attributes;
     const attrs = req.body.data.attributes.values;
 
-    const startDate = new Date(attrs['Start date']);
-    const endDate = new Date(attrs['End date']);
+    const startDate = startOfDay(new Date(attrs['Start date']));
+    const endDate = endOfDay(new Date(attrs['End date']));
 
     const items = await Inventory.findAll({
       where: ids && ids.length ? { id: { [Op.in]: ids } } : {},
@@ -68,8 +70,8 @@ router.post(
       }, 0);
 
       if (secondsInCirculation > 0) {
-        const lastShipment = item.shipments[item.shipments.length - 1];
-        if (lastShipment.direction === 'OUTBOUND') {
+        const lastShipment = monthShipments[item.shipments.length - 1];
+        if (lastShipment && lastShipment.direction === 'OUTBOUND') {
           secondsInCirculation =
             secondsInCirculation +
             (endDate.getTime() -
@@ -78,20 +80,21 @@ router.post(
       }
 
       if (secondsInCirculation === 0) {
-        const prevousToShipment = findLast(
+        const prevousToShipment: Shipment = findLast(
           item.shipments,
           (shipment) =>
             new Date(shipment.carrierDeliveredAt).getTime() <
-              startDate.getTime() && shipment.direction === 'OUTBOUND',
+              startDate.getTime() &&
+            shipment.direction === ShipmentDirection.OUTBOUND,
         );
 
         if (prevousToShipment) {
-          const nextToShipment = item.shipments.find(
+          const nextToShipment: Shipment = item.shipments.find(
             (shipment) =>
               shipment.userId === prevousToShipment.userId &&
-              shipment.direction === 'INBOUND' &&
+              shipment.direction === ShipmentDirection.INBOUND &&
               new Date(shipment.carrierReceivedAt).getTime() >
-                new Date(prevousToShipment.carrierDeliveredAt).getTime(),
+                new Date(prevousToShipment.carrierReceivedAt).getTime(),
           );
 
           if (
@@ -107,7 +110,7 @@ router.post(
 
       const daysInCirculation =
         secondsInCirculation > 0
-          ? Math.round(secondsInCirculation / (1000 * 60 * 60 * 24))
+          ? Math.ceil(secondsInCirculation / (1000 * 60 * 60 * 24))
           : 0;
       const dailyCommission = calcDailyCommission(item.product.points);
 
@@ -137,7 +140,7 @@ router.post(
     };
 
     stringify(
-      report,
+      report.filter((item) => item.total !== '$0.00'),
       {
         header: true,
         columns,
