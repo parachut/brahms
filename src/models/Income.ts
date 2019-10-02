@@ -16,7 +16,10 @@ import { Field, ID, ObjectType } from 'type-graphql';
 import { User } from './User';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'income',
+  underscored: true,
+})
 export class Income extends Model<Income> {
   @Field((type) => ID)
   @PrimaryKey

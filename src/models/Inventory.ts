@@ -36,7 +36,10 @@ import { getParentCategories } from '../utils/getParentCategories';
 const internalQueue = createQueue('internal-queue');
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'inventory',
+  underscored: true,
+})
 export class Inventory extends Model<Inventory> {
   @Field((type) => ID)
   @PrimaryKey

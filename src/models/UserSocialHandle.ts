@@ -15,7 +15,10 @@ import { Field, ID, ObjectType } from 'type-graphql';
 import { User } from './User';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'user_social_handle',
+  underscored: true,
+})
 export class UserSocialHandle extends Model<UserSocialHandle> {
   @Field((type) => ID)
   @PrimaryKey

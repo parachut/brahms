@@ -21,7 +21,10 @@ import { Shipment } from './Shipment';
 import { User } from './User';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'shipment_inspection',
+  underscored: true,
+})
 export class ShipmentInspection extends Model<ShipmentInspection> {
   @Field((type) => ID)
   @PrimaryKey

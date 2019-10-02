@@ -19,7 +19,10 @@ import { Product } from './Product';
 import { ShipmentInspection } from './ShipmentInspection';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'file',
+  underscored: true,
+})
 export class File extends Model<File> {
   @Field((type) => ID)
   @PrimaryKey

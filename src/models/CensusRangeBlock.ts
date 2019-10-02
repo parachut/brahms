@@ -13,7 +13,10 @@ import {
 
 import { CensusData } from './CensusData';
 
-@Table
+@Table({
+  tableName: 'census_range_block',
+  underscored: true,
+})
 export class CensusRangeBlock extends Model<CensusRangeBlock> {
   @PrimaryKey
   @Default(Sequelize.literal('uuid_generate_v4()'))

@@ -16,7 +16,10 @@ import { Field, ID, ObjectType } from 'type-graphql';
 import { ProductAttributeValue } from './ProductAttributeValue';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'product_attribute',
+  underscored: true,
+})
 export class ProductAttribute extends Model<ProductAttribute> {
   @Field((type) => ID)
   @PrimaryKey

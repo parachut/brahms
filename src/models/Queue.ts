@@ -17,7 +17,10 @@ import { Product } from './Product';
 import { User } from './User';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'queue',
+  underscored: true,
+})
 export class Queue extends Model<Queue> {
   @Field((type) => ID)
   @PrimaryKey

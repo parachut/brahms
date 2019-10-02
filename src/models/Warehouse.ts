@@ -22,7 +22,10 @@ import { User } from './User';
 const easyPost = new EasyPost(process.env.EASYPOST);
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'warehouse',
+  underscored: true,
+})
 export class Warehouse extends Model<Warehouse> {
   @Field((type) => ID)
   @PrimaryKey

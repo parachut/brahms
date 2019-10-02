@@ -19,7 +19,10 @@ import { Cart } from './Cart';
 import { Product } from './Product';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'cart_item',
+  underscored: true,
+})
 export class CartItem extends Model<CartItem> {
   @Field((type) => ID)
   @PrimaryKey

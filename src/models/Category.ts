@@ -18,7 +18,10 @@ import { Field, ID, ObjectType, Root } from 'type-graphql';
 import urlSlug from 'url-slug';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'category',
+  underscored: true,
+})
 export class Category extends Model<Category> {
   @Field((type) => ID)
   @PrimaryKey

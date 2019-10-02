@@ -14,7 +14,10 @@ import { Field, ID, ObjectType } from 'type-graphql';
 
 import { User } from './User';
 
-@Table
+@Table({
+  tableName: 'user_bank_balance',
+  underscored: true,
+})
 export class UserBankBalance extends Model<UserBankBalance> {
   @PrimaryKey
   @Default(Sequelize.literal('uuid_generate_v4()'))

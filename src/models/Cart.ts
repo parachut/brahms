@@ -23,7 +23,10 @@ import { Shipment } from './Shipment';
 import { User } from './User';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'cart',
+  underscored: true,
+})
 export class Cart extends Model<Cart> {
   /**
    * ID

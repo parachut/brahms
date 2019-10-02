@@ -13,7 +13,10 @@ import {
 
 import { User } from './User';
 
-@Table
+@Table({
+  tableName: 'user_geolocation',
+  underscored: true,
+})
 export class UserGeolocation extends Model<UserGeolocation> {
   @PrimaryKey
   @Default(Sequelize.literal('uuid_generate_v4()'))

@@ -37,7 +37,10 @@ const client = algoliasearch(
 const index = client.initIndex('prod_Products');
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'product',
+  underscored: true,
+})
 export class Product extends Model<Product> {
   @Field((type) => ID)
   @PrimaryKey

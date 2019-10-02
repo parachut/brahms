@@ -13,7 +13,10 @@ import { Field, ID } from 'type-graphql';
 import { Inventory } from './Inventory';
 import { Cart } from './Cart';
 
-@Table
+@Table({
+  tableName: 'cart_inventory',
+  underscored: true,
+})
 export class CartInventory extends Model<CartInventory> {
   @Field((type) => ID)
   @PrimaryKey

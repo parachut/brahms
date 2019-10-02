@@ -51,13 +51,6 @@ const main = async () => {
 
   const dataloaderContext = createContext(sequelize);
 
-  // Uncomment force: true to reset DB
-  if (process.env.NODE_ENV !== 'production') {
-    sequelize.sync({
-      logging: false,
-    });
-  }
-
   const schema = await buildSchema({
     authChecker: customAuthChecker,
     resolvers: [

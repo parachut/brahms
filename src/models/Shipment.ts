@@ -41,7 +41,10 @@ const easyPost = new EasyPost(process.env.EASYPOST);
 const communicationQueue = createQueue('communication-queue');
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'shipment',
+  underscored: true,
+})
 export class Shipment extends Model<Shipment> {
   @Field((type) => ID)
   @PrimaryKey

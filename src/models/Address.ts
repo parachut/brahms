@@ -26,7 +26,10 @@ import { createQueue } from '../redis';
 const integrationQueue = createQueue('integration-queue');
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'address',
+  underscored: true,
+})
 export class Address extends Model<Address> {
   @Field((type) => ID)
   @PrimaryKey

@@ -29,7 +29,10 @@ import { ShipmentType } from '../enums/shipmentType';
 import { User } from './User';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'request',
+  underscored: true,
+})
 export class Request extends Model<Request> {
   /**
    * ID
@@ -96,8 +99,6 @@ export class Request extends Model<Request> {
       });
 
       const shipments: any[] = [];
-
-      console.log(instance);
 
       if (instance.airbox) {
         const airboxShipment = new Shipment({

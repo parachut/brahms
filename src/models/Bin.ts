@@ -15,7 +15,10 @@ import { Field, ID, ObjectType } from 'type-graphql';
 import { Inventory } from './Inventory';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'bin',
+  underscored: true,
+})
 export class Bin extends Model<Bin> {
   @Field((type) => ID)
   @PrimaryKey

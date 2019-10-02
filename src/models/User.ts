@@ -37,7 +37,10 @@ import { UserVerification } from './UserVerification';
 const integrationQueue = createQueue('integration-queue');
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'user',
+  underscored: true,
+})
 export class User extends Model<User> {
   @Field((type) => ID)
   @PrimaryKey

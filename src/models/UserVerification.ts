@@ -15,7 +15,10 @@ import { Field, ID, ObjectType } from 'type-graphql';
 import { User } from './User';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'user_verification',
+  underscored: true,
+})
 export class UserVerification extends Model<UserVerification> {
   @Field((type) => ID)
   @PrimaryKey

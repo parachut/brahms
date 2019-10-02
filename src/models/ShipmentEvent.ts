@@ -17,7 +17,10 @@ import { ShipmentStatus } from '../enums/shipmentStatus';
 import { Shipment } from './Shipment';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'shipment_event',
+  underscored: true,
+})
 export class ShipmentEvent extends Model<ShipmentEvent> {
   @Field((type) => ID)
   @PrimaryKey

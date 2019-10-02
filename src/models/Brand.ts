@@ -18,7 +18,10 @@ import urlSlug from 'url-slug';
 import { File } from './File';
 
 @ObjectType()
-@Table
+@Table({
+  tableName: 'brand',
+  underscored: true,
+})
 export class Brand extends Model<Brand> {
   @Field((type) => ID)
   @PrimaryKey
