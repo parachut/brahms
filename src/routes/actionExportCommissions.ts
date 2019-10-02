@@ -75,7 +75,10 @@ router.post(
 
       if (secondsInCirculation > 0) {
         const lastShipment = monthShipments[item.shipments.length - 1];
-        if (lastShipment && lastShipment.direction === 'OUTBOUND') {
+        if (
+          lastShipment &&
+          lastShipment.direction === ShipmentDirection.OUTBOUND
+        ) {
           secondsInCirculation =
             secondsInCirculation +
             (endDate.getTime() -
