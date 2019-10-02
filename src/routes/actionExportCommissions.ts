@@ -7,7 +7,7 @@ import tmp from 'tmp';
 import numeral from 'numeral';
 import findLast from 'lodash/findLast';
 import startOfDay from 'date-fns/startOfDay';
-import endOfDay from 'date-fns/startOfDay';
+import endOfDay from 'date-fns/endOfDay';
 
 import { calcDailyCommission } from '../utils/calc';
 import { Inventory } from '../models/Inventory';
@@ -25,6 +25,8 @@ router.post(
 
     const startDate = startOfDay(new Date(attrs['Start date']));
     const endDate = endOfDay(new Date(attrs['End date']));
+
+    console.log(startDate, endDate);
 
     const items = await Inventory.findAll({
       where: ids && ids.length ? { id: { [Op.in]: ids } } : {},
