@@ -77,15 +77,17 @@ router.post(
         }
       }, 0);
 
-      if (secondsInCirculation > 0) {
-        const lastShipment = monthShipments[item.shipments.length - 1];
+      if (
+        secondsInCirculation > 0 ||
+        (secondsInCirculation === 0 && lastOutbound > 0)
+      ) {
+        const lastShipment = monthShipments[monthShipments.length - 1];
         if (
           lastShipment &&
           lastShipment.direction === ShipmentDirection.OUTBOUND
         ) {
           secondsInCirculation =
-            secondsInCirculation +
-            (endDate.getTime() - lastShipment.carrierDeliveredAt.getTime());
+            secondsInCirculation + (endDate.getTime() - lastOutbound);
         }
       }
 
