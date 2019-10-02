@@ -95,6 +95,19 @@ export default class AddressResolver {
     input: AddressCreateInput,
     @Ctx() ctx: IContext,
   ) {
+    if (input.primary) {
+      await Address.update(
+        {
+          primary: false,
+        },
+        {
+          where: {
+            userId: ctx.user.id,
+          },
+        },
+      );
+    }
+
     if (ctx.user) {
       const newAddress = await Address.create({
         ...input,
@@ -160,6 +173,7 @@ export default class AddressResolver {
       }
 
       await address.destroy();
+
       return address;
     }
 
