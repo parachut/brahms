@@ -12,7 +12,7 @@ import endOfDay from 'date-fns/endOfDay';
 import { calcDailyCommission } from '../utils/calc';
 import { Inventory } from '../models/Inventory';
 import { Shipment } from '../models/Shipment';
-import { ShipmentType } from '../enums/ShipmentType';
+import { ShipmentType } from '../enums/shipmentType';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 
 const router = express.Router();
