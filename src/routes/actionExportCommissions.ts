@@ -1,11 +1,15 @@
 import express from 'express';
 import Liana from 'forest-express-sequelize';
 import { Op } from 'sequelize';
+import fs from 'fs';
 import stringify from 'csv-stringify';
+import tmp from 'tmp';
 import numeral from 'numeral';
+import findLast from 'lodash/findLast';
 
 import { calcDailyCommission } from '../utils/calc';
 import { Inventory } from '../models/Inventory';
+import { Shipment } from '../models/Shipment';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 
 const router = express.Router();
@@ -27,24 +31,6 @@ router.post(
         'product',
         {
           association: 'shipments',
-          where: {
-            [Op.or]: [
-              {
-                carrierDeliveredAt: {
-                  [Op.gte]: startDate,
-                  [Op.lte]: endDate,
-                },
-                direction: ShipmentDirection.OUTBOUND,
-              },
-              {
-                carrierReceivedAt: {
-                  [Op.gte]: startDate,
-                  [Op.lte]: endDate,
-                },
-                direction: ShipmentDirection.INBOUND,
-              },
-            ],
-          },
           order: [['carrierReceivedAt', 'ASC']],
         },
       ],
@@ -52,7 +38,23 @@ router.post(
 
     const report = items.map((item) => {
       let lastOutbound: number = 0;
-      let secondsInCirculation = item.shipments.reduce((r: number, i: any) => {
+
+      const monthShipments = item.shipments.filter((shipment) => {
+        return (
+          (new Date(shipment.carrierDeliveredAt).getTime() >
+            startDate.getTime() &&
+            new Date(shipment.carrierDeliveredAt).getTime() <
+              endDate.getTime() &&
+            shipment.direction === ShipmentDirection.OUTBOUND) ||
+          (new Date(shipment.carrierReceivedAt).getTime() >
+            startDate.getTime() &&
+            new Date(shipment.carrierReceivedAt).getTime() <
+              endDate.getTime() &&
+            shipment.direction === ShipmentDirection.INBOUND)
+        );
+      });
+
+      let secondsInCirculation = monthShipments.reduce((r: number, i: any) => {
         if (lastOutbound > 0 && i.direction === 'INBOUND') {
           return r + (new Date(i.carrierReceivedAt).getTime() - lastOutbound);
         } else if (i.direction === 'OUTBOUND') {
@@ -75,11 +77,32 @@ router.post(
         }
       }
 
-      if (
-        (item.status === 'WITHMEMBER' || item.status === 'RETURNING') &&
-        !item.shipments.length
-      ) {
-        secondsInCirculation = endDate.getTime() - startDate.getTime();
+      if (secondsInCirculation === 0) {
+        const prevousToShipment = findLast(
+          item.shipments,
+          (shipment) =>
+            new Date(shipment.carrierDeliveredAt).getTime() <
+              startDate.getTime() && shipment.direction === 'OUTBOUND',
+        );
+
+        if (prevousToShipment) {
+          const nextToShipment = item.shipments.find(
+            (shipment) =>
+              shipment.userId === prevousToShipment.userId &&
+              shipment.direction === 'INBOUND' &&
+              new Date(shipment.carrierReceivedAt).getTime() >
+                new Date(prevousToShipment.carrierDeliveredAt).getTime(),
+          );
+
+          if (
+            (nextToShipment &&
+              new Date(nextToShipment.carrierReceivedAt).getTime() >
+                endDate.getTime()) ||
+            !nextToShipment
+          ) {
+            secondsInCirculation = endDate.getTime() - startDate.getTime();
+          }
+        }
       }
 
       const daysInCirculation =
@@ -124,12 +147,30 @@ router.post(
           return res.status(500).send(err);
         }
 
-        res.setHeader(
-          'Content-disposition',
-          `attachment; filename=order-history.csv`,
-        );
-        res.set('Content-Type', 'text/csv');
-        res.status(200).send(data);
+        tmp.file(function _tempFileCreated(err, path, fd, cleanupCallback) {
+          if (err) throw err;
+
+          fs.writeFileSync(path, data);
+
+          let options = {
+            dotfiles: 'deny',
+            headers: {
+              'Access-Control-Expose-Headers': 'Content-Disposition',
+              'Content-Disposition': 'attachment; filename="commissions.csv"',
+            },
+          };
+
+          res.sendFile(path, options, (error) => {
+            if (error) {
+              throw error;
+            }
+          });
+
+          // If we don't need the file anymore we could manually call the cleanupCallback
+          // But that is not necessary if we didn't pass the keep option because the library
+          // will clean after itself.
+          cleanupCallback();
+        });
       },
     );
   },
