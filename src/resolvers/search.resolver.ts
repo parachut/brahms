@@ -63,7 +63,7 @@ export default class SearchResolver {
       const searchIds = await ctx.sequelize.query(
         `
           SELECT id
-          FROM "Products"
+          FROM products
           WHERE _search @@ to_tsquery('english', :query);
         `,
         {

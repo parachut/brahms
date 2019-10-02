@@ -78,7 +78,7 @@ export default class ProductResolver {
         searchIds = await ctx.sequelize.query(
           `
             SELECT id
-            FROM "Products"
+            FROM products
             WHERE _search @@ plainto_tsquery('english', :query);
           `,
           {
