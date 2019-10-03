@@ -16,6 +16,12 @@ export class RegisterInput {
   @Length(10)
   public phone!: string;
 
+  @Field({ nullable: true })
+  public desiredPlan?: string;
+
+  @Field({ nullable: true })
+  public selfDescription?: [string];
+
   @Field((type) => MarketingSourceInput, { nullable: true })
   public marketingSource?: MarketingSourceInput;
 }

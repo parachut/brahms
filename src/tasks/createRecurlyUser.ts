@@ -19,7 +19,6 @@ async function createRecurlyUser(job) {
         email: user.email,
       });
 
-      await user.save();
       const integration = await UserIntegration.create({
         type: 'RECURLY',
         value: customer.id,
