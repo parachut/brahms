@@ -23,7 +23,6 @@ async function createActiveCampaignContact(job, cb) {
       lastName: user.parsedName.last,
       email: user.email,
       phone: user.phone,
-      tags: 'access',
     };
 
     contact.sync(payload, async (err, res) => {
@@ -45,6 +44,19 @@ async function createActiveCampaignContact(job, cb) {
               list: 1,
               contact: res._id,
               status: 1,
+            },
+          })
+          .set('Api-Token', ACTIVE_CAMPAIGN_KEY)
+          .set('accept', 'application/json'),
+      );
+
+      [err] = await to(
+        request
+          .post('https://youraccountname.api-us1.com/api/3/contactTags')
+          .send({
+            contactTag: {
+              contact: res._id,
+              tag: 3,
             },
           })
           .set('Api-Token', ACTIVE_CAMPAIGN_KEY)
