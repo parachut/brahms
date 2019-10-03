@@ -35,9 +35,6 @@ router.post(
         'product',
         {
           association: 'shipments',
-          where: {
-            type: ShipmentType.ACCESS,
-          },
           order: [['carrierReceivedAt', 'ASC']],
         },
       ],
@@ -47,18 +44,20 @@ router.post(
       let lastOutbound: number = 0;
 
       const monthShipments = sortBy(
-        item.shipments.filter((shipment) => {
-          return (
-            (shipment.carrierDeliveredAt &&
-              (shipment.carrierDeliveredAt.getTime() > startDate.getTime() &&
-                shipment.carrierDeliveredAt.getTime() < endDate.getTime() &&
-                shipment.direction === ShipmentDirection.OUTBOUND)) ||
-            (shipment.carrierReceivedAt &&
-              (shipment.carrierReceivedAt.getTime() > startDate.getTime() &&
-                shipment.carrierReceivedAt.getTime() < endDate.getTime() &&
-                shipment.direction === ShipmentDirection.INBOUND))
-          );
-        }),
+        item.shipments
+          .filter((shipment) => shipment.type === ShipmentType.ACCESS)
+          .filter((shipment) => {
+            return (
+              (shipment.carrierDeliveredAt &&
+                (shipment.carrierDeliveredAt.getTime() > startDate.getTime() &&
+                  shipment.carrierDeliveredAt.getTime() < endDate.getTime() &&
+                  shipment.direction === ShipmentDirection.OUTBOUND)) ||
+              (shipment.carrierReceivedAt &&
+                (shipment.carrierReceivedAt.getTime() > startDate.getTime() &&
+                  shipment.carrierReceivedAt.getTime() < endDate.getTime() &&
+                  shipment.direction === ShipmentDirection.INBOUND))
+            );
+          }),
         [
           function(o) {
             return o.carrierReceivedAt.getTime();
@@ -93,7 +92,9 @@ router.post(
 
       if (secondsInCirculation === 0) {
         const prevousToShipment: Shipment = findLast(
-          item.shipments,
+          item.shipments.filter(
+            (shipment) => shipment.type === ShipmentType.ACCESS,
+          ),
           (shipment) =>
             shipment.carrierDeliveredAt &&
             shipment.carrierDeliveredAt.getTime() < startDate.getTime() &&
@@ -101,14 +102,16 @@ router.post(
         );
 
         if (prevousToShipment) {
-          const nextToShipment: Shipment = item.shipments.find(
-            (shipment) =>
-              shipment.userId === prevousToShipment.userId &&
-              shipment.direction === ShipmentDirection.INBOUND &&
-              (shipment.carrierReceivedAt &&
-                shipment.carrierReceivedAt.getTime() >
-                  prevousToShipment.carrierDeliveredAt.getTime()),
-          );
+          const nextToShipment: Shipment = item.shipments
+            .filter((shipment) => shipment.type === ShipmentType.ACCESS)
+            .find(
+              (shipment) =>
+                shipment.userId === prevousToShipment.userId &&
+                shipment.direction === ShipmentDirection.INBOUND &&
+                (shipment.carrierReceivedAt &&
+                  shipment.carrierReceivedAt.getTime() >
+                    prevousToShipment.carrierDeliveredAt.getTime()),
+            );
 
           if (
             (nextToShipment &&
