@@ -1,41 +1,58 @@
-import ActiveCampaign from 'activecampaign';
+import AC from 'activecampaign-rest';
+import to from 'await-to-js';
+import * as request from 'superagent';
 
 import { User } from '../models/User';
 import { UserIntegration } from '../models/UserIntegration';
 
 const { ACTIVE_CAMPAIGN_URL, ACTIVE_CAMPAIGN_KEY } = process.env;
 
-const ac = new ActiveCampaign(ACTIVE_CAMPAIGN_URL, ACTIVE_CAMPAIGN_KEY);
+let contact = new AC.Contact({
+  url: ACTIVE_CAMPAIGN_URL,
+  token: ACTIVE_CAMPAIGN_KEY,
+});
 
-async function createActiveCampaignContact(job) {
+async function createActiveCampaignContact(job, cb) {
   const { userId } = job.data;
 
   if (userId) {
     const user = await User.findByPk(userId);
 
-    const newAC = await ac.api('contact/add', {
-      first_name: user.parsedName.first,
-      last_name: user.parsedName.last,
+    let payload = {
+      firstName: user.parsedName.first,
+      lastName: user.parsedName.last,
       email: user.email,
       phone: user.phone,
       tags: 'access',
-    });
+    };
 
-    if (newAC.id) {
-      await ac.api('contact/edit?email=' + user.email, {
-        id: newAC.id,
-        'p[1]': 1,
-        'status[1]': 1,
+    contact.sync(payload, async (err, res) => {
+      if (err) {
+        console.log(err);
+      }
+
+      await UserIntegration.create({
+        type: 'FRONT',
+        value: res._id,
+        userId: user.id,
       });
-    }
 
-    await UserIntegration.create({
-      type: 'FRONT',
-      value: newAC.id,
-      userId: user.id,
+      [err] = await to(
+        request
+          .post('https://youraccountname.api-us1.com/api/3/contactLists')
+          .send({
+            contactList: {
+              list: 1,
+              contact: res._id,
+              status: 1,
+            },
+          })
+          .set('Api-Token', ACTIVE_CAMPAIGN_KEY)
+          .set('accept', 'application/json'),
+      );
+
+      cb(`User active campaign account created: ${user.id} ${res.id}`);
     });
-
-    return `User active campaign account created: ${userId} ${newAC.id}`;
   }
 }
 

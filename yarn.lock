@@ -673,6 +673,11 @@ acorn@^7.0.0:
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-7.0.0.tgz#26b8d1cd9a9b700350b71c0905546f64d1284e7a"
   integrity sha512-PaF/MduxijYYt7unVGRuds1vBC9bFxbNf+VWqhOClfdgy7RlVkQqt610ig1/yxTgsDIfW1cWDel5EBbOy3jdtQ==
 
+activecampaign-rest@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/activecampaign-rest/-/activecampaign-rest-0.1.0.tgz#4020467310c15d4d8d9dcf8ba1baeb1ab2ac37c2"
+  integrity sha512-pGopdBCMCc/JPD67ajWbeXktFuKknLyDsq0LVhV8Hc/khNXqgLMW4WgBqrRil3KAuJlobOSFgCUT3OMFSCekPA==
+
 activecampaign@^1.2.5:
   version "1.2.5"
   resolved "https://registry.yarnpkg.com/activecampaign/-/activecampaign-1.2.5.tgz#1e9e2f4d109ef132167edb039273670f0f28322b"
