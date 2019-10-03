@@ -10,6 +10,7 @@ import createAuthyUser from './tasks/createAuthyUser';
 import createEasyPostAddress from './tasks/createEasyPostAddress';
 import createFrontContact from './tasks/createFrontContact';
 import createRecurlyUser from './tasks/createRecurlyUser';
+import createActiveCampaignContent from './tasks/createActiveCampaignContact';
 import sendDeliveryEmail from './tasks/sendDeliveryEmail';
 import sendOutboundAccessConfirmationEmail from './tasks/sendOutboundAccessConfirmationEmail';
 import sendOutboundAccessShipmentEmail from './tasks/sendOutboundAccessShipmentEmail';
@@ -63,6 +64,11 @@ function start() {
       'create-recurly-user',
       maxJobsPerWorker,
       createRecurlyUser,
+    );
+    integrationQueue.process(
+      'create-active-campaign-contact',
+      maxJobsPerWorker,
+      createActiveCampaignContent,
     );
     integrationQueue.process('check-clearbit', maxJobsPerWorker, checkClearbit);
     integrationQueue.process(

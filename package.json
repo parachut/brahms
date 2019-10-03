@@ -4,6 +4,7 @@
     "@elastic/app-search-node": "^7.3.0",
     "@now/node": "^0.11.1",
     "@slack/client": "^5.0.2",
+    "activecampaign": "^1.2.5",
     "algoliasearch": "^3.34.0",
     "analytics-node": "^3.4.0-beta.1",
     "another-name-parser": "^0.0.7",
