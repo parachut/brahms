@@ -19,7 +19,7 @@ export class RegisterInput {
   @Field({ nullable: true })
   public desiredPlan?: string;
 
-  @Field({ nullable: true })
+  @Field((type) => [String], { nullable: true })
   public selfDescription?: [string];
 
   @Field((type) => MarketingSourceInput, { nullable: true })
