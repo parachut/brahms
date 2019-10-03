@@ -60,79 +60,75 @@ export default class ProductResolver {
     @Ctx() ctx: IContext,
     @Info() info: any,
   ) {
-    if (ctx.user) {
-      let orderBy: any = [['stock', 'DESC']];
+    let orderBy: any = [['stock', 'DESC']];
 
-      if (sort) {
-        const splitSort = sort.split('_');
-        const direction = splitSort.pop().toLowerCase();
-        const column = camelCase(splitSort.join('_'));
+    if (sort) {
+      const splitSort = sort.split('_');
+      const direction = splitSort.pop().toLowerCase();
+      const column = camelCase(splitSort.join('_'));
 
-        orderBy = [[column, direction]];
-      }
+      orderBy = [[column, direction]];
+    }
 
-      let searchIds: any = [];
+    let searchIds: any = [];
 
-      if (filter && filter.search) {
-        searchIds = await ctx.sequelize.query(
-          `
+    if (filter && filter.search) {
+      searchIds = await ctx.sequelize.query(
+        `
             SELECT id
             FROM products
             WHERE _search @@ plainto_tsquery('english', :query);
           `,
-          {
-            model: Product,
-            replacements: {
-              query:
-                filter.search
-                  .trim()
-                  .split(' ')
-                  .join('&') + ':*',
-            },
-          },
-        );
-      }
-
-      const connection = createConnectionResolver({
-        target: Product,
-        where: (key, value) => {
-          if (value) {
-            if (key === 'where') {
-              const where: any = {};
-              if (value.inStock) {
-                where.stock = { [Op.gt]: 0 };
-              }
-
-              if (value.search) {
-                where.id = {
-                  [Op.in]: map(searchIds, 'id'),
-                };
-              }
-
-              return where;
-            }
-          }
-        },
-      });
-
-      const result = await connection.resolveConnection(
-        null,
         {
-          first,
-          after,
-          last,
-          before,
-          where: filter,
-          orderBy,
+          model: Product,
+          replacements: {
+            query:
+              filter.search
+                .trim()
+                .split(' ')
+                .join('&') + ':*',
+          },
         },
-        ctx,
-        info,
       );
-
-      return result;
     }
 
-    throw new Error('Unauthorised.');
+    const connection = createConnectionResolver({
+      target: Product,
+      where: (key, value) => {
+        if (value) {
+          if (key === 'where') {
+            const where: any = {};
+            if (value.inStock) {
+              where.stock = { [Op.gt]: 0 };
+            }
+
+            if (value.search) {
+              where.id = {
+                [Op.in]: map(searchIds, 'id'),
+              };
+            }
+
+            return where;
+          }
+        }
+      },
+    });
+
+    const result = await connection.resolveConnection(
+      null,
+      {
+        first,
+        after,
+        last,
+        before,
+        where: filter,
+        orderBy,
+      },
+      ctx,
+      info,
+    );
+
+    return result;
   }
 
   @FieldResolver((type) => Brand)
