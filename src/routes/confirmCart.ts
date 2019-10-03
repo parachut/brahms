@@ -33,17 +33,16 @@ router.post(
         cartId: id,
       });
 
-      const [cart, shipment] = await Promise.all([
-        Cart.findByPk(id, {
-          include: ['inventory'],
-        }),
-        Shipment.create({
-          direction: ShipmentDirection.OUTBOUND,
-          type: ShipmentType.ACCESS,
-          service: '2ndDayAir',
-          cartId: id,
-        }),
-      ]);
+      const cart = await Cart.findByPk(id, {
+        include: ['inventory'],
+      });
+      const shipment = await Shipment.create({
+        direction: ShipmentDirection.OUTBOUND,
+        expedited: cart.service !== 'Ground',
+        type: ShipmentType.ACCESS,
+        service: '2ndDayAir',
+        cartId: id,
+      });
 
       await shipment.$set('inventory', cart.inventory.map((item) => item.id));
     }
