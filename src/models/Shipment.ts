@@ -363,10 +363,16 @@ export class Shipment extends Model<Shipment> {
               },
             ]);
             instance.service = costSort[0].service;
+            await easyPostShipment.buy(costSort[0].service);
+          } else {
+            throw new Error('No rates available');
           }
-          await easyPostShipment.buy(instance.service);
         } else {
-          throw new Error('No rates available');
+          await easyPostShipment.buy(
+            easyPostShipment.rates.find(
+              (rate) => rate.service === instance.service,
+            ).id,
+          );
         }
 
         await easyPostShipment.convertLabelFormat('ZPL');

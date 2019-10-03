@@ -48,7 +48,6 @@ export default class ProductResolver {
     throw new Error('Unauthorised.');
   }
 
-  @Authorized([UserRole.MEMBER])
   @Query((returns) => Connection)
   public async products(
     @Arg('first', (type) => Int, { nullable: true }) first: number,
