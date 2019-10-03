@@ -38,7 +38,7 @@ async function createActiveCampaignContact(job, cb) {
 
       [err] = await to(
         request
-          .post('https://youraccountname.api-us1.com/api/3/contactLists')
+          .post('https://parachutco.api-us1.com/api/3/contactLists')
           .send({
             contactList: {
               list: 1,
@@ -52,7 +52,7 @@ async function createActiveCampaignContact(job, cb) {
 
       [err] = await to(
         request
-          .post('https://youraccountname.api-us1.com/api/3/contactTags')
+          .post('https://parachutco.api-us1.com/api/3/contactTags')
           .send({
             contactTag: {
               contact: res._id,
