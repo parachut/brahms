@@ -165,18 +165,18 @@ export default class CheckoutResolver {
               id: recurlyId.value,
             },
             subscriptions: [subscriptionReq],
-            lineItems: [],
+            // lineItems: [],
           };
 
-          if (cart.service !== 'Ground') {
-            purchaseReq.lineItems.push({
-              type: 'charge',
-              currency: 'USD',
-              unitAmount: 50,
-              quantity: 1,
-              description: 'Expedited Shipping',
-            });
-          }
+          // if (cart.service !== 'Ground') {
+          //   purchaseReq.lineItems.push({
+          //     type: 'charge',
+          //     currency: 'USD',
+          //     unitAmount: 50,
+          //     quantity: 1,
+          //     description: 'Expedited Shipping',
+          //   });
+          // }
 
           const stripeSub = user.integrations.find(
             (inte) => inte.type === 'STRIPE_MONTHLYPLAN',
@@ -192,13 +192,13 @@ export default class CheckoutResolver {
             subscriptionReq.trialEndsAt = prorated.nextBillingDate;
 
             if (prorated.amount > 0) {
-              purchaseReq.lineItems.push({
-                type: 'charge',
-                currency: 'USD',
-                unitAmount: prorated.amount,
-                quantity: 1,
-                description: 'Prorated overage',
-              });
+              // purchaseReq.lineItems.push({
+              //   type: 'charge',
+              //   currency: 'USD',
+              //   unitAmount: prorated.amount,
+              //   quantity: 1,
+              //   description: 'Prorated overage',
+              // });
             }
 
             await stripe.subscriptions.del(stripeSub.value);
