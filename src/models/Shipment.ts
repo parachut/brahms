@@ -371,7 +371,7 @@ export class Shipment extends Model<Shipment> {
           await easyPostShipment.buy(
             easyPostShipment.rates.find(
               (rate) => rate.service === instance.service,
-            ).id,
+            ).service,
           );
         }
 
