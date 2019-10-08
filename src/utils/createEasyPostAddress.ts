@@ -14,8 +14,9 @@ export const createEasyPostAddress = async (address) => {
     phone: address.phone,
     name: address.name,
     state: address.state,
-    street1: address.formattedStreet,
+    street1: address.formattedStreet || address.street1,
     zip: address.zip,
+    company: !address.formattedStreet ? 'Parachut Inc' : null,
   });
 
   await easyPostAddress.save();

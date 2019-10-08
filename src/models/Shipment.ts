@@ -333,6 +333,7 @@ export class Shipment extends Model<Shipment> {
         options: {
           delivery_confirmation: 'ADULT_SIGNATURE',
           label_size: '4X6',
+          address_validation_level: 0,
         },
         parcel,
         to_address:
@@ -346,7 +347,7 @@ export class Shipment extends Model<Shipment> {
       try {
         await easyPostShipment.save();
 
-        if (!instance.service) {
+        if (!instance.service || instance.service === 'Ground') {
           const rates = groupBy(easyPostShipment.rates, (o) => {
             return Number(o.delivery_days);
           });
