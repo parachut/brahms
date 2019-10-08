@@ -3,7 +3,7 @@ import PhoneNumber from 'awesome-phonenumber';
 
 export function Phone(region: string = 'US') {
   return createMethodDecorator(async ({ args }, next) => {
-    if (args.input.phone) {
+    if (args.input.phone && !args.input.phone.startsWith('+')) {
       const pn = new PhoneNumber(args.input.phone, region);
 
       if (!pn.isValid()) {
