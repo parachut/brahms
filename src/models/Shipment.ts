@@ -363,7 +363,7 @@ export class Shipment extends Model<Shipment> {
               },
             ]);
             instance.service = costSort[0].service;
-            await easyPostShipment.buy(costSort[0].service);
+            await easyPostShipment.buy(costSort[0]);
           } else {
             throw new Error('No rates available');
           }
@@ -371,7 +371,7 @@ export class Shipment extends Model<Shipment> {
           await easyPostShipment.buy(
             easyPostShipment.rates.find(
               (rate) => rate.service === instance.service,
-            ).service,
+            ),
           );
         }
 
