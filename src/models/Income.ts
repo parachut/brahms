@@ -14,6 +14,7 @@ import {
 import { Field, ID, ObjectType } from 'type-graphql';
 
 import { User } from './User';
+import { Inventory } from './Inventory';
 
 @ObjectType()
 @Table({
@@ -67,6 +68,13 @@ export class Income extends Model<Income> {
   @ForeignKey(() => User)
   @Column(DataType.UUID)
   public memberId!: string;
+
+  @BelongsTo(() => Inventory, 'inventoryId')
+  public inventory!: Inventory;
+
+  @ForeignKey(() => Inventory)
+  @Column(DataType.UUID)
+  public inventoryId!: string;
 
   @CreatedAt
   public createdAt!: Date;

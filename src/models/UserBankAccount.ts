@@ -26,7 +26,6 @@ export class UserBankAccount extends Model<UserBankAccount> {
   @Column(DataType.UUID)
   public id!: string;
 
-  @Field()
   @Column
   public accountId!: string;
 
@@ -43,9 +42,11 @@ export class UserBankAccount extends Model<UserBankAccount> {
   @Column
   public name!: string;
 
-  @Field()
   @Column
   public subtype!: string;
+
+  @Column
+  public plaidUrl!: string;
 
   @BelongsTo(() => User)
   user!: User;

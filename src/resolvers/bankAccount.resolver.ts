@@ -1,9 +1,10 @@
-import camelcaseKeys from 'camelcase-keys';
+import Dwolla from 'dwolla-v2';
 import plaid from 'plaid';
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 
 import { BankAccountCreateInput } from '../classes/bankAccountCreate.input';
 import { UserRole } from '../enums/userRole';
+import { User } from '../models/User';
 import { UserBankAccount } from '../models/UserBankAccount';
 import { UserBankBalance } from '../models/UserBankBalance';
 import { UserIntegration } from '../models/UserIntegration';
@@ -17,6 +18,12 @@ const plaidClient = new plaid.Client(
     ? plaid.environments.development
     : plaid.environments.sandbox,
 );
+
+const dwolla = new Dwolla.Client({
+  key: process.env.DWOLLA_KEY,
+  secret: process.env.DWOLLA_SECRET,
+  environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
+});
 
 @Resolver()
 export default class BankAccountResolver {
@@ -35,7 +42,7 @@ export default class BankAccountResolver {
   }
 
   @Authorized([UserRole.MEMBER])
-  @Mutation(() => Boolean)
+  @Mutation(() => UserBankAccount)
   public async bankAccountCreate(
     @Arg('input', (type) => BankAccountCreateInput)
     { token, accountId }: BankAccountCreateInput,
@@ -43,9 +50,43 @@ export default class BankAccountResolver {
   ) {
     if (ctx.user) {
       try {
+        const appToken = await dwolla.auth.client();
+
         const {
           access_token: accessToken,
         } = await plaidClient.exchangePublicToken(token);
+
+        const user = await User.findByPk(ctx.user.id, {
+          include: ['integrations'],
+        });
+
+        let dwollaIntegration = user.integrations.find(
+          (i) => i.type === 'DWOLLA',
+        );
+
+        if (!dwollaIntegration) {
+          const dwollaCustomerRequest: any = {
+            firstName: user.parsedName.first,
+            lastName: user.parsedName.last,
+            email: user.email,
+            type: 'receive-only',
+            ipAddress: ctx.clientIp,
+          };
+
+          if (user.businessName && user.businessName.length) {
+            dwollaCustomerRequest.businessName = user.businessName;
+          }
+
+          const userUrl = await appToken
+            .post('customers', dwollaCustomerRequest)
+            .then((res) => res.headers.get('location'));
+
+          dwollaIntegration = await UserIntegration.create({
+            type: 'DWOLLA',
+            value: userUrl,
+            userId: ctx.user.id,
+          } as UserIntegration);
+        }
 
         await UserIntegration.create({
           type: 'PLAID',
@@ -54,16 +95,37 @@ export default class BankAccountResolver {
         } as UserIntegration);
 
         const { accounts } = await plaidClient.getBalance(accessToken);
+
+        let userBankAccount = null;
+
         if (accounts) {
           for (const account of accounts) {
-            await UserBankAccount.create({
-              accountId: account.account_id,
-              primary: account.account_id === accountId,
-              name: account.official_name,
-              mask: account.mask,
-              subtype: account.subtype,
-              userId: ctx.user.id,
-            } as UserBankAccount);
+            if (account.account_id === accountId) {
+              const {
+                processor_token: plaidToken,
+              } = await plaidClient.createProcessorToken(
+                accessToken,
+                accountId,
+                'dwolla',
+              );
+
+              const fundingSource = await appToken
+                .post(`${dwollaIntegration.value}/funding-sources`, {
+                  plaidToken,
+                  name: account.name,
+                })
+                .then((res) => res.headers.get('location'));
+
+              userBankAccount = await UserBankAccount.create({
+                accountId: account.account_id,
+                primary: account.account_id === accountId,
+                name: account.official_name,
+                mask: account.mask,
+                subtype: account.subtype,
+                userId: ctx.user.id,
+                plaidUrl: fundingSource,
+              } as UserBankAccount);
+            }
 
             await UserBankBalance.create({
               available: account.balances.available
@@ -79,7 +141,7 @@ export default class BankAccountResolver {
           }
         }
 
-        return true;
+        return userBankAccount;
       } catch (e) {
         console.log(e);
         throw e;

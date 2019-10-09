@@ -7,4 +7,10 @@ export class BankAccountCreateInput {
 
   @Field()
   public token!: string;
+
+  @Field({ nullable: true })
+  public last4?: number;
+
+  @Field({ nullable: true })
+  public dob?: string;
 }

@@ -22,6 +22,7 @@
     "dataloader-sequelize": "^2.0.1",
     "date-fns": "^2.0.1",
     "dotenv": "^8.0.0",
+    "dwolla-v2": "^3.0.3",
     "express": "^4.16.4",
     "express-basic-auth": "^1.2.0",
     "express-json": "^1.0.0",

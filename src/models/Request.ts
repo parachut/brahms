@@ -104,7 +104,6 @@ export class Request extends Model<Request> {
         const airboxShipment = new Shipment({
           addressId: instance.addressId,
           userId: instance.userId,
-          service: 'Ground',
           airbox: true,
           direction: ShipmentDirection.INBOUND,
           type: ShipmentType.EARN,
@@ -120,7 +119,6 @@ export class Request extends Model<Request> {
         return: true,
         direction: ShipmentDirection.INBOUND,
         type: ShipmentType.EARN,
-        service: 'Ground',
         requestId: instance.id,
       });
 
