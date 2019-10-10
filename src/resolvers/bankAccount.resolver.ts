@@ -41,6 +41,7 @@ export default class BankAccountResolver {
           ...where,
           userId: ctx.user.id,
         },
+        order: [['created_at', 'DESC']],
       });
     }
 
@@ -132,6 +133,17 @@ export default class BankAccountResolver {
                 plaidUrl: fundingSource,
               } as UserBankAccount);
             }
+
+            await UserBankBalance.update(
+              {
+                primary: false,
+              },
+              {
+                where: {
+                  userId: ctx.user.id,
+                },
+              },
+            );
 
             await UserBankBalance.create({
               available: account.balances.available

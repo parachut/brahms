@@ -14,6 +14,7 @@ import {
 import { Field, ID, ObjectType } from 'type-graphql';
 
 import { User } from './User';
+import { UserBankAccount } from './UserBankAccount';
 
 @ObjectType()
 @Table({
@@ -38,7 +39,7 @@ export class Deposit extends Model<Deposit> {
 
   @Field({ nullable: true })
   @Column
-  public transferId?: string;
+  public plaidUrl?: string;
 
   @BelongsTo(() => User, 'userId')
   public user!: User;
@@ -47,6 +48,14 @@ export class Deposit extends Model<Deposit> {
   @Column(DataType.UUID)
   public userId!: string;
 
+  @BelongsTo(() => UserBankAccount, 'userId')
+  public bankAccount!: UserBankAccount;
+
+  @ForeignKey(() => UserBankAccount)
+  @Column(DataType.UUID)
+  public userBankAccountId!: string;
+
+  @Field()
   @CreatedAt
   public createdAt!: Date;
 

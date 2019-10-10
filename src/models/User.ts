@@ -29,6 +29,7 @@ import { Inventory } from './Inventory';
 import { Queue } from './Queue';
 import { Shipment } from './Shipment';
 import { UserGeolocation } from './UserGeolocation';
+import { UserBankAccount } from './UserBankAccount';
 import { UserIntegration } from './UserIntegration';
 import { UserMarketingSource } from './UserMarketingSource';
 import { UserSocialHandle } from './UserSocialHandle';
@@ -185,6 +186,9 @@ export class User extends Model<User> {
 
   @HasMany(() => Shipment, 'userId')
   public shipments?: Shipment[];
+
+  @HasMany(() => UserBankAccount, 'userId')
+  public bankAccounts?: UserBankAccount[];
 
   @CreatedAt
   public createdAt!: Date;
