@@ -1710,8 +1710,8 @@
     "paginationType": "page",
     "fields": [{
       "field": "amount",
-      "type": "Boolean",
-      "defaultValue": false,
+      "type": "Number",
+      "defaultValue": 0,
       "enums": null,
       "integration": null,
       "isFilterable": true,
@@ -4521,7 +4521,7 @@
       "inverseOf": null,
       "validations": []
     }, {
-      "field": "deposit",
+      "field": "deposits",
       "type": ["Number"],
       "defaultValue": null,
       "enums": null,

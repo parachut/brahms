@@ -12,11 +12,14 @@ import {
 
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { Inventory } from '../models/Inventory';
+import { Income } from '../models/Income';
+import { Deposit } from '../models/Deposit';
 import { User } from '../models/User';
 import { UserVerification } from '../models/UserVerification';
 import { UserRole } from '../enums/userRole';
 import { IContext } from '../utils/context.interface';
 import { UserUpdateInput } from '../classes/userUpdate.input';
+import { Funds } from '../classes/funds';
 
 @Resolver(User)
 export default class UserResolver {
@@ -54,6 +57,21 @@ export default class UserResolver {
   @FieldResolver((type) => [Inventory])
   async inventory(@Root() user: User): Promise<Inventory[]> {
     return ((await user.$get<Inventory>('inventory')) as Inventory[])!;
+  }
+
+  @FieldResolver((type) => Funds)
+  async funds(@Root() user: User): Promise<Funds> {
+    const income = ((await user.$get<Income>('incomes')) as Income[])!;
+    const deposits = ((await user.$get<Deposit>('deposits')) as Deposit[])!;
+
+    const totalIncome = income.reduce((r, i) => r + i.commission, 0);
+    const totalDeposited = deposits.reduce((r, i) => r + i.amount, 0);
+
+    return {
+      available: totalIncome - totalDeposited,
+      totalIncome,
+      totalDeposited,
+    };
   }
 
   @FieldResolver((type) => Boolean)

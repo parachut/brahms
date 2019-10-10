@@ -149,7 +149,7 @@ export class User extends Model<User> {
   public addresses!: Address[];
 
   @HasMany(() => Deposit, 'userId')
-  public deposit!: Deposit[];
+  public deposits!: Deposit[];
 
   @HasMany(() => Income, 'userId')
   public incomes!: Income[];

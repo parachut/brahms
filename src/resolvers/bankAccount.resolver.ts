@@ -3,6 +3,7 @@ import plaid from 'plaid';
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 
 import { BankAccountCreateInput } from '../classes/bankAccountCreate.input';
+import { BankAccountWhereInput } from '../classes/bankAccountWhere.input';
 import { UserRole } from '../enums/userRole';
 import { User } from '../models/User';
 import { UserBankAccount } from '../models/UserBankAccount';
@@ -29,10 +30,15 @@ const dwolla = new Dwolla.Client({
 export default class BankAccountResolver {
   @Authorized([UserRole.MEMBER])
   @Query((returns) => [UserBankAccount])
-  public async bankAccounts(@Ctx() ctx: IContext) {
+  public async bankAccounts(
+    @Arg('where', (type) => BankAccountWhereInput)
+    where: BankAccountWhereInput,
+    @Ctx() ctx: IContext,
+  ) {
     if (ctx.user) {
       return UserBankAccount.findAll({
         where: {
+          ...where,
           userId: ctx.user.id,
         },
       });

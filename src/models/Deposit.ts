@@ -28,9 +28,9 @@ export class Deposit extends Model<Deposit> {
   public id!: string;
 
   @Field()
-  @Default(false)
+  @Default(0)
   @Column
-  public amount!: boolean;
+  public amount!: number;
 
   @Field({ nullable: true })
   @Column
