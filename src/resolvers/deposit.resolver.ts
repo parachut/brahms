@@ -1,7 +1,7 @@
 import Dwolla from 'dwolla-v2';
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 
-import { DepositCreateInput } from '../classes/DepositCreate.input';
+import { DepositCreateInput } from '../classes/depositCreate.input';
 import { UserRole } from '../enums/userRole';
 import { Deposit } from '../models/Deposit';
 import { User } from '../models/User';
