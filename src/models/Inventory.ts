@@ -25,6 +25,7 @@ import { Bin } from './Bin';
 import { Cart } from './Cart';
 import { CartInventory } from './CartInventory';
 import { Product } from './Product';
+import { Income } from './Income';
 import { Shipment } from './Shipment';
 import { ShipmentInspection } from './ShipmentInspection';
 import { ShipmentInventory } from './ShipmentInventory';
@@ -146,9 +147,14 @@ export class Inventory extends Model<Inventory> {
   @HasMany(() => ShipmentInspection, 'inventoryId')
   public inspections?: ShipmentInspection[];
 
+  @HasMany(() => Income, 'inventoryId')
+  public incomes?: Income[];
+
+  @Field(() => Date)
   @CreatedAt
   public createdAt!: Date;
 
+  @Field(() => Date)
   @UpdatedAt
   public updatedAt!: Date;
 

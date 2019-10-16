@@ -1,89 +1,110 @@
-import { updateProductStock } from './utils/updateProductStock';
+import { calcDailyCommission, calcDailyRate } from './utils/calc';
+import { differenceInCalendarDays, addDays } from 'date-fns';
+import last from 'lodash/last';
+import sortBy from 'lodash/sortBy';
 import { Op } from 'sequelize';
 
 import { Inventory } from './models/Inventory';
-import { InventoryStatus } from './enums/inventoryStatus';
-import { Category } from './models/Category';
-import { Bin } from './models/Bin';
+import { Income } from './models/Income';
+import { Shipment } from './models/Shipment';
+import { ShipmentDirection } from './enums/shipmentDirection';
+import { ShipmentType } from './enums/shipmentType';
 
 export const migrator = async (req, res) => {
   const inventory = await Inventory.findAll({
-    where: { status: InventoryStatus.INWAREHOUSE },
-    order: [['product', 'demand', 'DESC']],
+    where: {
+      userId: { [Op.ne]: '367c7df6-3f36-4df6-abf3-5ea7c2418878' },
+    },
     include: [
       {
+        association: 'shipments',
+        include: ['user'],
+        order: [['carrierReceivedAt', 'ASC']],
+      },
+      {
         association: 'product',
-        include: ['category'],
       },
     ],
   });
 
-  const bins = await Bin.findAll({
-    where: { row: { [Op.gt]: 1 } },
-    order: [['location', 'DESC'], ['row', 'DESC'], ['column', 'ASC']],
-  });
-
-  const categories = await Category.findAll({});
-
-  function findBreadCrumbs(cat: Category) {
-    const _categories = [cat];
-
-    const getParent = async (child: Category) => {
-      if (child.parentId) {
-        const parent = categories.find((cate) => cate.id === child.parentId);
-
-        if (parent) {
-          _categories.push(parent);
-
-          if (parent.parentId) {
-            getParent(parent);
-          }
-        }
-      }
-    };
-
-    getParent(cat);
-
-    return _categories;
-  }
-
-  const binsFilled: any = {};
-
   for (const item of inventory) {
-    const productBreadcrumbs = item.product.category
-      ? findBreadCrumbs(item.product.category).reverse()
-      : null;
+    const groups: any[] = [];
 
-    let bin = bins[0];
+    let shipments = item.shipments
+      .filter((ship) => ship.type === ShipmentType.ACCESS)
+      .filter(
+        (ship) =>
+          (ship.direction === ShipmentDirection.OUTBOUND &&
+            ship.carrierDeliveredAt) ||
+          (ship.direction === ShipmentDirection.INBOUND &&
+            ship.carrierReceivedAt),
+      );
 
-    if (binsFilled[bin.id]) {
-      bin = bins[1];
-    }
+    shipments = sortBy(shipments, (ship) =>
+      ship.carrierReceivedAt
+        ? ship.carrierReceivedAt.getTime()
+        : ship.carrierDeliveredAt.getTime(),
+    );
 
-    item.binId = bin.id;
-    await item.save();
+    console.log(
+      shipments.map((ship) => ({
+        id: ship.id,
+        direction: ship.direction,
+        carrierReceivedAt: ship.carrierReceivedAt,
+      })),
+    );
 
-    console.log(item.id, bin.location, bin.row, bin.column);
+    shipments
+      .filter((ship) => ship.type === ShipmentType.ACCESS)
+      .forEach((shipment, i) => {
+        if (
+          shipment.direction === ShipmentDirection.OUTBOUND &&
+          shipment.carrierDeliveredAt
+        ) {
+          const access: any = {
+            out: shipment.carrierDeliveredAt,
+            in: null,
+            shipment,
+          };
 
-    if (
-      !productBreadcrumbs ||
-      !productBreadcrumbs.find((i) => i.name.search('Lenses') !== -1)
-    ) {
-      bins.splice(bins.findIndex((b) => b.id === bin.id), 1);
-    } else {
-      if (binsFilled[bin.id]) {
-        binsFilled[bin.id]++;
-
-        if (binsFilled[bin.id] > 2) {
-          bins.splice(bins.findIndex((b) => b.id === bin.id), 1);
+          groups.push(access);
+        } else if (
+          shipment.direction === ShipmentDirection.INBOUND &&
+          shipment.carrierReceivedAt
+        ) {
+          console.log(groups, item.id);
+          last(groups).in = shipment.carrierReceivedAt;
         }
-      } else {
-        binsFilled[bin.id] = 1;
+      });
+
+    for (const access of groups) {
+      access.days = differenceInCalendarDays(
+        access.in ? access.in : new Date(),
+        access.out,
+      );
+
+      console.log(access.days, access.in, access.out);
+
+      console.log(access.shipment.id);
+
+      const mapped = [];
+
+      for (let i = 0; i < access.days; i++) {
+        mapped.push({
+          planId: access.shipment.user.planId,
+          commission: calcDailyCommission(item.product.points),
+          membership: !!access.shipment.user.planId,
+          dailyRate: calcDailyRate(item.product.points),
+          memberId: access.shipment.user.id,
+          userId: item.userId,
+          inventoryId: item.id,
+          createdAt: addDays(access.out, i),
+        });
       }
+
+      Income.bulkCreate(mapped);
     }
   }
 
-  console.log(inventory.length);
-
-  res.send('ok');
+  res.send(200);
 };

@@ -11,16 +11,19 @@ import {
   Resolver,
   Root,
 } from 'type-graphql';
+import sortBy from 'lodash/sortBy';
 
 import { InventoryCreateInput } from '../classes/inventoryCreate.input';
 import { InventoryHistory } from '../classes/inventoryHistory';
 import { InventoryUpdateInput } from '../classes/inventoryUpdate.input';
 import { InventoryWhereInput } from '../classes/inventoryWhere.input';
 import { InventoryWhereUniqueInput } from '../classes/inventoryWhereUnique.input';
+import { InventoryTotalIncome } from '../classes/inventoryTotalIncome';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentType } from '../enums/shipmentType';
 import { UserRole } from '../enums/userRole';
 import { Cart } from '../models/Cart';
+import { Income } from '../models/Income';
 import { Inventory } from '../models/Inventory';
 import { Product } from '../models/Product';
 import { Shipment } from '../models/Shipment';
@@ -33,11 +36,11 @@ export default class InventoryResolver {
   @Query((returns) => [Inventory])
   public async inventory(
     @Arg('where', (type) => InventoryWhereInput, { nullable: true })
-    where: InventoryWhereInput,
+    where: InventoryWhereInput = {},
     @Ctx() ctx: IContext,
   ) {
     if (ctx.user) {
-      if (where.status) {
+      if (where && where.status) {
         where.status = { [Op.in]: where.status } as any;
       }
 
@@ -229,7 +232,29 @@ export default class InventoryResolver {
     }
   }
 
-  @FieldResolver((type) => Shipment)
+  @FieldResolver((type) => InventoryTotalIncome, { nullable: true })
+  async totalIncome(
+    @Root() inventory: Inventory,
+    @Ctx() ctx: IContext,
+  ): Promise<InventoryTotalIncome> | null {
+    try {
+      const incomes = (await inventory.$get<Income>('incomes')) as Income[];
+
+      if (incomes.length) {
+        return {
+          days: incomes.length,
+          total: incomes.reduce((r, i) => r + (i.commission || 0), 0),
+        };
+      }
+    } catch (e) {}
+
+    return {
+      total: 0,
+      days: 0,
+    };
+  }
+
+  @FieldResolver((type) => [InventoryHistory])
   async history(
     @Root() inventory: Inventory,
     @Ctx() ctx: IContext,
@@ -237,33 +262,42 @@ export default class InventoryResolver {
     const groups: InventoryHistory[] = [];
 
     if (!inventory.shipments) {
-      await inventory.$get('shipments', {
-        where: {
-          type: ShipmentType.ACCESS,
-        },
-      });
+      inventory.shipments = (await inventory.$get<Shipment>('shipments', {
+        order: [['carrierReceivedAt', 'ASC']],
+      })) as Shipment[];
     }
 
     if (!inventory.product) {
-      await inventory.$get('shipments', {
-        where: {
-          type: ShipmentType.ACCESS,
-        },
-      });
+      inventory.product = (await inventory.$get<Product>('product')) as Product;
     }
 
-    inventory.shipments.forEach((shipment, i) => {
-      if (shipment.direction === ShipmentDirection.OUTBOUND) {
+    let shipments = inventory.shipments
+      .filter((ship) => ship.type === ShipmentType.ACCESS)
+      .filter(
+        (ship) =>
+          (ship.direction === ShipmentDirection.OUTBOUND &&
+            ship.carrierDeliveredAt) ||
+          (ship.direction === ShipmentDirection.INBOUND &&
+            ship.carrierReceivedAt),
+      );
+
+    shipments = sortBy(shipments, (ship) =>
+      ship.carrierReceivedAt
+        ? ship.carrierReceivedAt.getTime()
+        : ship.carrierDeliveredAt.getTime(),
+    );
+
+    shipments.forEach((shipment, i) => {
+      if (
+        shipment.direction === ShipmentDirection.OUTBOUND &&
+        shipment.carrierDeliveredAt
+      ) {
         const access: InventoryHistory = {
           out: shipment.carrierDeliveredAt,
           in: null,
           amount: 0,
           days: 0,
         };
-
-        if (i + 1 === inventory.shipments.length) {
-          access.in = new Date();
-        }
 
         groups.push(access);
       } else {
@@ -272,9 +306,13 @@ export default class InventoryResolver {
 
       const final = last(groups);
 
-      if (final.in) {
-        final.days = differenceInCalendarDays(final.in, final.out);
-        final.amount = calcDailyCommission(inventory.product.points);
+      if (final.in || i === inventory.shipments.length - 1) {
+        final.days = differenceInCalendarDays(
+          final.in || new Date(),
+          final.out,
+        );
+        final.amount =
+          calcDailyCommission(inventory.product.points) * final.days;
       }
     });
 

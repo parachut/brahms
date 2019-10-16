@@ -51,14 +51,11 @@ export const formatAlgoliaProduct = async (instance) => {
         'slug',
         'points',
       ]),
-      brand: product.brand.name,
+      brand: product.brand ? product.brand.name : null,
       categories: product.category
-        ? findBreadCrumbs(product.category)
-            .reverse()
-            .reduce((r, c, i) => {
-              r[`lvl${i}`] = c.name;
-              return r;
-            }, {})
+        ? {
+          lvl0: product.category.name
+        }
         : {},
     };
   }

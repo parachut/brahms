@@ -40,7 +40,7 @@ const main = async () => {
 
   /** const token = jsonwebtoken.sign(
     {
-      id: '367c7df6-3f36-4df6-abf3-5ea7c2418878',
+      id: '0f0025b3-f766-4f63-a23f-59e916f73eda',
       roles: ['MEMBER'],
     },
     fs.readFileSync('./certs/private.key', 'utf8'),
