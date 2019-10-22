@@ -38,16 +38,20 @@ const main = async () => {
     },
   });
 
-  /** const token = jsonwebtoken.sign(
+  /**
+  const token = jsonwebtoken.sign(
     {
-      id: '0f0025b3-f766-4f63-a23f-59e916f73eda',
+      id: '760e585b-ae7f-4146-81aa-e783d0b9a218',
       roles: ['MEMBER'],
     },
     fs.readFileSync('./certs/private.key', 'utf8'),
     signOptions,
   );
 
-  console.log(token); */
+    console.log(token);
+
+
+   */
 
   const dataloaderContext = createContext(sequelize);
 

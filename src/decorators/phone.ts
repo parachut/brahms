@@ -11,6 +11,10 @@ export function Phone(region: string = 'US') {
       }
 
       args.input.phone = pn.getNumber();
+
+      if (args.input.phone) {
+        args.input.phone = args.input.phone.trim();
+      }
     }
 
     return next();
