@@ -40,7 +40,6 @@ router.post(
         direction: ShipmentDirection.OUTBOUND,
         expedited: cart.service !== 'Ground',
         type: ShipmentType.ACCESS,
-        service: '2ndDayAir',
         cartId: id,
       });
 
