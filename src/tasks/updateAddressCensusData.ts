@@ -41,6 +41,11 @@ async function updateAddressCensusData(job) {
       coordinates: [result.location.lat, result.location.lng],
     };
 
+    if (result.address_components.number) {
+      address.formattedStreet =
+        result.address_components.number + ' ' + address.formattedStreet;
+    }
+
     if (address.secondaryUnit && address.secondaryNumber) {
       address.formattedStreet += ` ${address.secondaryUnit} ${address.secondaryNumber}`;
       const addSecondary = address.formattedAddress.split(', ');
