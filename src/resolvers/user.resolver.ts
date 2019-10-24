@@ -45,10 +45,11 @@ export default class UserResolver {
 
   @FieldResolver((type) => [Inventory])
   async currentInventory(@Root() user: User): Promise<Inventory[]> {
-    return ((await user.$get<Inventory>(
-      'currentInventory',
-      {},
-    )) as Inventory[])!;
+    return ((await user.$get<Inventory>('currentInventory', {
+      where: {
+        status: { [Op.ne]: 'INSPECTING' },
+      },
+    })) as Inventory[])!;
   }
 
   @FieldResolver((type) => [Inventory])
