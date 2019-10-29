@@ -41,6 +41,11 @@ export class Deposit extends Model<Deposit> {
   @Column
   public plaidUrl?: string;
 
+  @Field({ nullable: true })
+  @Default(false)
+  @Column
+  public legacy!: boolean;
+
   @BelongsTo(() => User, 'userId')
   public user!: User;
 
@@ -49,7 +54,7 @@ export class Deposit extends Model<Deposit> {
   public userId!: string;
 
   @BelongsTo(() => UserBankAccount, 'userId')
-  public bankAccount!: UserBankAccount;
+  public bankAccount?: UserBankAccount;
 
   @ForeignKey(() => UserBankAccount)
   @Column(DataType.UUID)

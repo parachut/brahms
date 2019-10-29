@@ -163,14 +163,14 @@ export class Product extends Model<Product> {
 
   @AfterCreate
   static async createAlgolia(instance: Product) {
-    const record = await formatAlgoliaProduct(instance);
-    await index.addObjects(record);
+    // const record = await formatAlgoliaProduct(instance);
+    // await index.addObjects(record);
   }
 
   @AfterUpdate
   @AfterBulkUpdate
   static async updateAlgolia(instance: Product) {
-    const record = await formatAlgoliaProduct(instance);
-    await index.saveObjects(record);
+    //const record = await formatAlgoliaProduct(instance);
+    // await index.saveObjects(record);
   }
 }

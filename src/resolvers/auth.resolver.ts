@@ -124,13 +124,17 @@ export default class AuthResolver {
       throw new Error('Sorry, this user already exists, please try again.');
     }
 
-    const phoneInformation = await authy.getPhoneInformation({
-      countryCode: 'US',
-      phone,
-    });
+    try {
+      const phoneInformation = await authy.getPhoneInformation({
+        countryCode: 'US',
+        phone,
+      });
 
-    if (phoneInformation.type !== 'cellphone') {
-      throw new Error('Phone number is not a cellphone.');
+      if (phoneInformation.type !== 'cellphone') {
+        throw new Error('Phone number is not a cellphone.');
+      }
+    } catch (e) {
+      console.log(JSON.stringify(e));
     }
 
     const user = await User.create({

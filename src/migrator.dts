@@ -1,110 +1,312 @@
-import { calcDailyCommission, calcDailyRate } from './utils/calc';
-import { differenceInCalendarDays, addDays } from 'date-fns';
-import last from 'lodash/last';
-import sortBy from 'lodash/sortBy';
-import { Op } from 'sequelize';
+import { Op, Sequelize, QueryTypes } from 'sequelize';
+import { MongoClient, ObjectId } from 'mongodb';
 
+import { User } from './models/User';
+import { Deposit } from './models/Deposit';
+import { Address } from './models/Address';
 import { Inventory } from './models/Inventory';
-import { Income } from './models/Income';
-import { Shipment } from './models/Shipment';
-import { ShipmentDirection } from './enums/shipmentDirection';
-import { ShipmentType } from './enums/shipmentType';
+import { Product } from './models/Product';
+import { UserIntegration } from './models/UserIntegration';
+import { UserRole } from './enums/userRole';
+import { InventoryCondition } from './enums/inventoryCondition';
+import { InventoryStatus } from './enums/inventoryStatus';
+
+// Database Name
+const dbName = 'parachut';
+
+// Create a new MongoClient
+const client = new MongoClient(process.env.MONGO_URI);
+
+const inventoryConditionMap = {
+  New: InventoryCondition.NEW,
+  'Like New': InventoryCondition.LIKENEW,
+  Excellent: InventoryCondition.EXCELLENT,
+  Used: InventoryCondition.USED,
+  Damaged: InventoryCondition.DAMAGED,
+};
+
+const inventoryStatusMap = {
+  Queue: InventoryStatus.NEW,
+  Pending: InventoryStatus.PENDING,
+  Accepted: InventoryStatus.ACCEPTED,
+  Shipped: InventoryStatus.ENROUTEWAREHOUSE,
+  'In Review': InventoryStatus.INSPECTING,
+  Active: InventoryStatus.INWAREHOUSE,
+  'Return Requested': InventoryStatus.RETURNING,
+  Returned: InventoryStatus.RETURNED,
+  Sold: InventoryStatus.RETURNED,
+  'Not Approved': InventoryStatus.PENDING,
+  Damaged: InventoryStatus.OUTOFSERVICE,
+};
+
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  logging: false,
+  dialectOptions: {
+    ssl: true,
+  },
+});
 
 export const migrator = async (req, res) => {
-  const inventory = await Inventory.findAll({
-    where: {
-      userId: { [Op.ne]: '367c7df6-3f36-4df6-abf3-5ea7c2418878' },
-    },
-    include: [
-      {
-        association: 'shipments',
-        include: ['user'],
-        order: [['carrierReceivedAt', 'ASC']],
-      },
-      {
-        association: 'product',
-      },
-    ],
+  client.connect(function(err, client) {
+    if (err) {
+      console.log(err);
+    }
+
+    const db = client.db(dbName);
+
+    const col = db.collection('users');
+    const iCol = db.collection('inventories');
+    const pCol = db.collection('products');
+
+    col.find({ earnForm: true }).toArray(async function(err, docs) {
+      for (const doc of docs) {
+        try {
+          const user = await User.findOne({
+            where: {
+              [Op.or]: [{ email: doc.email }, { phone: doc.phone }],
+            },
+            include: ['integrations', 'addresses'],
+          });
+
+          if (user) {
+            console.log('update user');
+            if (!user.integrations.find((i) => i.type === 'AUTHY')) {
+              console.log('update authy');
+              await UserIntegration.create({
+                type: 'AUTHY',
+                value: doc.authyId,
+                userId: user.get('id'),
+              });
+            }
+
+            if (
+              doc.expressAccount &&
+              doc.expressAccount !== '' &&
+              !user.integrations.find((i) => i.type === 'STRIPE_EXPRESS')
+            ) {
+              console.log('update express');
+              await UserIntegration.create({
+                type: 'STRIPE_EXPRESS',
+                value: doc.expressAccount,
+                userId: user.get('id'),
+              });
+            }
+
+            if (
+              doc.frontId &&
+              doc.frontId !== '' &&
+              !user.integrations.find((i) => i.type === 'FRONT')
+            ) {
+              console.log('update front');
+              await UserIntegration.create({
+                type: 'FRONT',
+                value: doc.frontId,
+                userId: user.get('id'),
+              });
+            }
+
+            if (doc.address && doc.address.street1 && !user.addresses.length) {
+              console.log('create address');
+              await Address.create({
+                street: doc.street1 + ' ' + doc.street2,
+                city: doc.suburb,
+                state: doc.state,
+                zip: doc.postcode,
+                country: 'US',
+                userId: user.get('id'),
+              });
+            }
+
+            const roles = [UserRole.MEMBER];
+            if (doc.earnForm) {
+              roles.push(UserRole.CONTRIBUTOR);
+            }
+
+            user.roles = roles;
+            await user.save();
+          } else {
+            const roles = [UserRole.MEMBER];
+            if (doc.earnForm) {
+              roles.push(UserRole.CONTRIBUTOR);
+            }
+
+            const newUser = await User.create({
+              name: doc.name.first.trim() + ' ' + doc.name.last.trim(),
+              email: doc.email,
+              phone: doc.phone,
+              roles,
+              businessName: doc.businessName,
+            });
+
+            console.log('New User');
+
+            await UserIntegration.create({
+              type: 'AUTHY',
+              value: doc.authyId,
+              userId: newUser.get('id'),
+            });
+
+            if (doc.expressAccount && doc.expressAccount !== '') {
+              await UserIntegration.create({
+                type: 'STRIPE_EXPRESS',
+                value: doc.expressAccount,
+                userId: newUser.get('id'),
+              });
+            }
+
+            if (doc.frontId && doc.frontId !== '') {
+              await UserIntegration.create({
+                type: 'FRONT',
+                value: doc.frontId,
+                userId: newUser.get('id'),
+              });
+            }
+          }
+
+          iCol
+            .find({ owner: new ObjectId(doc._id) })
+            .toArray(async function(err, docs) {
+              console.log(docs.length);
+              for (const item of docs) {
+                let inventory = null;
+                if (item.serial) {
+                  inventory = await Inventory.findOne({
+                    where: {
+                      serial: item.serial,
+                    },
+                  });
+                }
+
+                if (!inventory) {
+                  pCol.findOne(
+                    { _id: new ObjectId(item.product) },
+                    async function(err, pdoc) {
+                      if (pdoc) {
+                        const filter = [];
+
+                        if (pdoc.mfr) {
+                          filter.push({ mfr: pdoc.mfr });
+                        }
+
+                        if (pdoc.fullName) {
+                          filter.push({ name: pdoc.fullName });
+                        }
+
+                        const product = await Product.findOne({
+                          where: {
+                            [Op.or]: filter,
+                          },
+                        });
+
+                        if (product) {
+                          const userInventory = await Inventory.findOne({
+                            where: {
+                              productId: product.id,
+                              userId: user.get('id'),
+                            },
+                          });
+
+                          if (!userInventory) {
+                            console.log(item.status);
+                            const invItem = await Inventory.create({
+                              condition: inventoryConditionMap[item.condition],
+                              serial: item.serial,
+                              userId: user.get('id'),
+                              productId: product.id,
+                              status: inventoryStatusMap[item.status],
+                            });
+
+                            console.log(invItem.get('id'));
+                          } else {
+                            console.log(
+                              'user inventory',
+                              userInventory.id,
+                              item.createdAt,
+                            );
+                            await sequelize.query(
+                              'UPDATE inventories SET created_at = :created_at WHERE id = :id',
+                              {
+                                replacements: {
+                                  id: userInventory.id,
+                                  created_at: new Date(item.createdAt),
+                                },
+                                type: QueryTypes.UPDATE,
+                              },
+                            );
+                          }
+                        } else {
+                          console.log('cant import');
+                        }
+                      }
+                    },
+                  );
+                } else {
+                  console.log('found inventory', item.createdAt);
+                  await sequelize.query(
+                    'UPDATE inventories SET created_at = :created_at WHERE id = :id',
+                    {
+                      replacements: {
+                        id: inventory.id,
+                        created_at: new Date(item.createdAt),
+                      },
+                      type: QueryTypes.UPDATE,
+                    },
+                  );
+                }
+              }
+            });
+        } catch (e) {
+          console.log(e);
+        }
+      }
+    });
   });
 
-  for (const item of inventory) {
-    const groups: any[] = [];
+  /**
+  var stripe = require('stripe')(process.env.STRIPE);
 
-    let shipments = item.shipments
-      .filter((ship) => ship.type === ShipmentType.ACCESS)
-      .filter(
-        (ship) =>
-          (ship.direction === ShipmentDirection.OUTBOUND &&
-            ship.carrierDeliveredAt) ||
-          (ship.direction === ShipmentDirection.INBOUND &&
-            ship.carrierReceivedAt),
-      );
+  const users = await User.findAll({
+    include: ['inventory', 'integrations'],
+  });
 
-    shipments = sortBy(shipments, (ship) =>
-      ship.carrierReceivedAt
-        ? ship.carrierReceivedAt.getTime()
-        : ship.carrierDeliveredAt.getTime(),
+  let i = 0;
+  for (const user of users.filter((u) => u.inventory.length)) {
+    const stripeConnect = user.integrations.find(
+      (i) => i.type === 'STRIPE_EXPRESS',
     );
 
-    console.log(
-      shipments.map((ship) => ({
-        id: ship.id,
-        direction: ship.direction,
-        carrierReceivedAt: ship.carrierReceivedAt,
-      })),
-    );
+    if (stripeConnect) {
+      i = i + 1;
 
-    shipments
-      .filter((ship) => ship.type === ShipmentType.ACCESS)
-      .forEach((shipment, i) => {
-        if (
-          shipment.direction === ShipmentDirection.OUTBOUND &&
-          shipment.carrierDeliveredAt
-        ) {
-          const access: any = {
-            out: shipment.carrierDeliveredAt,
-            in: null,
-            shipment,
-          };
-
-          groups.push(access);
-        } else if (
-          shipment.direction === ShipmentDirection.INBOUND &&
-          shipment.carrierReceivedAt
-        ) {
-          console.log(groups, item.id);
-          last(groups).in = shipment.carrierReceivedAt;
-        }
-      });
-
-    for (const access of groups) {
-      access.days = differenceInCalendarDays(
-        access.in ? access.in : new Date(),
-        access.out,
-      );
-
-      console.log(access.days, access.in, access.out);
-
-      console.log(access.shipment.id);
-
-      const mapped = [];
-
-      for (let i = 0; i < access.days; i++) {
-        mapped.push({
-          planId: access.shipment.user.planId,
-          commission: calcDailyCommission(item.product.points),
-          membership: !!access.shipment.user.planId,
-          dailyRate: calcDailyRate(item.product.points),
-          memberId: access.shipment.user.id,
-          userId: item.userId,
-          inventoryId: item.id,
-          createdAt: addDays(access.out, i),
-        });
-      }
-
-      Income.bulkCreate(mapped);
+      setTimeout(() => {
+        stripe.transfers.list(
+          {
+            limit: 100,
+            destination: stripeConnect.value,
+          },
+          async function(err, transfers) {
+            if (transfers && transfers.data.length) {
+              for (const transfer of transfers.data) {
+                if (!transfer.reversed) {
+                  await Deposit.create({
+                    amount: Number((transfer.amount / 100).toFixed(2)),
+                    userId: user.id,
+                    legacy: true,
+                    notes: 'Imported from stripe',
+                    createdAt: new Date(transfer.created),
+                  });
+                }
+              }
+            }
+          },
+        );
+      }, i * 10000);
     }
   }
+
+
+   */
 
   res.send(200);
 };
