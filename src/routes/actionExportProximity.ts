@@ -41,7 +41,7 @@ router.post(
     });
 
     const report = users
-      .filter((user) => user.carts.length)
+      .filter((user) => user.carts.find((cart) => !cart.completedAt))
       .map((user) => {
         const cart = user.carts.find((cart) => !cart.completedAt);
 
