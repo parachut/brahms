@@ -5,6 +5,13 @@ import { User } from '../models/User';
 import { UserVerification } from '../models/UserVerification';
 
 Liana.collection('User', {
+  actions: [
+    {
+      name: 'Export proximity',
+      type: 'global',
+      download: true,
+    },
+  ],
   fields: [
     {
       field: 'clearbitFraudScore',
