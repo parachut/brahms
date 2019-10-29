@@ -40,23 +40,25 @@ router.post(
       ],
     });
 
-    const report = users.map((user) => {
-      const cart = user.carts.find((cart) => !cart.completedAt);
+    const report = users
+      .filter((user) => user.carts.length)
+      .map((user) => {
+        const cart = user.carts.find((cart) => !cart.completedAt);
 
-      let proximity = user.addresses.length ? 1 : 0;
-      proximity += user.planId ? 1 : 0;
+        let proximity = user.addresses.length ? 1 : 0;
+        proximity += user.planId ? 1 : 0;
 
-      return {
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        cartValue: numeral(
-          cart.items.reduce((r, i) => r + i.product.points, 0),
-        ).format('$0,0.00'),
-        cartItems: cart.items.map((i) => i.product.name).join(', '),
-        proximity,
-      };
-    });
+        return {
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          cartValue: numeral(
+            cart.items.reduce((r, i) => r + i.product.points, 0),
+          ).format('$0,0.00'),
+          cartItems: cart.items.map((i) => i.product.name).join(', '),
+          proximity,
+        };
+      });
 
     const columns = {
       name: 'Name',
