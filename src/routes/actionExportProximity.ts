@@ -76,6 +76,7 @@ router.post(
       phone: 'Phone',
       cartValue: 'Cart Value',
       cartItems: 'Cart Items',
+      lastCartAdd: 'Last Cart Add',
       proximity: 'Proximity',
     };
 
