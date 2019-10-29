@@ -48,6 +48,10 @@ router.post(
       .map((user) => {
         const cart = user.carts.find((cart) => !cart.completedAt);
 
+        const cartItemsSorted = sortBy(cart.items, function(item) {
+          return item.updatedAt;
+        });
+
         let proximity = user.addresses.length ? 1 : 0;
         proximity += user.planId ? 1 : 0;
 
@@ -55,6 +59,9 @@ router.post(
           name: user.name,
           email: user.email,
           phone: user.phone,
+          lastCartAdd: new Date(
+            cartItemsSorted[0].updatedAt,
+          ).toLocaleDateString('en-US'),
           cartValue: numeral(
             cart.items.reduce((r, i) => r + i.product.points, 0),
           ).format('$0,0.00'),

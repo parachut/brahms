@@ -163,11 +163,37 @@ export default class ProductResolver {
 
   @FieldResolver((type) => [Category])
   async breadcrumbs(@Root() product: Product): Promise<Category[]> {
-    const productWithCategory = await Product.findByPk(product.id);
-    if (productWithCategory && productWithCategory.category) {
-      const category = await Category.findByPk(productWithCategory.categoryId);
+    const [productWithCategory, categories] = await Promise.all([
+      Product.findByPk(product.id, {
+        include: ['category'],
+        attributes: ['id', 'category_id'],
+      }),
+      Category.findAll({}),
+    ]);
 
-      return category ? getParentCategories(category) : [];
+    function findBreadCrumbs(cat: Category): Category[] {
+      const _categories = [cat];
+
+      const getParent = async (child: Category) => {
+        if (child.parentId) {
+          const parent = categories.find((cate) => cate.id === child.parentId);
+
+          if (parent) {
+            _categories.push(parent);
+
+            if (parent.parentId) {
+              getParent(parent);
+            }
+          }
+        }
+      };
+
+      getParent(cat);
+      return _categories;
+    }
+
+    if (productWithCategory && productWithCategory.category) {
+      return findBreadCrumbs(productWithCategory.category);
     } else {
       return [];
     }

@@ -80,6 +80,7 @@ export default class SearchResolver {
 
       const products = await Product.findAll({
         where: { id: { [Op.in]: map(searchIds, 'id') } },
+        order: [['popularity', 'DESC']],
         limit: 25,
       });
 
