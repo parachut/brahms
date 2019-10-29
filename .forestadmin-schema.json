@@ -5049,7 +5049,16 @@
       "validations": []
     }],
     "segments": [],
-    "actions": []
+    "actions": [{
+      "name": "Export proximity",
+      "type": "global",
+      "baseUrl": null,
+      "endpoint": "/forest/actions/export-proximity",
+      "httpMethod": "POST",
+      "redirect": null,
+      "download": true,
+      "fields": []
+    }]
   }, {
     "name": "User_stripe_bank_accounts",
     "nameOld": "User_stripe_bank_accounts",
