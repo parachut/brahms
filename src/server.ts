@@ -53,8 +53,6 @@ const main = async () => {
 
    */
 
-  sequelize.sync();
-
   const dataloaderContext = createContext(sequelize);
 
   const schema = await buildSchema({

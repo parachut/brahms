@@ -76,7 +76,7 @@ export class ShipKit extends Model<ShipKit> {
   @Column(DataType.UUID)
   public addressId?: string;
 
-  @HasMany(() => Shipment, 'requestId')
+  @HasMany(() => Shipment, 'shipKitId')
   public shipments: Shipment[];
 
   @BelongsToMany(() => Inventory, () => ShipKitInventory)

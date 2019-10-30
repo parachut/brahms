@@ -3402,7 +3402,7 @@
       "isRequired": false,
       "isSortable": true,
       "isVirtual": false,
-      "reference": "Shipment.requestId",
+      "reference": "Shipment.shipKitId",
       "inverseOf": null,
       "relationship": "HasMany",
       "validations": []

@@ -106,18 +106,6 @@ export const migrator = async (req, res) => {
               });
             }
 
-            if (doc.address && doc.address.street1 && !user.addresses.length) {
-              console.log('create address');
-              await Address.create({
-                street: doc.address.street1 + ' ' + doc.address.street2,
-                city: doc.address.suburb,
-                state: doc.address.state,
-                zip: doc.address.postcode,
-                country: 'US',
-                userId: user.get('id'),
-              });
-            }
-
             const roles = [UserRole.MEMBER];
             if (doc.earnForm) {
               roles.push(UserRole.CONTRIBUTOR);
@@ -162,6 +150,18 @@ export const migrator = async (req, res) => {
                 userId: newUser.get('id'),
               });
             }
+          }
+
+          if (doc.address && doc.address.street1 && !user.addresses.length) {
+            console.log('create address');
+            await Address.create({
+              street: doc.address.street1 + ' ' + doc.address.street2,
+              city: doc.address.suburb,
+              state: doc.address.state,
+              zip: doc.address.postcode,
+              country: 'US',
+              userId: user.get('id'),
+            });
           }
 
           iCol
