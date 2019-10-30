@@ -11,22 +11,22 @@ import {
 import { Field, ID } from 'type-graphql';
 
 import { Inventory } from './Inventory';
-import { Request } from './Request';
+import { ShipKit } from './ShipKit';
 
 @Table({
-  tableName: 'request_inventories',
+  tableName: 'shipkit_inventories',
   underscored: true,
 })
-export class RequestInventory extends Model<RequestInventory> {
+export class ShipKitInventory extends Model<ShipKitInventory> {
   @Field((type) => ID)
   @PrimaryKey
   @Default(Sequelize.literal('uuid_generate_v4()'))
   @Column(DataType.UUID)
   public id!: string;
 
-  @ForeignKey(() => Request)
+  @ForeignKey(() => ShipKit)
   @Column(DataType.UUID)
-  public requestId!: string;
+  public shipKitId!: string;
 
   @ForeignKey(() => Inventory)
   @Column(DataType.UUID)

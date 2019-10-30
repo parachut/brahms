@@ -19,7 +19,7 @@ import {
 import { Field, ID, ObjectType } from 'type-graphql';
 
 import { Address } from './Address';
-import { RequestInventory } from './RequestInventory';
+import { ShipKitInventory } from './ShipKitInventory';
 import { Inventory } from './Inventory';
 import { Shipment } from './Shipment';
 import { InventoryStatus } from '../enums/inventoryStatus';
@@ -30,10 +30,10 @@ import { User } from './User';
 
 @ObjectType()
 @Table({
-  tableName: 'requests',
+  tableName: 'shipkits',
   underscored: true,
 })
-export class Request extends Model<Request> {
+export class ShipKit extends Model<ShipKit> {
   /**
    * ID
    */
@@ -79,7 +79,7 @@ export class Request extends Model<Request> {
   @HasMany(() => Shipment, 'requestId')
   public shipments: Shipment[];
 
-  @BelongsToMany(() => Inventory, () => RequestInventory)
+  @BelongsToMany(() => Inventory, () => ShipKitInventory)
   public inventory: Inventory[];
 
   @CreatedAt
@@ -89,7 +89,7 @@ export class Request extends Model<Request> {
   public updatedAt!: Date;
 
   @AfterUpdate
-  static async updateInventory(instance: Request) {
+  static async updateInventory(instance: ShipKit) {
     if (instance.changed('completedAt') && !instance.confirmedAt) {
       const inventory = await Inventory.findAll({
         where: {

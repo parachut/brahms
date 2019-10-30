@@ -3282,8 +3282,8 @@
     "segments": [],
     "actions": []
   }, {
-    "name": "Request",
-    "nameOld": "Request",
+    "name": "ShipKit",
+    "nameOld": "ShipKit",
     "icon": null,
     "integration": null,
     "isReadOnly": false,
@@ -3387,7 +3387,7 @@
       "isRequired": false,
       "isSortable": true,
       "isVirtual": false,
-      "reference": "Inventory.requestId",
+      "reference": "Inventory.shipKitId",
       "inverseOf": null,
       "relationship": "BelongsToMany",
       "validations": []
@@ -3439,8 +3439,8 @@
     "segments": [],
     "actions": []
   }, {
-    "name": "RequestInventory",
-    "nameOld": "RequestInventory",
+    "name": "ShipKitInventory",
+    "nameOld": "ShipKitInventory",
     "icon": null,
     "integration": null,
     "isReadOnly": false,
@@ -3817,21 +3817,6 @@
       "inverseOf": null,
       "validations": []
     }, {
-      "field": "request",
-      "type": "String",
-      "defaultValue": null,
-      "enums": null,
-      "integration": null,
-      "isFilterable": true,
-      "isReadOnly": false,
-      "isRequired": false,
-      "isSortable": true,
-      "isVirtual": false,
-      "reference": "Request.requestId",
-      "inverseOf": null,
-      "relationship": "BelongsTo",
-      "validations": []
-    }, {
       "field": "service",
       "type": "String",
       "defaultValue": "Ground",
@@ -3844,6 +3829,21 @@
       "isVirtual": false,
       "reference": null,
       "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "shipKit",
+      "type": "String",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": "ShipKit.shipKitId",
+      "inverseOf": null,
+      "relationship": "BelongsTo",
       "validations": []
     }, {
       "field": "signedBy",
@@ -5058,6 +5058,20 @@
       "isRequired": false,
       "isSortable": true,
       "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
+      "field": "walletAmount",
+      "type": "String",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": false,
+      "isReadOnly": true,
+      "isRequired": false,
+      "isSortable": false,
+      "isVirtual": true,
       "reference": null,
       "inverseOf": null,
       "validations": []

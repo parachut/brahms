@@ -29,7 +29,7 @@ import { createQueue } from '../redis';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Inventory } from './Inventory';
-import { Request } from './Request';
+import { ShipKit } from './ShipKit';
 import { ShipmentEvent } from './ShipmentEvent';
 import { ShipmentInspection } from './ShipmentInspection';
 import { ShipmentInventory } from './ShipmentInventory';
@@ -172,12 +172,12 @@ export class Shipment extends Model<Shipment> {
   @BelongsTo(() => User)
   public user!: User;
 
-  @ForeignKey(() => Request)
+  @ForeignKey(() => ShipKit)
   @Column(DataType.UUID)
-  public requestId?: string;
+  public shipKitId?: string;
 
-  @BelongsTo(() => Request)
-  public request?: Request;
+  @BelongsTo(() => ShipKit)
+  public shipKit?: ShipKit;
 
   @ForeignKey(() => Cart)
   @Column(DataType.UUID)
