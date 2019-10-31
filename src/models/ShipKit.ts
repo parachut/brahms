@@ -105,9 +105,10 @@ export class ShipKit extends Model<ShipKit> {
           addressId: instance.addressId,
           userId: instance.userId,
           airbox: true,
-          direction: ShipmentDirection.INBOUND,
+          expedited: false,
+          direction: ShipmentDirection.OUTBOUND,
           type: ShipmentType.EARN,
-          requestId: instance.id,
+          shipKitId: instance.id,
         });
 
         shipments.push(airboxShipment);
@@ -116,10 +117,11 @@ export class ShipKit extends Model<ShipKit> {
       const returnShipment = new Shipment({
         addressId: instance.addressId,
         userId: instance.userId,
-        return: true,
+        airbox: true,
+        expedited: false,
         direction: ShipmentDirection.INBOUND,
         type: ShipmentType.EARN,
-        requestId: instance.id,
+        shipKitId: instance.id,
       });
 
       shipments.push(returnShipment);

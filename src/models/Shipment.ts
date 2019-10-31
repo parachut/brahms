@@ -348,23 +348,24 @@ export class Shipment extends Model<Shipment> {
         await easyPostShipment.save();
 
         if (!instance.service || instance.service === 'Ground') {
-          const rates = groupBy(easyPostShipment.rates, (o) => {
-            return Number(o.delivery_days);
-          });
-
-          const levels = Object.keys(rates);
-          if (levels && levels.length) {
-            const level = String(
-              instance.expedited ? 0 : Math.min(levels.length - 1, 1),
+          if (easyPostShipment.rates.length > 2) {
+            const rates = groupBy(
+              easyPostShipment.rates.filter((r) => r.delivery_days),
+              (o) => {
+                return Number(o.delivery_days);
+              },
             );
 
-            const costSort = sortBy(rates[levels[level]], [
-              (o) => {
-                return Number(o.rate);
-              },
-            ]);
-            instance.service = costSort[0].service;
-            await easyPostShipment.buy(costSort[0]);
+            const levels = Object.keys(rates).map(Number);
+            const level = instance.expedited
+              ? rates[levels[0]]
+              : rates[levels[1]];
+
+            const rateSorted = sortBy(level, (o) => Number(o.rate));
+
+            instance.cost = Number(rateSorted[0].rate);
+            instance.service = rateSorted[0].service;
+            await easyPostShipment.buy(rateSorted[0]);
           } else {
             throw new Error('No rates available');
           }

@@ -83,7 +83,7 @@ export default class ShipKitResolver {
 
   @Authorized([UserRole.MEMBER])
   @Mutation(() => ShipKit)
-  public async shipKitsUpdate(
+  public async shipKitUpdate(
     @Arg('input', (type) => ShipKitUpdateInput)
     { addressId, airbox }: ShipKitUpdateInput,
     @Ctx() ctx: IContext,
