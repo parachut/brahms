@@ -28,6 +28,7 @@ import { Income } from './Income';
 import { Inventory } from './Inventory';
 import { Queue } from './Queue';
 import { Shipment } from './Shipment';
+import { ShipKit } from './ShipKit';
 import { UserGeolocation } from './UserGeolocation';
 import { UserBankAccount } from './UserBankAccount';
 import { UserIntegration } from './UserIntegration';
@@ -183,6 +184,9 @@ export class User extends Model<User> {
 
   @HasMany(() => Queue, 'userId')
   public queues?: Queue[];
+
+  @HasMany(() => ShipKit, 'userId')
+  public shipKits?: ShipKit[];
 
   @HasMany(() => Shipment, 'userId')
   public shipments?: Shipment[];

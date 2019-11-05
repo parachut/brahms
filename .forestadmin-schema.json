@@ -4868,6 +4868,21 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "shipKits",
+      "type": ["Number"],
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": "ShipKit.userId",
+      "inverseOf": null,
+      "relationship": "HasMany",
+      "validations": []
+    }, {
       "field": "shipments",
       "type": ["Number"],
       "defaultValue": null,
@@ -5078,6 +5093,25 @@
     }],
     "segments": [],
     "actions": [{
+      "name": "Create ShipKit",
+      "type": "single",
+      "baseUrl": null,
+      "endpoint": "/forest/actions/create-shipkit",
+      "httpMethod": "POST",
+      "redirect": null,
+      "download": false,
+      "fields": [{
+        "field": "Airbox",
+        "type": "Boolean",
+        "defaultValue": null,
+        "enums": null,
+        "isRequired": false,
+        "reference": null,
+        "description": null,
+        "position": 0,
+        "widget": null
+      }]
+    }, {
       "name": "Export proximity",
       "type": "global",
       "baseUrl": null,
@@ -5085,6 +5119,15 @@
       "httpMethod": "POST",
       "redirect": null,
       "download": true,
+      "fields": []
+    }, {
+      "name": "Login as",
+      "type": "single",
+      "baseUrl": null,
+      "endpoint": "/forest/actions/login-as",
+      "httpMethod": "POST",
+      "redirect": null,
+      "download": false,
       "fields": []
     }]
   }, {
