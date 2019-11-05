@@ -1244,6 +1244,21 @@
       "inverseOf": null,
       "validations": []
     }, {
+      "field": "inspectionTasks",
+      "type": ["Number"],
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": "CategoryInspectionTask.categoryId",
+      "inverseOf": null,
+      "relationship": "HasMany",
+      "validations": []
+    }, {
       "field": "logo",
       "type": "String",
       "defaultValue": null,

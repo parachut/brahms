@@ -17,6 +17,8 @@ import {
 import { Field, ID, ObjectType, Root } from 'type-graphql';
 import urlSlug from 'url-slug';
 
+import { CategoryInspectionTask } from './CategoryInspectionTask';
+
 @ObjectType()
 @Table({
   tableName: 'categories',
@@ -61,6 +63,9 @@ export class Category extends Model<Category> {
 
   @HasMany(() => Category, 'parentId')
   public children!: Category[];
+
+  @HasMany(() => CategoryInspectionTask, 'categoryId')
+  public inspectionTasks!: CategoryInspectionTask[];
 
   @CreatedAt
   public createdAt!: Date;
