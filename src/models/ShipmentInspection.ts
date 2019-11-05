@@ -18,6 +18,7 @@ import { InventoryCondition } from '../enums/inventoryCondition';
 import { File } from './File';
 import { Inventory } from './Inventory';
 import { Shipment } from './Shipment';
+import { ShipmentInspectionTask } from './ShipmentInspectionTask';
 import { User } from './User';
 
 @ObjectType()
@@ -83,6 +84,9 @@ export class ShipmentInspection extends Model<ShipmentInspection> {
 
   @HasMany(() => File, 'shipmentInspectionId')
   public file?: File;
+
+  @HasMany(() => ShipmentInspectionTask, 'shipmentInspectionId')
+  public tasks?: [ShipmentInspectionTask];
 
   @CreatedAt
   public createdAt!: Date;
