@@ -24,7 +24,7 @@ router.post(
         id: user.id,
         roles: user.roles,
       },
-      fs.readFileSync('../../certs/private.key', 'utf8'),
+      fs.readFileSync('./certs/private.key', 'utf8'),
       signOptions,
     );
 
