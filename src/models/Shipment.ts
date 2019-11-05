@@ -369,16 +369,18 @@ export class Shipment extends Model<Shipment> {
 
             instance.cost = Number(rateSorted[0].rate);
             instance.service = rateSorted[0].service;
+            instance.estDeliveryDate = new Date(rateSorted[0].delivery_date);
             await easyPostShipment.buy(rateSorted[0]);
           } else {
             throw new Error('No rates available');
           }
         } else {
-          await easyPostShipment.buy(
-            easyPostShipment.rates.find(
-              (rate) => rate.service === instance.service,
-            ),
+          const rate = easyPostShipment.rates.find(
+            (rate) => rate.service === instance.service,
           );
+          await easyPostShipment.buy(rate);
+
+          instance.estDeliveryDate = new Date(rate.delivery_date);
         }
 
         await easyPostShipment.convertLabelFormat('ZPL');
@@ -392,9 +394,6 @@ export class Shipment extends Model<Shipment> {
       instance.publicUrl = easyPostShipment.tracker.public_url;
       instance.labelUrlZPL = easyPostShipment.postage_label.label_zpl_url;
       instance.labelUrl = easyPostShipment.postage_label.label_url;
-      instance.estDeliveryDate = new Date(
-        easyPostShipment.rates[0].delivery_date,
-      );
 
       if (instance.cartId && instance.type === ShipmentType.ACCESS) {
         await communicationQueue.add('send-outbound-access-shipment-email', {
