@@ -38,8 +38,6 @@ const main = async () => {
     },
   });
 
-  sequelize.sync();
-
   /**
   const token = jsonwebtoken.sign(
     {
