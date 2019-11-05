@@ -18,6 +18,7 @@ import {
   PrimaryKey,
   Table,
   UpdatedAt,
+  BeforeDestroy,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
 
@@ -365,6 +366,14 @@ export class Shipment extends Model<Shipment> {
               ? rates[levels[0]]
               : rates[levels[1]];
 
+            const uspsExpress = easyPostShipment.rates.find(
+              (rate) => rate.service === 'Express',
+            );
+
+            if (uspsExpress) {
+              rates[levels[0]].push(uspsExpress);
+            }
+
             const rateSorted = sortBy(level, (o) => Number(o.rate));
 
             instance.cost = Number(rateSorted[0].rate);
@@ -415,5 +424,14 @@ export class Shipment extends Model<Shipment> {
         await i.save();
       }
     }
+  }
+
+  @BeforeDestroy
+  static async refundShipment(instance: Shipment) {
+    const easyPostShipment = await easyPost.Shipment.retrieve(
+      instance.easyPostId,
+    );
+
+    await easyPostShipment.refund();
   }
 }
