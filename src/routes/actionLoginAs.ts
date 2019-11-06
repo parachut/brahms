@@ -3,9 +3,15 @@ import Liana from 'forest-express-sequelize';
 import { User } from '../models/User';
 import jsonwebtoken from 'jsonwebtoken';
 import fs from 'fs';
-import { signOptions } from '../../certs';
 
 const router = express.Router();
+
+const signOptions = {
+  algorithm: 'RS256',
+  audience: 'Parachut',
+  expiresIn: '1h',
+  issuer: 'Authorization/Resource/Brahms',
+};
 
 router.post(
   '/actions/login-as',
