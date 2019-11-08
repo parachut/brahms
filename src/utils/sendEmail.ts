@@ -7,15 +7,30 @@ export interface ISendEmailArgs {
   from?: string;
   to: string;
   id: number;
+  attachments?: [
+    {
+      Name: string;
+      Content: string;
+      ContentType: string;
+      ContentID: string;
+    },
+  ];
 }
 
 export async function sendEmail(email: ISendEmailArgs) {
-  const { data = {}, from = 'support@parachut.co', id, to } = email;
+  const {
+    data = {},
+    from = 'support@parachut.co',
+    id,
+    to,
+    attachments,
+  } = email;
 
   return postmark.sendEmailWithTemplate({
     From: from,
     TemplateId: id,
     TemplateModel: data,
     To: to,
+    Attachments: attachments,
   });
 }

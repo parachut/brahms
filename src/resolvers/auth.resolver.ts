@@ -1,22 +1,34 @@
 import { Client as Authy } from 'authy-client';
-import Queue from 'bull';
 import crypto from 'crypto';
+import stringify from 'csv-stringify';
+import { differenceInCalendarDays } from 'date-fns';
 import fs from 'fs';
 import jsonwebtoken from 'jsonwebtoken';
+import { last } from 'lodash';
 import pick from 'lodash/pick';
+import sortBy from 'lodash/sortBy';
 import { Op } from 'sequelize';
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
+import numeral from 'numeral';
 
 import { signOptions } from '../../certs';
 import { AuthenticateInput } from '../classes/authenticate.input';
+import { InventoryHistory } from '../classes/inventoryHistory';
 import { RegisterInput } from '../classes/register.input';
 import { Token } from '../classes/token.object';
 import { Phone } from '../decorators/phone';
+import { ShipmentDirection } from '../enums/shipmentDirection';
+import { ShipmentType } from '../enums/shipmentType';
 import { UserRole } from '../enums/userRole';
+import { Inventory } from '../models/Inventory';
+import { Product } from '../models/Product';
+import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
 import { UserMarketingSource } from '../models/UserMarketingSource';
-import { IContext, IJWTPayLoad } from '../utils/context.interface';
 import { createQueue } from '../redis';
+import { calcDailyCommission } from '../utils/calc';
+import { IContext, IJWTPayLoad } from '../utils/context.interface';
+import { sendEmail } from '../utils/sendEmail';
 
 const privateKEY = fs.readFileSync('./certs/private.key', 'utf8');
 const authy = new Authy({ key: process.env.AUTHY });
@@ -112,7 +124,7 @@ export default class AuthResolver {
   @Phone()
   public async register(
     @Arg('input')
-    { email, phone, name, marketingSource }: RegisterInput,
+    { email, phone, name, marketingSource, roles }: RegisterInput,
     @Ctx() ctx: IContext,
   ) {
     // Find if there is an existing account
@@ -137,10 +149,15 @@ export default class AuthResolver {
       console.log(JSON.stringify(e));
     }
 
+    const filteredRoles = roles.filter((role) =>
+      [UserRole.CONTRIBUTOR, UserRole.MEMBER].includes(role),
+    );
+
     const user = await User.create({
       email,
       name,
       phone,
+      roles: filteredRoles,
     });
 
     if (marketingSource) {
@@ -180,7 +197,7 @@ export default class AuthResolver {
 
     const payload: IJWTPayLoad = {
       id: user.get('id'),
-      roles: [UserRole.MEMBER],
+      roles: filteredRoles,
     };
 
     const token = jsonwebtoken.sign(payload, privateKEY, signOptions);
@@ -189,5 +206,133 @@ export default class AuthResolver {
     await ctx.redis.set(`refreshToken:${user.id}`, refreshToken);
 
     return { token, refreshToken };
+  }
+
+  @Mutation(() => Boolean)
+  public async exportInventoryHistory(
+    @Ctx()
+    ctx: IContext,
+  ) {
+    if (ctx.user) {
+      const user = await User.findByPk(ctx.user.id);
+
+      const inventories = await Inventory.findAll({
+        where: {
+          user_id: ctx.user.id,
+        },
+        include: ['product'],
+      });
+
+      let report: any[] = [];
+
+      for (const inventory of inventories) {
+        const groups: any[] = [];
+
+        inventory.shipments = (await inventory.$get<Shipment>('shipments', {
+          order: [['carrierReceivedAt', 'ASC']],
+        })) as Shipment[];
+
+        let shipments = inventory.shipments
+          .filter((ship) => ship.type === ShipmentType.ACCESS)
+          .filter(
+            (ship) =>
+              (ship.direction === ShipmentDirection.OUTBOUND &&
+                ship.carrierDeliveredAt) ||
+              (ship.direction === ShipmentDirection.INBOUND &&
+                ship.carrierReceivedAt),
+          );
+
+        shipments = sortBy(shipments, (ship) =>
+          ship.carrierReceivedAt
+            ? ship.carrierReceivedAt.getTime()
+            : ship.carrierDeliveredAt.getTime(),
+        );
+
+        shipments.forEach((shipment, i) => {
+          if (
+            shipment.direction === ShipmentDirection.OUTBOUND &&
+            shipment.carrierDeliveredAt
+          ) {
+            const access: any = {
+              out: shipment.carrierDeliveredAt,
+              in: null,
+              amount: 0,
+              days: 0,
+              value: inventory.product.points,
+              serial: inventory.serial,
+              name: inventory.product.name,
+            };
+
+            groups.push(access);
+          } else {
+            last(groups).in = shipment.carrierReceivedAt;
+          }
+
+          const final = last(groups);
+
+          if (final.in || i === inventory.shipments.length - 1) {
+            final.days = differenceInCalendarDays(
+              final.in || new Date(),
+              final.out,
+            );
+            final.amount = numeral(
+              calcDailyCommission(inventory.product.points) * final.days,
+            ).format('$0,00.00');
+          }
+        });
+
+        report = [...report, ...groups];
+      }
+
+      const columns = {
+        name: 'Item name',
+        serial: 'Serial number',
+        value: 'Current market value',
+        out: 'Out date',
+        in: 'Back date',
+        days: 'Days in circulation',
+        amount: 'Total earned',
+      };
+
+      stringify(
+        report.map((r) => ({
+          ...r,
+          in: r.in ? r.in.toLocaleDateString() : null,
+          out: r.out ? r.out.toLocaleDateString() : null,
+          amount: r.amount ? numeral(r.amount).format('$0,00.00') : null,
+          days: r.days ? numeral(r.days).format('0,00') : null,
+          value: r.value ? numeral(r.value).format('$0,00') : null,
+        })),
+        {
+          header: true,
+          columns,
+        },
+        async function(err, data) {
+          const base64data = Buffer.from(data).toString('base64');
+
+          console.log(report);
+
+          await sendEmail({
+            to: 'daniel@parachut.co',
+            id: 14817794,
+            data: {
+              name: user.parsedName.first,
+            },
+            attachments: [
+              {
+                ContentID: 'history.csv',
+                Content: base64data,
+                ContentType: 'application/csv',
+                Name: 'history.csv',
+              },
+            ],
+          });
+        },
+      );
+
+      return true;
+    }
+
+    throw new Error('Unauthorized');
   }
 }

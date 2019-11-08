@@ -1,6 +1,7 @@
 import { IsEmail, Length } from 'class-validator';
 import { InputType, Field } from 'type-graphql';
 
+import { UserRole } from '../enums/userRole';
 import { MarketingSourceInput } from './marketingSource.input';
 
 @InputType()
@@ -15,6 +16,9 @@ export class RegisterInput {
   @Field()
   @Length(10)
   public phone!: string;
+
+  @Field((type) => [UserRole], { nullable: true })
+  public roles?: UserRole[];
 
   @Field({ nullable: true })
   public desiredPlan?: string;
