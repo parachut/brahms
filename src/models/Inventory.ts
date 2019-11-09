@@ -161,7 +161,7 @@ export class Inventory extends Model<Inventory> {
   @BeforeUpdate
   static async assignBin(instance: Inventory) {
     if (instance.changed('status')) {
-      if (instance.status === InventoryStatus.INWAREHOUSE) {
+      if (instance.status === InventoryStatus.INWAREHOUSE && !instance.bin) {
         const product = await Product.findByPk(instance.productId, {
           include: ['category'],
         });
