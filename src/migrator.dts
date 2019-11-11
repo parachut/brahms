@@ -1,5 +1,6 @@
 import { Op, Sequelize, QueryTypes } from 'sequelize';
 import { MongoClient, ObjectId } from 'mongodb';
+import algoliasearch from 'algoliasearch';
 
 import { User } from './models/User';
 import { Deposit } from './models/Deposit';
@@ -10,12 +11,20 @@ import { UserIntegration } from './models/UserIntegration';
 import { UserRole } from './enums/userRole';
 import { InventoryCondition } from './enums/inventoryCondition';
 import { InventoryStatus } from './enums/inventoryStatus';
+import { formatAlgoliaProduct } from './utils/formatAlgoliaProduct';
 
 // Database Name
 const dbName = 'parachut';
 
+const client = algoliasearch(
+  process.env.ALGOLIA_APPID,
+  process.env.ALGOLIA_SECRET,
+);
+
+const index = client.initIndex('prod_Products');
+
 // Create a new MongoClient
-const client = new MongoClient(process.env.MONGO_URI);
+// const client = new MongoClient(process.env.MONGO_URI);
 
 const inventoryConditionMap = {
   New: InventoryCondition.NEW,
@@ -48,6 +57,21 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
 });
 
 export const migrator = async (req, res) => {
+  const products = await Product.findAll({
+    where: {
+      '$inventory.id$': { [Op.ne]: null },
+    },
+    include: ['inventory'],
+  });
+
+  const record = await formatAlgoliaProduct({
+    where: {
+      id: { [Op.in]: products.map((p) => p.id) },
+    },
+  });
+  await index.saveObjects(record);
+
+  /**
   client.connect(function(err, client) {
     if (err) {
       console.log(err);
