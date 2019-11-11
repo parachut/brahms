@@ -149,9 +149,12 @@ export default class AuthResolver {
       console.log(JSON.stringify(e));
     }
 
-    const filteredRoles = roles.filter((role) =>
-      [UserRole.CONTRIBUTOR, UserRole.MEMBER].includes(role),
-    );
+    const filteredRoles =
+      roles && roles.length
+        ? roles.filter((role) =>
+            [UserRole.CONTRIBUTOR, UserRole.MEMBER].includes(role),
+          )
+        : [UserRole.MEMBER];
 
     const user = await User.create({
       email,
