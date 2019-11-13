@@ -9,19 +9,18 @@ import fs from 'fs';
 import { createServer } from 'http';
 import jwt from 'jsonwebtoken';
 import requestIp from 'request-ip';
-import { Sequelize } from 'sequelize-typescript';
 import { buildSchema } from 'type-graphql';
 // import jsonwebtoken from 'jsonwebtoken';
 
 require('dotenv').config();
 
 import { signOptions } from '../certs';
-import cron from './cron';
+import { sequelize } from './db';
 import hooks from './hooks';
 import { pubSub, redis } from './redis';
 import { customAuthChecker } from './utils/customAuthChecker';
 
-// import { migrator } from './migrator';
+import { migrator } from './migrator';
 const PORT = process.env.PORT || 4000;
 const GQLPATH = '/graphql';
 
@@ -29,15 +28,6 @@ const analytics = new Analytics(process.env.SEGMENT);
 const jwtSecret = fs.readFileSync('./certs/private.key', 'utf8');
 
 const main = async () => {
-  const sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: 'postgres',
-    modelPaths: [`${__dirname}/models`],
-    logging: false,
-    dialectOptions: {
-      ssl: true,
-    },
-  });
-
   /**
   const token = jsonwebtoken.sign(
     {
@@ -65,7 +55,7 @@ const main = async () => {
   });
 
   const app = express();
-  // app.use('/migrator', migrator);
+  app.use('/migrator', migrator);
 
   app.use(GQLPATH, cors());
 
@@ -179,7 +169,7 @@ const main = async () => {
   });
 
   app.use('/hooks', hooks);
-  app.use('/cron', cron);
+  // app.use('/cron', cron);
 
   const wss = createServer(app);
   server.installSubscriptionHandlers(wss);

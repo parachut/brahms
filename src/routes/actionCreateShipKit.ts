@@ -17,6 +17,8 @@ router.post(
       airbox,
     });
 
+    await shipKit.save();
+
     shipKit.completedAt = new Date();
 
     await shipKit.save();

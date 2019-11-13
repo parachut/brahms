@@ -1,6 +1,6 @@
 import { differenceInCalendarDays } from 'date-fns';
 import { last } from 'lodash';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import {
   Arg,
   Authorized,
@@ -29,6 +29,7 @@ import { Product } from '../models/Product';
 import { Shipment } from '../models/Shipment';
 import { calcDailyCommission } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
+import { sequelize } from '../db';
 
 @Resolver(Inventory)
 export default class InventoryResolver {
@@ -238,12 +239,20 @@ export default class InventoryResolver {
     @Ctx() ctx: IContext,
   ): Promise<InventoryTotalIncome> | null {
     try {
-      const incomes = (await inventory.$get<Income>('incomes')) as Income[];
+      const res: any = await sequelize.query(
+        'SELECT sum(commission), count(id) FROM incomes WHERE inventory_id = :id',
+        {
+          replacements: {
+            id: inventory.id,
+          },
+          type: QueryTypes.SELECT,
+        },
+      );
 
-      if (incomes.length) {
+      if (res) {
         return {
-          days: incomes.length,
-          total: incomes.reduce((r, i) => r + (i.commission || 0), 0),
+          days: Number(res[0].count),
+          total: Number(res[0].sum),
         };
       }
     } catch (e) {}

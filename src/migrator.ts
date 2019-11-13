@@ -57,20 +57,6 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
 });
 
 export const migrator = async (req, res) => {
-  const products = await Product.findAll({
-    where: {
-      '$inventory.id$': { [Op.ne]: null },
-    },
-    include: ['inventory'],
-  });
-
-  const record = await formatAlgoliaProduct({
-    where: {
-      id: { [Op.in]: products.map((p) => p.id) },
-    },
-  });
-  await index.saveObjects(record);
-
   /**
   client.connect(function(err, client) {
     if (err) {
@@ -286,8 +272,10 @@ export const migrator = async (req, res) => {
       }
     });
   });
+*/
 
-  /**
+  res.send(200);
+
   var stripe = require('stripe')(process.env.STRIPE);
 
   const users = await User.findAll({
@@ -328,9 +316,4 @@ export const migrator = async (req, res) => {
       }, i * 10000);
     }
   }
-
-
-   */
-
-  res.send(200);
 };
