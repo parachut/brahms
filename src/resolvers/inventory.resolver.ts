@@ -19,6 +19,7 @@ import { InventoryUpdateInput } from '../classes/inventoryUpdate.input';
 import { InventoryWhereInput } from '../classes/inventoryWhere.input';
 import { InventoryWhereUniqueInput } from '../classes/inventoryWhereUnique.input';
 import { InventoryTotalIncome } from '../classes/inventoryTotalIncome';
+import { InventoryStatus } from '../enums/inventoryStatus';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentType } from '../enums/shipmentType';
 import { UserRole } from '../enums/userRole';
@@ -125,6 +126,41 @@ export default class InventoryResolver {
           product_id: productId,
           condition: condition,
           missing_essentials: missingEssentials,
+        },
+      });
+
+      return inventory.save();
+    }
+
+    throw new Error('Unauthorized');
+  }
+
+  @Authorized([UserRole.MEMBER])
+  @Mutation(() => Inventory)
+  public async inventoryReturn(
+    @Arg('where', (type) => InventoryWhereUniqueInput)
+    { id }: InventoryWhereUniqueInput,
+    @Ctx() ctx: IContext,
+  ) {
+    if (ctx.user) {
+      const inventory = await Inventory.findOne({
+        where: {
+          id,
+          userId: ctx.user.id,
+        },
+      });
+
+      if (inventory.status === InventoryStatus.INWAREHOUSE) {
+        inventory.status = InventoryStatus.RETURNING;
+      } else if (inventory.status === InventoryStatus.RETURNING) {
+        inventory.status = InventoryStatus.INWAREHOUSE;
+      }
+
+      ctx.analytics.track({
+        userId: ctx.user.id,
+        event: 'Inventory Return Request',
+        properties: {
+          id: inventory.id,
         },
       });
 
