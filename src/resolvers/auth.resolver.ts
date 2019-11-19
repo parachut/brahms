@@ -192,7 +192,7 @@ export default class AuthResolver {
 
     communicationQueue.add('send-simple-email', {
       to: user.email,
-      id: 13136612,
+      id: filteredRoles.includes(UserRole.CONTRIBUTOR) ? 13193333 : 13136612,
       data: {
         name: user.parsedName.first,
       },
@@ -313,10 +313,8 @@ export default class AuthResolver {
         async function(err, data) {
           const base64data = Buffer.from(data).toString('base64');
 
-          console.log(report);
-
           await sendEmail({
-            to: 'daniel@parachut.co',
+            to: user.email,
             id: 14817794,
             data: {
               name: user.parsedName.first,

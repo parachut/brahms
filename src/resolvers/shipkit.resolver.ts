@@ -10,7 +10,6 @@ import {
   Resolver,
   Root,
 } from 'type-graphql';
-import map from 'lodash/map';
 
 import { ShipKitUpdateInput } from '../classes/shipKitUpdate.input';
 import { UserRole } from '../enums/userRole';
@@ -20,7 +19,6 @@ import { ShipKit } from '../models/ShipKit';
 import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
 import { IContext } from '../utils/context.interface';
-import { InventoryStatus } from '../enums/inventoryStatus';
 
 @Resolver(ShipKit)
 export default class ShipKitResolver {
@@ -40,6 +38,9 @@ export default class ShipKitResolver {
           },
         ],
       });
+
+      if (!shipKit.address) {
+      }
 
       if (!shipKit) {
         const user = await User.findByPk(ctx.user.id, {
@@ -127,6 +128,8 @@ export default class ShipKitResolver {
       const shipKit = await ShipKit.findOne({
         where: { userId: ctx.user.id, completedAt: null },
       });
+
+      const user = await User.findByPk(ctx.user.id);
 
       const event: any = {
         event: 'ShipKit Completed',

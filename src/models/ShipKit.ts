@@ -1,4 +1,3 @@
-import map from 'lodash/map';
 import pMap from 'p-map';
 import Sequelize from 'sequelize';
 import {
@@ -18,15 +17,17 @@ import {
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
 
-import { Address } from './Address';
-import { ShipKitInventory } from './ShipKitInventory';
-import { Inventory } from './Inventory';
-import { Shipment } from './Shipment';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentType } from '../enums/shipmentType';
-
+import { createQueue } from '../redis';
+import { Address } from './Address';
+import { Inventory } from './Inventory';
+import { ShipKitInventory } from './ShipKitInventory';
+import { Shipment } from './Shipment';
 import { User } from './User';
+
+const communicationQueue = createQueue('communication-queue');
 
 @ObjectType()
 @Table({
@@ -96,12 +97,17 @@ export class ShipKit extends Model<ShipKit> {
           userId: instance.userId,
           status: InventoryStatus.NEW,
         },
+        include: ['product'],
       });
+
+      const user = await User.findByPk(instance.userId);
 
       const shipments: any[] = [];
 
+      let airboxShipment: Shipment = null;
+
       if (instance.airbox) {
-        const airboxShipment = new Shipment({
+        airboxShipment = new Shipment({
           addressId: instance.addressId,
           userId: instance.userId,
           airbox: true,
@@ -149,6 +155,22 @@ export class ShipKit extends Model<ShipKit> {
       await instance.$set('inventory', inventory.map((i) => i.id));
 
       instance.confirmedAt = new Date();
+
+      communicationQueue.add('send-simple-email', {
+        to: user.email,
+        id: instance.airbox ? 13493488 : 13394094,
+        data: {
+          name: user.parsedName.first,
+          labelUrl: instance.airbox
+            ? airboxShipment.labelUrl
+            : returnShipment.labelUrl,
+          trackerUrl: instance.airbox
+            ? airboxShipment.publicUrl
+            : returnShipment.publicUrl,
+          chutItems: inventory,
+        },
+      });
+
       await instance.save();
     }
   }
