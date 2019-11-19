@@ -351,7 +351,11 @@ export default class InventoryResolver {
 
       const final = last(groups);
 
-      if (final.in || i === inventory.shipments.length - 1) {
+      if (
+        final.in ||
+        i === inventory.shipments.length - 1 ||
+        final.in === null
+      ) {
         final.days = differenceInCalendarDays(
           final.in || new Date(),
           final.out,
@@ -360,6 +364,8 @@ export default class InventoryResolver {
           calcDailyCommission(inventory.product.points) * final.days;
       }
     });
+
+    console.log(groups);
 
     return groups;
   }
