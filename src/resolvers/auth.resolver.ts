@@ -261,7 +261,6 @@ export default class AuthResolver {
               in: null,
               amount: 0,
               days: 0,
-              value: inventory.product.points,
               serial: inventory.serial,
               name: inventory.product.name,
             };
@@ -290,7 +289,6 @@ export default class AuthResolver {
       const columns = {
         name: 'Item name',
         serial: 'Serial number',
-        value: 'Current market value',
         out: 'Out date',
         in: 'Back date',
         days: 'Days in circulation',
@@ -304,7 +302,6 @@ export default class AuthResolver {
           out: r.out ? r.out.toLocaleDateString() : null,
           amount: r.amount ? numeral(r.amount).format('$0,00.00') : null,
           days: r.days ? numeral(r.days).format('0,00') : null,
-          value: r.value ? numeral(r.value).format('$0,00') : null,
         })),
         {
           header: true,

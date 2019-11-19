@@ -4,7 +4,6 @@ import util from 'util';
 import { Op } from 'sequelize';
 
 import { Inventory } from '../models/Inventory';
-import { Cart } from '../models/Cart';
 import { Shipment } from '../models/Shipment';
 import { ShipmentEvent } from '../models/ShipmentEvent';
 import { User } from '../models/User';
