@@ -272,7 +272,11 @@ export default class AuthResolver {
 
           const final = last(groups);
 
-          if (final.in || i === inventory.shipments.length - 1) {
+          if (
+            final.in ||
+            i === inventory.shipments.length - 1 ||
+            final.in === null
+          ) {
             final.days = differenceInCalendarDays(
               final.in || new Date(),
               final.out,
