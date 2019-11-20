@@ -1,17 +1,16 @@
-import { Op, Sequelize, QueryTypes } from 'sequelize';
-import { MongoClient, ObjectId } from 'mongodb';
 import algoliasearch from 'algoliasearch';
+import { addDays, differenceInCalendarDays } from 'date-fns';
+import last from 'lodash/last';
+import sortBy from 'lodash/sortBy';
+import { Op, Sequelize } from 'sequelize';
 
-import { User } from './models/User';
-import { Deposit } from './models/Deposit';
-import { Address } from './models/Address';
-import { Inventory } from './models/Inventory';
-import { Product } from './models/Product';
-import { UserIntegration } from './models/UserIntegration';
-import { UserRole } from './enums/userRole';
 import { InventoryCondition } from './enums/inventoryCondition';
 import { InventoryStatus } from './enums/inventoryStatus';
-import { formatAlgoliaProduct } from './utils/formatAlgoliaProduct';
+import { ShipmentDirection } from './enums/shipmentDirection';
+import { ShipmentType } from './enums/shipmentType';
+import { Income } from './models/Income';
+import { Inventory } from './models/Inventory';
+import { calcDailyCommission, calcDailyRate } from './utils/calc';
 
 // Database Name
 const dbName = 'parachut';
@@ -274,9 +273,7 @@ export const migrator = async (req, res) => {
   });
 */
 
-  res.send(200);
-
-  var stripe = require('stripe')(process.env.STRIPE);
+  /* var stripe = require('stripe')(process.env.STRIPE);
 
   const users = await User.findAll({
     include: ['inventory', 'integrations'],
@@ -315,5 +312,99 @@ export const migrator = async (req, res) => {
         );
       }, i * 10000);
     }
+  } */
+
+  const inventory = await Inventory.findAll({
+    where: {
+      userId: { [Op.ne]: '367c7df6-3f36-4df6-abf3-5ea7c2418878' },
+    },
+    include: [
+      {
+        association: 'shipments',
+        include: ['user'],
+        order: [['carrierReceivedAt', 'ASC']],
+      },
+      {
+        association: 'product',
+      },
+    ],
+  });
+
+  for (const item of inventory) {
+    const groups: any[] = [];
+
+    let shipments = item.shipments
+      .filter((ship) => ship.type === ShipmentType.ACCESS)
+      .filter(
+        (ship) =>
+          (ship.direction === ShipmentDirection.OUTBOUND &&
+            ship.carrierDeliveredAt) ||
+          (ship.direction === ShipmentDirection.INBOUND &&
+            ship.carrierReceivedAt),
+      );
+
+    shipments = sortBy(shipments, (ship) =>
+      ship.carrierReceivedAt
+        ? ship.carrierReceivedAt.getTime()
+        : ship.carrierDeliveredAt.getTime(),
+    );
+
+    console.log(
+      shipments.map((ship) => ({
+        id: ship.id,
+        direction: ship.direction,
+        carrierReceivedAt: ship.carrierReceivedAt,
+      })),
+    );
+
+    shipments
+      .filter((ship) => ship.type === ShipmentType.ACCESS)
+      .forEach((shipment, i) => {
+        if (
+          shipment.direction === ShipmentDirection.OUTBOUND &&
+          shipment.carrierDeliveredAt
+        ) {
+          const access: any = {
+            out: shipment.carrierDeliveredAt,
+            in: null,
+            shipment,
+          };
+
+          groups.push(access);
+        } else if (
+          shipment.direction === ShipmentDirection.INBOUND &&
+          shipment.carrierReceivedAt
+        ) {
+          console.log(groups, item.id);
+          if (groups.length) {
+            last(groups).in = shipment.carrierReceivedAt;
+          }
+        }
+      });
+
+    for (const access of groups) {
+      access.days = differenceInCalendarDays(
+        access.in ? access.in : new Date(),
+        access.out,
+      );
+      const mapped = [];
+
+      for (let i = 0; i < access.days; i++) {
+        mapped.push({
+          planId: access.shipment.user.planId,
+          commission: calcDailyCommission(item.product.points),
+          membership: !!access.shipment.user.planId,
+          dailyRate: calcDailyRate(item.product.points),
+          memberId: access.shipment.user.id,
+          userId: item.userId,
+          inventoryId: item.id,
+          createdAt: addDays(access.out, i),
+        });
+      }
+
+      Income.bulkCreate(mapped);
+    }
   }
+
+  res.send(200);
 };
