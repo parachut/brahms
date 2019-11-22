@@ -106,20 +106,25 @@ export default class BankAccountResolver {
         if (accounts) {
           for (const account of accounts) {
             if (account.account_id === accountId) {
-              const {
-                processor_token: plaidToken,
-              } = await plaidClient.createProcessorToken(
-                accessToken,
-                accountId,
-                'dwolla',
-              );
+              let fundingSource = null;
+              try {
+                const {
+                  processor_token: plaidToken,
+                } = await plaidClient.createProcessorToken(
+                  accessToken,
+                  accountId,
+                  'dwolla',
+                );
 
-              const fundingSource = await appToken
-                .post(`${dwollaIntegration.value}/funding-sources`, {
-                  plaidToken,
-                  name: account.name,
-                })
-                .then((res) => res.headers.get('location'));
+                fundingSource = await appToken
+                  .post(`${dwollaIntegration.value}/funding-sources`, {
+                    plaidToken,
+                    name: account.name,
+                  })
+                  .then((res) => res.headers.get('location'));
+              } catch (e) {
+                fundingSource = e._links.about.href;
+              }
 
               userBankAccount = await UserBankAccount.create({
                 accountId: account.account_id,
