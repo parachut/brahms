@@ -124,7 +124,7 @@ export default class BankAccountResolver {
               userBankAccount = await UserBankAccount.create({
                 accountId: account.account_id,
                 primary: account.account_id === accountId,
-                name: account.official_name,
+                name: account.name,
                 mask: account.mask,
                 subtype: account.subtype,
                 userId: ctx.user.id,
