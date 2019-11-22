@@ -123,7 +123,8 @@ export default class BankAccountResolver {
                   })
                   .then((res) => res.headers.get('location'));
               } catch (e) {
-                fundingSource = e._links.about.href;
+                console.log(e);
+                fundingSource = JSON.parse(e)._links.about.href;
               }
 
               userBankAccount = await UserBankAccount.create({
