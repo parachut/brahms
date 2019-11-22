@@ -44,6 +44,7 @@
     "mongodb": "^3.3.2",
     "numeral": "^2.0.6",
     "p-map": "^3.0.0",
+    "parse-database-url": "^0.3.0",
     "pg": "^7.7.1",
     "pg-hstore": "^2.3.2",
     "plaid": "^4.2.0",
