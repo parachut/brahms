@@ -27,7 +27,7 @@
     "express-basic-auth": "^1.2.0",
     "express-json": "^1.0.0",
     "express-jwt": "^5.3.1",
-    "forest-express-sequelize": "parachut/forest-express-sequelize",
+    "forest-express-sequelize": "^5.2.0",
     "geocodio": "^2.0.0",
     "graphql": "^14.4.2",
     "graphql-redis-subscriptions": "^2.1.1",
