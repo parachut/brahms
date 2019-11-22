@@ -15,15 +15,13 @@ const plaidClient = new plaid.Client(
   process.env.PLAID_ID,
   process.env.PLAID_SECRET,
   process.env.PLAID_PUBLIC_KEY,
-  process.env.NODE_ENV === 'production'
-    ? plaid.environments.development
-    : plaid.environments.sandbox,
+  plaid.environments.production,
 );
 
 const dwolla = new Dwolla.Client({
   key: process.env.DWOLLA_KEY,
   secret: process.env.DWOLLA_SECRET,
-  environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
+  environment: 'production',
 });
 
 @Resolver()

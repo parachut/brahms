@@ -11,6 +11,7 @@ import { ShipmentType } from './enums/shipmentType';
 import { Income } from './models/Income';
 import { Inventory } from './models/Inventory';
 import { calcDailyCommission, calcDailyRate } from './utils/calc';
+import { User } from './models/User';
 
 // Database Name
 const dbName = 'parachut';
@@ -314,7 +315,7 @@ export const migrator = async (req, res) => {
     }
   } */
 
-  const inventory = await Inventory.findAll({
+  /** const inventory = await Inventory.findAll({
     where: {
       userId: { [Op.ne]: '367c7df6-3f36-4df6-abf3-5ea7c2418878' },
     },
@@ -404,6 +405,38 @@ export const migrator = async (req, res) => {
 
       Income.bulkCreate(mapped);
     }
+  } */
+
+  const users = await User.findAll({
+    where: {
+      '$deposits.id$': { [Op.ne]: null },
+    },
+    include: ['deposits', 'incomes'],
+  });
+
+  const date = new Date();
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+
+  for (const user of users) {
+    const incomes = user.incomes.reduce((r, i) => r + i.commission, 0);
+    const deposits = user.deposits.reduce((r, i) => r + i.amount, 0);
+
+    const monthlyIncomes = user.incomes.reduce(
+      (r, i) =>
+        r + (i.createdAt.getTime() > firstDay.getTime() ? i.commission : 0),
+      0,
+    );
+
+    if (incomes - deposits < 0) {
+      await Income.create({
+        commission: monthlyIncomes + (deposits - incomes),
+        dailyRate: 0,
+        notes: 'Bonus Test',
+        userId: user.id,
+      });
+    }
+
+    console.log(user.email, incomes, deposits, monthlyIncomes);
   }
 
   res.send(200);
