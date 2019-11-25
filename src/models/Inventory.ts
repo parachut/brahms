@@ -69,7 +69,7 @@ export class Inventory extends Model<Inventory> {
   @Column
   public hasEssentials!: boolean;
 
-  @Field()
+  @Field({ nullable: true })
   @Default(false)
   @Column
   public markedForReturn?: boolean;
