@@ -2467,6 +2467,20 @@
       "relationship": "HasMany",
       "validations": []
     }, {
+      "field": "markedForReturn",
+      "type": "Boolean",
+      "defaultValue": false,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "maxPoints",
       "type": "Number",
       "defaultValue": null,

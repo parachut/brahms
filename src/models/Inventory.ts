@@ -69,6 +69,11 @@ export class Inventory extends Model<Inventory> {
   @Column
   public hasEssentials!: boolean;
 
+  @Field()
+  @Default(false)
+  @Column
+  public markedForReturn?: boolean;
+
   @Default([])
   @Column(DataType.ARRAY(DataType.STRING(1024)))
   public images?: string[];
@@ -103,10 +108,16 @@ export class Inventory extends Model<Inventory> {
   )
   public status!: InventoryStatus;
 
-  @BelongsToMany(() => Shipment, () => ShipmentInventory)
+  @BelongsToMany(
+    () => Shipment,
+    () => ShipmentInventory,
+  )
   shipments: Shipment[];
 
-  @BelongsToMany(() => Cart, () => CartInventory)
+  @BelongsToMany(
+    () => Cart,
+    () => CartInventory,
+  )
   carts: Cart[];
 
   @BelongsTo(() => Bin)

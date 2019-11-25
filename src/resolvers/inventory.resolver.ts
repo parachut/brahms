@@ -152,8 +152,10 @@ export default class InventoryResolver {
 
       if (inventory.status === InventoryStatus.INWAREHOUSE) {
         inventory.status = InventoryStatus.RETURNING;
+        inventory.markedForReturn = true;
       } else if (inventory.status === InventoryStatus.RETURNING) {
         inventory.status = InventoryStatus.INWAREHOUSE;
+        inventory.markedForReturn = false;
       }
 
       ctx.analytics.track({
@@ -364,8 +366,6 @@ export default class InventoryResolver {
           calcDailyCommission(inventory.product.points) * final.days;
       }
     });
-
-    console.log(groups);
 
     return groups;
   }
