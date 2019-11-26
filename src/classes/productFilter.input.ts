@@ -16,4 +16,10 @@ export class ProductFilterInput {
 
   @Field((type) => Boolean, { nullable: true })
   public inStock?: boolean;
+
+  @Field((type) => Int, { nullable: true })
+  public maxPoints?: number;
+
+  @Field((type) => Int, { nullable: true })
+  public minPoints?: number;
 }

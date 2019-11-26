@@ -203,11 +203,15 @@ export class Inventory extends Model<Inventory> {
 
         let bin = null;
 
+        console.log(parentCategory);
+
         if (parentCategory && parentCategory.name === 'Lenses') {
-          bin = bins.find((b) => Number(b.get('count')) < 3);
+          bin = bins.find((b) => Number(b.get('count')) <= 4);
         } else {
-          bin = bins.find((b) => Number(b.get('count')) === 0);
+          bin = bins.find((b) => Number(b.get('count')) <= 2);
         }
+
+        console.log(bin);
 
         instance.binId = bin.id;
 

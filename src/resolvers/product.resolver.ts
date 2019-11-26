@@ -102,6 +102,21 @@ export default class ProductResolver {
               where.stock = { [Op.gt]: 0 };
             }
 
+            if (value.maxPoints) {
+              where.points = { [Op.lte]: value.maxPoints };
+            }
+
+            if (value.minPoints) {
+              where.points = { [Op.gte]: value.minPoints };
+            }
+
+            if (value.minPoints && value.maxPoints) {
+              where.points = {
+                [Op.lte]: value.maxPoints,
+                [Op.gte]: value.minPoints,
+              };
+            }
+
             if (value.search) {
               where.id = {
                 [Op.in]: map(searchIds, 'id'),

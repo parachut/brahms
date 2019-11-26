@@ -67,19 +67,28 @@ export default class QueueResolver {
   }
 
   @Authorized([UserRole.MEMBER])
-  @Mutation(() => CartItem)
+  @Mutation(() => Queue)
   public async queueDestroy(
     @Arg('where', (type) => QueueWhereUniqueInput)
     { id }: QueueWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
     if (ctx.user) {
-      return Queue.destroy({
+      const queue = await Queue.findOne({
         where: {
           id,
           userId: ctx.user.id,
         },
       });
+
+      await Queue.destroy({
+        where: {
+          id,
+          userId: ctx.user.id,
+        },
+      });
+
+      return queue;
     }
 
     throw new Error('Unauthorized');
