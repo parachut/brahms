@@ -41,8 +41,11 @@ Liana.collection('User', {
           },
           order: [['createdAt', 'DESC']],
         });
-
-        return verification.meta.risk.level;
+        if (verification) {
+          return verification.meta.risk.level;
+        } else {
+          return 'low';
+        }
       },
     },
     {

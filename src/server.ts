@@ -108,7 +108,10 @@ const main = async () => {
   );
 
   app.use(GQLPATH, (err, req, res, next) => {
-    if (err.name === 'UnauthorizedError' && req.method === 'POST') {
+    if (
+      (err.name === 'UnauthorizedError' || err.name === 'TokenExpiredError') &&
+      req.method === 'POST'
+    ) {
       console.log(err);
       if (req.header('refresh-token')) {
         jwt.verify(
@@ -139,6 +142,8 @@ const main = async () => {
             }
           },
         );
+      } else {
+        return res.status(401).send('no_refresh_token');
       }
     }
   });
