@@ -172,7 +172,11 @@ export class Inventory extends Model<Inventory> {
   @BeforeUpdate
   static async assignBin(instance: Inventory) {
     if (instance.changed('status')) {
-      if (instance.status === InventoryStatus.INWAREHOUSE && !instance.bin) {
+      if (
+        instance.status === InventoryStatus.INWAREHOUSE &&
+        !instance.bin &&
+        !instance.changed('markedForReturn')
+      ) {
         const product = await Product.findByPk(instance.productId, {
           include: ['category'],
         });
@@ -203,15 +207,11 @@ export class Inventory extends Model<Inventory> {
 
         let bin = null;
 
-        console.log(parentCategory);
-
         if (parentCategory && parentCategory.name === 'Lenses') {
           bin = bins.find((b) => Number(b.get('count')) <= 4);
         } else {
           bin = bins.find((b) => Number(b.get('count')) <= 2);
         }
-
-        console.log(bin);
 
         instance.binId = bin.id;
 
@@ -256,7 +256,9 @@ export class Inventory extends Model<Inventory> {
 
         console.log(res);
       } else {
-        instance.binId = null;
+        if (!instance.changed('markedForReturn')) {
+          instance.binId = null;
+        }
       }
     }
   }

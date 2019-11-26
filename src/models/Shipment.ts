@@ -201,7 +201,10 @@ export class Shipment extends Model<Shipment> {
   @BelongsTo(() => Address)
   public address!: Address;
 
-  @BelongsToMany(() => Inventory, () => ShipmentInventory)
+  @BelongsToMany(
+    () => Inventory,
+    () => ShipmentInventory,
+  )
   inventory: Inventory[];
 
   @HasMany(() => ShipmentInspection, 'shipmentId')
