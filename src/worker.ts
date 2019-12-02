@@ -1,3 +1,4 @@
+require('newrelic');
 import { Sequelize } from 'sequelize-typescript';
 import throng from 'throng';
 
