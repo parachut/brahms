@@ -42,9 +42,11 @@ export default class QueueResolver {
   @Query((returns) => [Queue])
   public async queues(@Ctx() ctx: IContext) {
     if (ctx.user) {
-      return Queue.findAll({
+      const queues = await Queue.findAll({
         where: { userId: ctx.user.id },
       });
+
+      return queues;
     }
     throw new Error('Unauthorised.');
   }

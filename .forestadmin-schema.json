@@ -5153,9 +5153,13 @@
       "validations": []
     }, {
       "field": "status",
-      "type": "String",
+      "type": "Enum",
       "defaultValue": "APPROVED",
-      "enums": null,
+      "enums": [
+        "APPROVED",
+        "PENDING",
+        "BLACKLISTED"
+      ],
       "integration": null,
       "isFilterable": true,
       "isReadOnly": false,
