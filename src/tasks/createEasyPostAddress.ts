@@ -1,8 +1,6 @@
 import EasyPost from '@easypost/api';
-import uuid from 'uuid/v4';
 
 import { Address } from '../models/Address';
-import { pubSub } from '../redis';
 
 const easyPost = new EasyPost(process.env.EASYPOST);
 
@@ -30,11 +28,6 @@ async function createEasyPostAddress(job) {
     address.easyPostId = easyPostAddress.id;
 
     await address.save();
-
-    await pubSub.publish('ADDRESS_UPDATED', {
-      id: uuid(),
-      message: address,
-    });
 
     return address;
   }

@@ -3,7 +3,6 @@ import uuid from 'uuid/v4';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { Inventory } from '../models/Inventory';
 import { Product } from '../models/Product';
-import { pubSub } from '../redis';
 
 export async function updateProductStock(productId: string) {
   if (productId) {
@@ -24,13 +23,5 @@ export async function updateProductStock(productId: string) {
         },
       },
     );
-
-    await pubSub.publish('PRODUCT_UPDATED', {
-      id: uuid(),
-      message: {
-        productId,
-        stock,
-      },
-    });
   }
 }

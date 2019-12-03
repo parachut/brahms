@@ -1,8 +1,4 @@
 import EasyPost from '@easypost/api';
-import uuid from 'uuid/v4';
-
-import { Address } from '../models/Address';
-import { pubSub } from '../redis';
 
 const easyPost = new EasyPost(process.env.EASYPOST);
 
