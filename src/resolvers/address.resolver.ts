@@ -179,14 +179,4 @@ export default class AddressResolver {
 
     throw new Error('Unauthorized');
   }
-
-  @Subscription({
-    topics: 'ADDRESS_UPDATED',
-    filter: ({ payload, args, context }) => {
-      return payload.message.userId === context.currentUser;
-    },
-  })
-  addressUpdated(@Root() { id, message }: NotificationPayload): Notification {
-    return { id, message: message.id, date: new Date() };
-  }
 }

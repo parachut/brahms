@@ -17,7 +17,7 @@ require('dotenv').config();
 import { signOptions } from '../certs';
 import { sequelize } from './db';
 import hooks from './hooks';
-import { pubSub, redis } from './redis';
+import { redis } from './redis';
 import { customAuthChecker } from './utils/customAuthChecker';
 
 // import { migrator } from './migrator';
@@ -51,7 +51,6 @@ const main = async () => {
       __dirname + '/resolvers/*.resolver.ts',
       __dirname + '/resolvers/*.resolver.js',
     ],
-    pubSub,
   });
 
   const app = express();
@@ -78,23 +77,6 @@ const main = async () => {
         user: req.user,
       };
       return context;
-    },
-    subscriptions: {
-      onConnect: (connectionParams: any, webSocket) => {
-        if (connectionParams.authToken) {
-          const decoded: any = jwt.verify(
-            connectionParams.authToken,
-            fs.readFileSync('./certs/public.key', 'utf8'),
-            { algorithms: ['RS256'] },
-          );
-
-          return {
-            currentUser: decoded.id,
-          };
-        }
-
-        throw new Error('Missing auth token!');
-      },
     },
   });
 
@@ -169,11 +151,7 @@ const main = async () => {
   app.use('/hooks', hooks);
   // app.use('/cron', cron);
 
-  const wss = createServer(app);
-  server.installSubscriptionHandlers(wss);
-
-  // tslint:disable-next-line: no-console
-  wss.listen(PORT, async () => {
+  app.listen(PORT, async () => {
     // Instantiates a client.
     console.log(`Listening on ${PORT}`);
   });
