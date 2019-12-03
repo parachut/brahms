@@ -329,7 +329,6 @@ export class Shipment extends Model<Shipment> {
 
       const shipment: any = {
         buyer_address: warehouse.easyPostId,
-        carrier_account: process.env.EASYPOST_CARRIER_ACCOUNT,
         from_address:
           instance.direction === ShipmentDirection.INBOUND
             ? address.easyPostId
@@ -345,10 +344,6 @@ export class Shipment extends Model<Shipment> {
             ? warehouse.easyPostId
             : address.easyPostId,
       };
-
-      if (instance.direction === ShipmentDirection.OUTBOUND) {
-        delete shipment.carrier_account;
-      }
 
       const easyPostShipment = new easyPost.Shipment(shipment);
 
