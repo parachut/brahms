@@ -1,4 +1,3 @@
-require('newrelic');
 import Analytics from 'analytics-node';
 import { ApolloServer } from 'apollo-server-express';
 import cors from 'cors';
