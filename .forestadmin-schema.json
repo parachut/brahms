@@ -6573,7 +6573,7 @@
   "meta": {
     "database_type": "postgres",
     "liana": "forest-express-sequelize",
-    "liana_version": "5.3.0",
+    "liana_version": "5.4.0",
     "engine": "nodejs",
     "engine_version": "10.16.0",
     "framework": "express",
