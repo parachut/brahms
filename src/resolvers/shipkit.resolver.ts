@@ -39,9 +39,6 @@ export default class ShipKitResolver {
         ],
       });
 
-      if (!shipKit.address) {
-      }
-
       if (!shipKit) {
         const user = await User.findByPk(ctx.user.id, {
           include: ['addresses'],
@@ -59,6 +56,23 @@ export default class ShipKitResolver {
 
         await shipKit.save();
       }
+
+      if (!shipKit.address) {
+        const user = await User.findByPk(ctx.user.id, {
+          include: ['addresses'],
+        });
+
+        if (user.addresses.length) {
+          const address = user.addresses.length
+            ? user.addresses.find((address) => address.primary) ||
+              user.addresses[0]
+            : null;
+
+          shipKit.addressId = address.id;
+        }
+      }
+
+      await shipKit.save();
 
       return shipKit;
     }
@@ -93,6 +107,8 @@ export default class ShipKitResolver {
       const shipKit = await ShipKit.findOne({
         where: { userId: ctx.user.id, completedAt: null },
       });
+
+      console.log(shipKit);
 
       const event: any = {
         event: 'Contributor Step Completed',
