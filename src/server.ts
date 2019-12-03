@@ -155,13 +155,6 @@ const main = async () => {
       authSecret: process.env.FOREST_AUTH_SECRET,
       configDir: __dirname + '/forest',
       envSecret: process.env.FOREST_ENV_SECRET,
-      integrations: {
-        stripe: {
-          apiKey: process.env.STRIPE,
-          mapping: 'User.stripeId',
-          stripe: require('stripe'),
-        },
-      },
       modelsDir: __dirname + '/models',
       sequelize,
     }),
