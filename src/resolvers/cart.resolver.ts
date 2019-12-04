@@ -138,7 +138,7 @@ export default class CartResolver {
   @Mutation(() => Cart)
   public async cartUpdate(
     @Arg('input', (type) => CartUpdateInput)
-    { addressId, service, planId, protectionPlan }: CartUpdateInput,
+    { addressId, couponCode, service, planId, protectionPlan }: CartUpdateInput,
     @Ctx() ctx: IContext,
   ) {
     if (ctx.user) {
@@ -178,6 +178,12 @@ export default class CartResolver {
       if (!isUndefined(addressId)) {
         cart.addressId = addressId;
         event.properties.step = 1;
+      }
+
+      if (!isUndefined(couponCode)) {
+        cart.couponCode = couponCode;
+        event.properties.step = 3;
+        event.properties.coupon = couponCode;
       }
 
       ctx.analytics.track(event);

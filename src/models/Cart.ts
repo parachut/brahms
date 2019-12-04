@@ -59,6 +59,10 @@ export class Cart extends Model<Cart> {
   @Column
   public planId?: string;
 
+  @Field({ nullable: true })
+  @Column
+  public couponCode?: string;
+
   @Field()
   @Default(true)
   @Column
@@ -95,7 +99,10 @@ export class Cart extends Model<Cart> {
   @HasMany(() => Shipment, 'cartId')
   public shipments: Shipment[];
 
-  @BelongsToMany(() => Inventory, () => CartInventory)
+  @BelongsToMany(
+    () => Inventory,
+    () => CartInventory,
+  )
   public inventory: Inventory[];
 
   @CreatedAt

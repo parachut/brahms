@@ -12,5 +12,8 @@ export class CartUpdateInput {
   public service?: string;
 
   @Field({ nullable: true })
+  public couponCode?: string;
+
+  @Field({ nullable: true })
   public addressId?: string;
 }
