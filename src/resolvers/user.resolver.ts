@@ -63,7 +63,7 @@ export default class UserResolver {
     const deposits = ((await user.$get<Deposit>('deposits')) as Deposit[])!;
 
     const totalIncome = income.reduce((r, i) => r + i.commission, 0);
-    const totalDeposited = deposits.reduce((r, i) => r + i.amount, 0) * 100;
+    const totalDeposited = deposits.reduce((r, i) => r + i.amount, 0);
 
     return {
       available: Math.floor((totalIncome - totalDeposited) * 100) / 100,
