@@ -63,12 +63,12 @@ export default class UserResolver {
     const deposits = ((await user.$get<Deposit>('deposits')) as Deposit[])!;
 
     const totalIncome =
-      Math.round(income.reduce((r, i) => r + i.commission, 0) * 100) / 100;
+      Math.floor(income.reduce((r, i) => r + i.commission, 0) * 100) / 100;
     const totalDeposited =
-      Math.round(deposits.reduce((r, i) => r + i.amount, 0) * 100) / 100;
+      Math.floor(deposits.reduce((r, i) => r + i.amount, 0) * 100) / 100;
 
     return {
-      available: Math.round((totalIncome - totalDeposited) * 100) / 100,
+      available: Math.floor((totalIncome - totalDeposited) * 100) / 100,
       totalIncome,
       totalDeposited,
     };

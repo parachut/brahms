@@ -409,34 +409,26 @@ export const migrator = async (req, res) => {
 
   const users = await User.findAll({
     where: {
-      '$deposits.id$': { [Op.ne]: null },
+      '$incomes.id$': { [Op.ne]: null },
     },
     include: ['deposits', 'incomes'],
   });
 
-  const date = new Date();
-  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-
   for (const user of users) {
-    const incomes = user.incomes.reduce((r, i) => r + i.commission, 0);
-    const deposits = user.deposits.reduce((r, i) => r + i.amount, 0);
+    if (user.incomes.length) {
+      const totalIncome =
+        Math.floor(user.incomes.reduce((r, i) => r + i.commission, 0) * 100) /
+        100;
+      const totalDeposited =
+        Math.floor(user.deposits.reduce((r, i) => r + i.amount, 0) * 100) / 100;
 
-    const monthlyIncomes = user.incomes.reduce(
-      (r, i) =>
-        r + (i.createdAt.getTime() > firstDay.getTime() ? i.commission : 0),
-      0,
-    );
-
-    if (incomes - deposits < 0) {
-      await Income.create({
-        commission: monthlyIncomes + (deposits - incomes),
-        dailyRate: 0,
-        notes: 'Bonus Test',
-        userId: user.id,
-      });
+      console.log(
+        user.email,
+        totalIncome - totalDeposited,
+        totalIncome,
+        totalDeposited,
+      );
     }
-
-    console.log(user.email, incomes, deposits, monthlyIncomes);
   }
 
   res.send(200);
