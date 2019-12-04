@@ -18,7 +18,7 @@ import { User } from '../models/User';
 import { Shipment } from '../models/Shipment';
 import { UserIntegration } from '../models/UserIntegration';
 import { createQueue } from '../redis';
-import { prorate } from '../utils/calc';
+import { prorate, calcItemLevel } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
 import { sendEmail } from '../utils/sendEmail';
 
@@ -74,6 +74,24 @@ export default class CheckoutResolver {
       });
 
       for (const item of cart.items) {
+        const itemLevel = calcItemLevel(item.points);
+
+        if (item.points > 5500) {
+          throw new Error(
+            `${item.product.name} has over 5500 points. Please contact support@parachut.co.`,
+          );
+        }
+        if (item.points > 2500 && itemLevel !== 'level-3') {
+          throw new Error(
+            `${item.product.name} requires a level-3 membership.`,
+          );
+        }
+        if (item.points > 1000 && itemLevel === 'level-1') {
+          throw new Error(
+            `${item.product.name} requires at least a level-2 membership.`,
+          );
+        }
+
         const itemInventory = availableInventory.filter(
           (i) => i.productId === item.productId,
         );
@@ -97,40 +115,23 @@ export default class CheckoutResolver {
         throw new Error('Cart already complete');
       }
 
-      const inUse = user.currentInventory.reduce(
-        (r, i) => r + i.product.points,
-        0,
-      );
+      const itemsCount = cart.items.reduce((r, ii) => r * ii.quantity, 0);
+      const inUse = user.currentInventory.length;
 
-      const cartPoints = cart.items.reduce(
-        (r, ii) => r + ii.product.points * ii.quantity,
-        0,
-      );
-
-      const total = inUse + cartPoints;
+      if (itemsCount + inUse > 3) {
+        throw new Error(`Members may only borrow three gear items at once.`);
+      }
 
       const currentBilling =
-        plans[user.planId || cart.planId] +
-        Math.max(0, user.points - Number(user.planId)) * 0.1 +
-        (user.protectionPlan ? 49 : 0);
+        plans[user.planId || cart.planId] + (user.protectionPlan ? 49 : 0);
 
-      const futureBilling =
-        plans[cart.planId] +
-        Math.max(
-          0,
-          total - Number(cart.planId),
-          user.points - Number(cart.planId),
-        ) *
-          0.1 +
-        (cart.protectionPlan ? 49 : 0);
+      const futureBilling = plans[cart.planId] + (cart.protectionPlan ? 49 : 0);
 
       const recurlyId = user.integrations.find((int) => int.type === 'RECURLY');
 
       const recurlySubscription = user.integrations.find(
         (int) => int.type === 'RECURLY_SUBSCRIPTION',
       );
-
-      const overage = Math.max(0, total - Number(cart.planId));
 
       const subscriptionReq: any = {
         planCode: cart.planId,
@@ -141,13 +142,6 @@ export default class CheckoutResolver {
         subscriptionReq.addOns.push({
           code: 'protection',
           quantity: 1,
-        });
-      }
-
-      if (overage) {
-        subscriptionReq.addOns.push({
-          code: 'overage',
-          quantity: Math.max(0, total - Number(cart.planId)),
         });
       }
 
@@ -165,8 +159,17 @@ export default class CheckoutResolver {
               id: recurlyId.value,
             },
             subscriptions: [subscriptionReq],
+            couponCodes: [],
             // lineItems: [],
           };
+
+          if (cart.couponCode) {
+            purchaseReq.couponCodes.push(cart.couponCode);
+          }
+
+          if (!purchaseReq.couponCodes.length) {
+            delete purchaseReq.couponCodes;
+          }
 
           // if (cart.service !== 'Ground') {
           //   purchaseReq.lineItems.push({
@@ -226,26 +229,11 @@ export default class CheckoutResolver {
                   ? `https://parachut.imgix.net/${item.product.images[0]}`
                   : '',
                 name: item.product.name,
-                points: item.product.points,
               })),
-              planId: numeral(cart.planId).format('0,0'),
+              planId: cart.planId,
               monthly: numeral(plans[cart.planId]).format('$0,0.00'),
-              pointsOver: numeral(
-                Math.max(0, total - Number(cart.planId)),
-              ).format('0,0'),
-              overage: numeral(
-                Math.max(0, total - Number(cart.planId)) * 0.1,
-              ).format('$0,0.00'),
               protectionPlan: !!cart.protectionPlan,
-              totalMonthly: numeral(
-                plans[cart.planId] +
-                  Math.max(0, total - Number(cart.planId)) * 0.1 +
-                  (cart.protectionPlan ? 50 : 0),
-              ).format('$0,0.00'),
-              availablePoints: numeral(user.points - total).format('0,0'),
-              cartPoints: numeral(
-                cart.items.reduce((r, i) => r + i.points, 0),
-              ).format('0,0'),
+              totalMonthly: numeral(plans[cart.planId]).format('$0,0.00'),
             },
           });
         } else {
@@ -311,11 +299,6 @@ export default class CheckoutResolver {
                     type: 'mrkdwn',
                     text: '*Completed:*\n' + new Date().toLocaleString(),
                   },
-                  {
-                    type: 'mrkdwn',
-                    text: '*Total Points:*\n' + total,
-                  },
-
                   {
                     type: 'mrkdwn',
                     text:
@@ -389,11 +372,6 @@ export default class CheckoutResolver {
                     },
                     {
                       type: 'mrkdwn',
-                      text: '*Total Points:*\n' + total,
-                    },
-
-                    {
-                      type: 'mrkdwn',
                       text:
                         '*Protection Plan:*\n' +
                         (cart.protectionPlan ? 'YES' : 'NO'),
@@ -440,14 +418,11 @@ export default class CheckoutResolver {
                 : '',
               name: item.product.name,
             })),
-            availablePoints: user.points - total,
-            cartPoints: cart.items.reduce((r, i) => r + i.points, 0),
           },
         });
       }
 
       user.planId = cart.planId;
-      user.points = total > (user.points || 0) ? total : user.points;
       user.billingDay = user.billingDay || new Date().getDate();
       user.protectionPlan = cart.protectionPlan;
 
@@ -473,7 +448,6 @@ export default class CheckoutResolver {
             quantity: item.quantity,
           })),
           shipping: cart.service !== 'Ground' ? 25 : 0,
-          total: cartPoints,
         },
         userId: ctx.user.id,
       });
