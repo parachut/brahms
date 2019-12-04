@@ -115,7 +115,7 @@ export default class CheckoutResolver {
         throw new Error('Cart already complete');
       }
 
-      const itemsCount = cart.items.reduce((r, ii) => r * ii.quantity, 0);
+      const itemsCount = cart.items.reduce((r, ii) => r + ii.quantity, 0);
       const inUse = user.currentInventory.length;
 
       if (itemsCount + inUse > 3) {
