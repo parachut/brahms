@@ -57,6 +57,18 @@ export function calcUnlimitedTier(total: number): string {
   }
 }
 
+export function calcItemLevel(total: number): string {
+  if (total <= 1000) {
+    return 'level-1';
+  } else if (total > 1000 && total <= 2500) {
+    return 'level-2';
+  } else if (total > 2500 && total <= 5500) {
+    return 'level-3';
+  } else {
+    return 'error';
+  }
+}
+
 /**
  *
  * @param alpha New Monthly Price
