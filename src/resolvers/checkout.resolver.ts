@@ -116,10 +116,13 @@ export default class CheckoutResolver {
       }
 
       const itemsCount = cart.items.reduce((r, ii) => r + ii.quantity, 0);
+
       const inUse = user.currentInventory.length;
 
-      if (itemsCount + inUse > 3) {
-        throw new Error(`Members may only borrow three gear items at once.`);
+      const overageItems = itemsCount + inUse > 3 ? itemsCount + inUse - 3 : 0;
+
+      if (overageItems > user.additionalItems) {
+        user.additionalItems = overageItems;
       }
 
       const currentBilling =
@@ -143,6 +146,16 @@ export default class CheckoutResolver {
           code: 'protection',
           quantity: 1,
         });
+      }
+
+      if (user.additionalItems) {
+        for (let i = 0; i < user.additionalItems; i++) {
+          subscriptionReq.addOns.push({
+            code: 'additional',
+            quantity: 1,
+            unit_amount: 99,
+          });
+        }
       }
 
       if (!subscriptionReq.addOns.length) {
