@@ -6,7 +6,6 @@ import { createContext } from 'dataloader-sequelize';
 import express from 'express';
 import expressJwt from 'express-jwt';
 import fs from 'fs';
-import { createServer } from 'http';
 import jwt from 'jsonwebtoken';
 import requestIp from 'request-ip';
 import { buildSchema } from 'type-graphql';
@@ -132,26 +131,10 @@ const main = async () => {
 
   server.applyMiddleware({ app, path: GQLPATH });
 
-  app.use(
-    require('forest-express-sequelize').init({
-      authSecret: process.env.FOREST_AUTH_SECRET,
-      configDir: __dirname + '/forest',
-      envSecret: process.env.FOREST_ENV_SECRET,
-      modelsDir: __dirname + '/models',
-      sequelize,
-    }),
-  );
-
-  fs.readdirSync(__dirname + '/routes').forEach((file) => {
-    if (file[0] !== '.') {
-      app.use('/forest', require('./routes/' + file));
-    }
-  });
-
   app.use('/hooks', hooks);
   // app.use('/cron', cron);
 
-  app.listen(PORT, async () => {
+  app.listen(PORT, () => {
     // Instantiates a client.
     console.log(`Listening on ${PORT}`);
   });
