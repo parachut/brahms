@@ -140,6 +140,10 @@ export class User extends Model<User> {
   public protectionPlan!: boolean;
 
   @Field()
+  @Column
+  public additionalItems?: number;
+
+  @Field()
   @Default(false)
   @Column
   public vip!: boolean;
