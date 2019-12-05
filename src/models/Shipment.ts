@@ -224,34 +224,59 @@ export class Shipment extends Model<Shipment> {
   static async checkDelivered(instance: Shipment) {
     if (
       instance.changed('status') &&
-      instance.status === ShipmentStatus.DELIVERED &&
-      instance.direction === ShipmentDirection.OUTBOUND &&
-      instance.type === ShipmentType.ACCESS
+      instance.status === ShipmentStatus.DELIVERED
     ) {
-      communicationQueue.add('send-delivery-email', {
-        shipmentId: instance.id,
+      const user = await User.findByPk(instance.userId, {
+        include: ['addresses'],
       });
 
-      const user = await User.findByPk(instance.userId);
-      if (!user.billingDay) {
-        user.billingDay = new Date().getDate();
-        await user.save();
+      const inventory = (await instance.$get<Inventory>('inventory', {
+        include: ['product'],
+      })) as Inventory[];
+
+      const address = (await instance.$get<Address>('address')) as Address;
+
+      if (
+        instance.direction === ShipmentDirection.OUTBOUND &&
+        instance.type === ShipmentType.ACCESS
+      ) {
+        communicationQueue.add('send-delivery-email', {
+          shipmentId: instance.id,
+        });
+
+        if (!user.billingDay) {
+          user.billingDay = new Date().getDate();
+          await user.save();
+        }
+
+        await Inventory.update(
+          {
+            status: InventoryStatus.WITHMEMBER,
+          },
+          {
+            where: {
+              id: { [Op.in]: inventory.map((item) => item.id) },
+            },
+          },
+        );
       }
 
-      const inventory = (await instance.$get<Inventory>(
-        'inventory',
-      )) as Inventory[];
-
-      await Inventory.update(
-        {
-          status: InventoryStatus.WITHMEMBER,
-        },
-        {
-          where: {
-            id: { [Op.in]: inventory.map((item) => item.id) },
+      if (
+        instance.direction === ShipmentDirection.OUTBOUND &&
+        instance.type === ShipmentType.ACCESS
+      ) {
+        communicationQueue.add('send-simple-email', {
+          to: user.email,
+          id: 13494640,
+          data: {
+            name: user.parsedName.first,
+            date: new Date().toLocaleDateString(),
+            formattedAddress: address.formattedAddress,
+            trackerUrl: instance.publicUrl,
+            chutItems: inventory.map((i) => i.product.name),
           },
-        },
-      );
+        });
+      }
     }
   }
 
