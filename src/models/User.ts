@@ -135,6 +135,10 @@ export class User extends Model<User> {
   public stripeId?: string;
 
   @Field()
+  @Column
+  public additionalItems!: number;
+
+  @Field()
   @Default(false)
   @Column
   public protectionPlan!: boolean;
