@@ -125,11 +125,6 @@ export default class CheckoutResolver {
         user.additionalItems = overageItems;
       }
 
-      const currentBilling =
-        plans[user.planId || cart.planId] + (user.protectionPlan ? 49 : 0);
-
-      const futureBilling = plans[cart.planId] + (cart.protectionPlan ? 49 : 0);
-
       const recurlyId = user.integrations.find((int) => int.type === 'RECURLY');
 
       const recurlySubscription = user.integrations.find(
@@ -149,13 +144,10 @@ export default class CheckoutResolver {
       }
 
       if (user.additionalItems) {
-        for (let i = 0; i < user.additionalItems; i++) {
-          subscriptionReq.addOns.push({
-            code: 'additional',
-            quantity: 1,
-            unit_amount: 99,
-          });
-        }
+        subscriptionReq.addOns.push({
+          code: 'additional',
+          quantity: user.additionalItems,
+        });
       }
 
       if (!subscriptionReq.addOns.length) {
@@ -173,7 +165,7 @@ export default class CheckoutResolver {
             },
             subscriptions: [subscriptionReq],
             couponCodes: [],
-            // lineItems: [],
+            lineItems: [],
           };
 
           if (cart.couponCode) {
@@ -184,43 +176,19 @@ export default class CheckoutResolver {
             delete purchaseReq.couponCodes;
           }
 
-          // if (cart.service !== 'Ground') {
-          //   purchaseReq.lineItems.push({
-          //     type: 'charge',
-          //     currency: 'USD',
-          //     unitAmount: 50,
-          //     quantity: 1,
-          //     description: 'Expedited Shipping',
-          //   });
-          // }
-
-          const stripeSub = user.integrations.find(
-            (inte) => inte.type === 'STRIPE_MONTHLYPLAN',
-          );
-
-          if (stripeSub) {
-            const prorated = prorate(
-              futureBilling,
-              currentBilling,
-              user.billingDay,
-            );
-
-            subscriptionReq.trialEndsAt = prorated.nextBillingDate;
-
-            if (prorated.amount > 0) {
-              // purchaseReq.lineItems.push({
-              //   type: 'charge',
-              //   currency: 'USD',
-              //   unitAmount: prorated.amount,
-              //   quantity: 1,
-              //   description: 'Prorated overage',
-              // });
-            }
-
-            await stripe.subscriptions.del(stripeSub.value);
+          if (cart.service !== 'Ground') {
+            purchaseReq.lineItems = [
+              {
+                type: 'charge',
+                currency: 'USD',
+                unitAmount: 50,
+                quantity: 1,
+                description: 'Expedited Shipping',
+              },
+            ];
+          } else {
+            delete purchaseReq.lineItems;
           }
-
-          console.log(purchaseReq);
 
           const purchase = await recurly.createPurchase(purchaseReq);
 
@@ -250,23 +218,23 @@ export default class CheckoutResolver {
             },
           });
         } else {
-          /** if (cart.service !== 'Ground') {
-           
-              await recurly.createPurchase({
-                currency: 'USD',
-                account: {
-                  id: recurlyId.value,
-                },
-                lineItems: {
+          if (cart.service !== 'Ground') {
+            await recurly.createPurchase({
+              currency: 'USD',
+              account: {
+                id: recurlyId.value,
+              },
+              lineItems: [
+                {
                   type: 'charge',
                   currency: 'USD',
                   quantity: 1,
-                  unitAmount: 25,
+                  unitAmount: 50,
                   description: 'Expedited Shipping',
                 },
-              });
-            
-          }*/
+              ],
+            });
+          }
 
           try {
             await recurly.createSubscriptionChange(
@@ -335,8 +303,6 @@ export default class CheckoutResolver {
             ],
           });
         }
-
-        console.log(e);
 
         throw new Error(e.message);
       }

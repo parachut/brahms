@@ -55,7 +55,7 @@ export default class CartResolver {
           : null;
 
         cart = new Cart({
-          planId: !!user.planId ? user.planId : '1500',
+          planId: !!user.planId ? user.planId : 'level-1',
           addressId: address ? address.id : null,
           protectionPlan: user.protectionPlan,
           userId: ctx.user.id,
