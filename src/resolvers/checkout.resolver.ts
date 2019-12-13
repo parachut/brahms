@@ -36,6 +36,14 @@ const recurly = new Recurly.Client(process.env.RECURLY, `subdomain-parachut`);
 const slack = new WebClient(process.env.SLACK_TOKEN);
 const internalQueue = createQueue('internal-queue');
 
+const plans = [
+  {
+    'level-1': 'Level 1',
+    'level-2': 'Level 2',
+    'level-3': 'Level 3',
+  },
+];
+
 @Resolver(Cart)
 export default class CheckoutResolver {
   @Authorized([UserRole.MEMBER])
@@ -196,26 +204,6 @@ export default class CheckoutResolver {
             userId: user.id,
             type: 'RECURLY_SUBSCRIPTION',
             value: purchase.chargeInvoice.subscriptionIds[0],
-          });
-
-          await sendEmail({
-            to: user.email,
-            from: 'support@parachut.co',
-            id: 12931487,
-            data: {
-              purchase_date: new Date().toDateString(),
-              name: user.parsedName.first,
-              chutItems: cart.items.map((item) => ({
-                image: item.product.images.length
-                  ? `https://parachut.imgix.net/${item.product.images[0]}`
-                  : '',
-                name: item.product.name,
-              })),
-              planId: cart.planId,
-              monthly: numeral(plans[cart.planId]).format('$0,0.00'),
-              protectionPlan: !!cart.protectionPlan,
-              totalMonthly: numeral(plans[cart.planId]).format('$0,0.00'),
-            },
           });
         } else {
           if (cart.service !== 'Ground') {
@@ -383,23 +371,28 @@ export default class CheckoutResolver {
         });
 
         await shipment.$set('inventory', inventory);
-
-        await sendEmail({
-          to: user.email,
-          from: 'support@parachut.co',
-          id: 12932745,
-          data: {
-            purchase_date: new Date().toDateString(),
-            name: user.parsedName.first,
-            chutItems: cart.items.map((item) => ({
-              image: item.product.images.length
-                ? `https://parachut.imgix.net/${item.product.images[0]}`
-                : '',
-              name: item.product.name,
-            })),
-          },
-        });
       }
+
+      await sendEmail({
+        to: user.email,
+        from: 'support@parachut.co',
+        id: 12931487,
+        data: {
+          purchase_date: new Date().toDateString(),
+          name: user.parsedName.first,
+          cartItems: cart.items.map((item) => ({
+            image: item.product.images.length
+              ? `https://parachut.imgix.net/${item.product.images[0]}`
+              : '',
+            name: item.product.name,
+          })),
+          planId: plans[cart.planId],
+          spotsUsed: user.additionalItems + 3,
+          monthly: numeral(plans[cart.planId]).format('$0,0.00'),
+          protectionPlan: cart.protectionPlan,
+          totalMonthly: numeral(plans[cart.planId]).format('$0,0.00'),
+        },
+      });
 
       user.planId = cart.planId;
       user.billingDay = user.billingDay || new Date().getDate();
