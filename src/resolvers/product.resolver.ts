@@ -83,6 +83,8 @@ export default class ProductResolver {
 
     if (!sort.startsWith('STOCK')) {
       sortBy.push({ stock: { order: 'desc', mode: 'avg' } });
+    } else {
+      sortBy.push({ popularity: { order: 'desc', mode: 'avg' } });
     }
 
     const filtered = [];
@@ -115,7 +117,12 @@ export default class ProductResolver {
     if (filterDefault.search) {
       filtered.push({
         match: {
-          name: { query: filterDefault.search.toLowerCase(), operator: 'and' },
+          name: {
+            query: filterDefault.search.toLowerCase(),
+            operator: 'and',
+            fuzziness: 'AUTO',
+            analyzer: 'standard',
+          },
         },
       });
     }
