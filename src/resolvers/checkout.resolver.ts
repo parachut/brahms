@@ -390,7 +390,7 @@ export default class CheckoutResolver {
           id: 12932745,
           data: {
             purchase_date: new Date().toDateString(),
-            name: user.name,
+            name: user.parsedName.first,
             chutItems: cart.items.map((item) => ({
               image: item.product.images.length
                 ? `https://parachut.imgix.net/${item.product.images[0]}`
@@ -404,6 +404,7 @@ export default class CheckoutResolver {
       user.planId = cart.planId;
       user.billingDay = user.billingDay || new Date().getDate();
       user.protectionPlan = cart.protectionPlan;
+      user.points = cart.items.reduce((r, i) => r + i.points, 0);
 
       await user.save();
 
