@@ -156,6 +156,8 @@ export default class AuthResolver {
           )
         : [UserRole.MEMBER];
 
+    console.log(roles, filteredRoles);
+
     const user = await User.create({
       email,
       name,

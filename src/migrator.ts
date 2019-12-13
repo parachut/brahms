@@ -3,6 +3,7 @@ import { addDays, differenceInCalendarDays } from 'date-fns';
 import last from 'lodash/last';
 import sortBy from 'lodash/sortBy';
 import { Op, Sequelize } from 'sequelize';
+const { Client } = require('@elastic/elasticsearch');
 
 import { InventoryCondition } from './enums/inventoryCondition';
 import { InventoryStatus } from './enums/inventoryStatus';
@@ -12,16 +13,11 @@ import { Income } from './models/Income';
 import { Inventory } from './models/Inventory';
 import { calcDailyCommission, calcDailyRate } from './utils/calc';
 import { User } from './models/User';
+import { Category } from './models/Category';
+import { Product } from './models/Product';
 
 // Database Name
 const dbName = 'parachut';
-
-const client = algoliasearch(
-  process.env.ALGOLIA_APPID,
-  process.env.ALGOLIA_SECRET,
-);
-
-const index = client.initIndex('prod_Products');
 
 // Create a new MongoClient
 // const client = new MongoClient(process.env.MONGO_URI);
@@ -406,7 +402,7 @@ export const migrator = async (req, res) => {
       Income.bulkCreate(mapped);
     }
   } */
-
+  /*
   const users = await User.findAll({
     where: {
       '$incomes.id$': { [Op.ne]: null },
@@ -430,6 +426,135 @@ export const migrator = async (req, res) => {
       );
     }
   }
+
+  */
+
+  /*
+  const categories = await Category.findAll({});
+
+  function findBreadCrumbs(cat: Category): Category[] {
+    const _categories = [cat];
+
+    const getParent = async (child: Category) => {
+      if (child.parentId) {
+        const parent = categories.find((cate) => cate.id === child.parentId);
+
+        if (parent) {
+          _categories.push(parent);
+
+          if (parent.parentId) {
+            getParent(parent);
+          }
+        }
+      }
+    };
+
+    getParent(cat);
+    return _categories;
+  }
+
+  for (const category of categories) {
+    console.log(category.id);
+    findBreadCrumbs(category);
+  }
+
+  */
+
+  /*
+  console.log('start');
+
+  const elasti = new Client({
+    node:
+      'https://avnadmin:dxceju1p3zefthxn@es-1c0c548d-parachut-222d.aivencloud.com:21267',
+  });
+
+  const products = await Product.findAll({
+    include: ['brand', 'category'],
+  });
+
+  await elasti.indices.create(
+    {
+      index: 'products',
+      body: {
+        mappings: {
+          properties: {
+            id: { type: 'text' },
+            name: { type: 'text' },
+            brand: {
+              type: 'object',
+              properties: {
+                name: { type: 'text' },
+                id: { type: 'text' },
+                slug: { type: 'text' },
+              },
+            },
+            slug: { type: 'text' },
+            popularity: { type: 'integer' },
+            images: { type: 'text' },
+            demand: { type: 'integer' },
+            points: { type: 'integer' },
+            stock: { type: 'integer' },
+            createdAt: { type: 'date' },
+            lastInventoryCreated: { type: 'date' },
+          },
+        },
+      },
+    },
+    { ignore: [400] },
+  );
+
+  const dataset = products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    brand: product.brand
+      ? {
+          name: product.brand.name,
+          id: product.brand.id,
+          slug: product.brand.slug,
+        }
+      : null,
+    slug: product.slug,
+    stock: product.stock,
+    points: product.points,
+    images: product.images,
+    popularity: product.popularity,
+    demand: product.demand,
+    lastInventoryCreated: product.lastInventoryCreated,
+  }));
+
+  const body = dataset.flatMap((doc) => [
+    { index: { _index: 'products' } },
+    doc,
+  ]);
+
+  const { body: bulkResponse } = await elasti.bulk({ refresh: true, body });
+
+  if (bulkResponse.errors) {
+    const erroredDocuments = [];
+    // The items array has the same order of the dataset we just indexed.
+    // The presence of the `error` key indicates that the operation
+    // that we did for the document has failed.
+    bulkResponse.items.forEach((action, i) => {
+      const operation = Object.keys(action)[0];
+      if (action[operation].error) {
+        erroredDocuments.push({
+          // If the status is 429 it means that you can retry the document,
+          // otherwise it's very likely a mapping error, and you should
+          // fix the document before to try it again.
+          status: action[operation].status,
+          error: action[operation].error,
+          operation: body[i * 2],
+          document: body[i * 2 + 1],
+        });
+      }
+    });
+    console.log(erroredDocuments);
+  }
+
+  const { body: count } = await elasti.count({ index: 'products' });
+  console.log(count);
+
+  */
 
   res.send(200);
 };

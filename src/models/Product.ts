@@ -20,6 +20,7 @@ import {
 } from 'sequelize-typescript';
 import { Field, ID, Int, ObjectType } from 'type-graphql';
 import urlSlug from 'url-slug';
+import { Client } from '@elastic/elasticsearch';
 
 import { Brand } from './Brand';
 import { Category } from './Category';
@@ -29,12 +30,10 @@ import { ProductAttributeValue } from './ProductAttributeValue';
 import { Queue } from './Queue';
 import { formatAlgoliaProduct } from '../utils/formatAlgoliaProduct';
 
-const client = algoliasearch(
-  process.env.ALGOLIA_APPID,
-  process.env.ALGOLIA_SECRET,
-);
-
-const index = client.initIndex('prod_Products');
+const elasti = new Client({
+  node:
+    'https://avnadmin:dxceju1p3zefthxn@es-1c0c548d-parachut-222d.aivencloud.com:21267',
+});
 
 @ObjectType()
 @Table({
@@ -135,7 +134,7 @@ export class Product extends Model<Product> {
   @HasMany(() => ProductAttributeValue, 'productId')
   public attributesValues?: ProductAttributeValue[];
 
-  @Field((type) => Brand)
+  @Field((type) => Brand, { nullable: true })
   @BelongsTo(() => Brand)
   brand: Brand;
 
@@ -163,14 +162,36 @@ export class Product extends Model<Product> {
 
   @AfterCreate
   static async createAlgolia(instance: Product) {
-    const record = await formatAlgoliaProduct(instance);
-    await index.addObjects(record);
+    await elasti.index({
+      index: 'products',
+      body: {
+        id: instance.id,
+        name: instance.name,
+        slug: instance.slug,
+        stock: instance.stock,
+        points: instance.points,
+        images: instance.images,
+        popularity: instance.popularity,
+        demand: instance.demand,
+        lastInventoryCreated: instance.lastInventoryCreated,
+      },
+    });
   }
 
   @AfterUpdate
   @AfterBulkUpdate
   static async updateAlgolia(instance: Product) {
-    const record = await formatAlgoliaProduct(instance);
-    await index.saveObjects(record);
+    await elasti.update({
+      index: 'products',
+      id: instance.id,
+      body: {
+        stock: instance.stock,
+        points: instance.points,
+        images: instance.images,
+        popularity: instance.popularity,
+        demand: instance.demand,
+        lastInventoryCreated: instance.lastInventoryCreated,
+      },
+    });
   }
 }

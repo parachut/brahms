@@ -8,13 +8,15 @@ import {
   Info,
   Int,
   Query,
+  ObjectType,
   Resolver,
   Root,
 } from 'type-graphql';
 import { Op } from 'sequelize';
 import camelCase from 'lodash/camelCase';
+import { Client } from '@elastic/elasticsearch';
 
-import { connectionTypes } from '../classes/connection';
+import { PaginatedResponse } from '../classes/paginatedResponse';
 import { ProductFilterInput } from '../classes/productFilter.input';
 import { ProductSort } from '../enums/productSort';
 import { UserRole } from '../enums/userRole';
@@ -27,9 +29,14 @@ import {
   calcProtectionDailyRate,
 } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
-import { getParentCategories } from '../utils/getParentCategories';
 
-const { Connection } = connectionTypes('Product', Product);
+@ObjectType()
+class ProductsResponse extends PaginatedResponse(Product) {}
+
+const elasti = new Client({
+  node:
+    'https://avnadmin:dxceju1p3zefthxn@es-1c0c548d-parachut-222d.aivencloud.com:21267',
+});
 
 @Resolver(Product)
 export default class ProductResolver {
@@ -48,102 +55,101 @@ export default class ProductResolver {
     throw new Error('Unauthorised.');
   }
 
-  @Query((returns) => Connection)
+  @Query((returns) => ProductsResponse)
   public async products(
-    @Arg('first', (type) => Int, { nullable: true }) first: number,
-    @Arg('after', (type) => String, { nullable: true }) after: string,
-    @Arg('last', (type) => Int, { nullable: true }) last: number,
-    @Arg('before', (type) => String, { nullable: true }) before: string,
+    @Arg('from', (type) => Int, { nullable: true, defaultValue: 0 })
+    from: number,
+    @Arg('size', (type) => Int, { nullable: true, defaultValue: 10 })
+    size: number,
     @Arg('filter', (type) => ProductFilterInput, { nullable: true })
     filter: ProductFilterInput,
-    @Arg('sort', (type) => ProductSort, { nullable: true }) sort: ProductSort,
+    @Arg('sort', (type) => ProductSort, {
+      nullable: true,
+      defaultValue: ProductSort['ID_DESC'],
+    })
+    sort: ProductSort,
     @Ctx() ctx: IContext,
     @Info() info: any,
   ) {
-    let orderBy: any = [['stock', 'DESC']];
+    var lastIndex = sort.lastIndexOf('_');
 
-    if (sort) {
-      const splitSort = sort.split('_');
-      const direction = splitSort.pop().toLowerCase();
-      const column = camelCase(splitSort.join('_'));
+    const sortBy = {
+      [camelCase(sort.substr(0, lastIndex))]: camelCase(sort.substr(lastIndex)),
+    };
 
-      orderBy = [[column, direction]];
+    const filtered = [];
+
+    if (sort.startsWith('LAST_INVENTORY_CREATED')) {
+      filtered.push({
+        exists: {
+          field: 'lastInventoryCreated',
+        },
+      });
     }
 
-    let searchIds: any = [];
+    const filterDefault = {
+      minPoints: 0,
+      maxPoints: 100000,
+      ...filter,
+    };
 
-    if (filter && filter.search) {
-      searchIds = await ctx.sequelize.query(
-        `
-            SELECT id
-            FROM products
-            WHERE _search @@ plainto_tsquery('english', :query);
-          `,
-        {
-          model: Product,
-          replacements: {
-            query:
-              filter.search
-                .trim()
-                .split(' ')
-                .join('&') + ':*',
+    const must: any = [
+      {
+        range: {
+          points: {
+            gte: filterDefault.minPoints,
+            lte: filterDefault.maxPoints,
           },
         },
-      );
+      },
+    ];
+
+    if (filterDefault.search) {
+      filtered.push({
+        match: {
+          name: { query: filterDefault.search.toLowerCase(), operator: 'and' },
+        },
+      });
     }
 
-    const connection = createConnectionResolver({
-      target: Product,
-      where: (key, value) => {
-        if (value) {
-          if (key === 'where') {
-            const where: any = {};
-            if (value.inStock) {
-              where.stock = { [Op.gt]: 0 };
-            }
+    if (filterDefault.brand) {
+      must.push({
+        term: { brand: filterDefault.brand.toLowerCase() },
+      });
+    }
 
-            if (value.maxPoints) {
-              where.points = { [Op.lte]: value.maxPoints };
-            }
+    if (filterDefault.inStock) {
+      must.push({
+        range: { stock: { gte: 1 } },
+      });
+    }
 
-            if (value.minPoints) {
-              where.points = { [Op.gte]: value.minPoints };
-            }
-
-            if (value.minPoints && value.maxPoints) {
-              where.points = {
-                [Op.lte]: value.maxPoints,
-                [Op.gte]: value.minPoints,
-              };
-            }
-
-            if (value.search) {
-              where.id = {
-                [Op.in]: map(searchIds, 'id'),
-              };
-            }
-
-            return where;
-          }
-        }
+    const { body } = await elasti.search({
+      index: 'products',
+      body: {
+        from,
+        size,
+        sort: [sortBy, { stock: { order: 'desc', mode: 'avg' } }],
+        query: {
+          bool: {
+            must,
+            filter: filtered,
+          },
+        },
       },
     });
 
-    const result = await connection.resolveConnection(
-      null,
-      {
-        first,
-        after,
-        last,
-        before,
-        where: filter,
-        orderBy,
-      },
-      ctx,
-      info,
-    );
+    const items = await Product.findAll({
+      where: { id: { [Op.in]: body.hits.hits.map((hit) => hit._source.id) } },
+    });
 
-    return result;
+    return {
+      items: body.hits.hits.map((hit) =>
+        items.find((i) => i.id === hit._source.id),
+      ),
+      total: body.hits.total.value,
+      hasMore: body.hits === size,
+    };
   }
 
   @FieldResolver((type) => Brand)

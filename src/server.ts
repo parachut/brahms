@@ -19,7 +19,7 @@ import hooks from './hooks';
 import { redis } from './redis';
 import { customAuthChecker } from './utils/customAuthChecker';
 
-// import { migrator } from './migrator';
+import { migrator } from './migrator';
 const PORT = process.env.PORT || 4000;
 const GQLPATH = '/graphql';
 
@@ -53,7 +53,7 @@ const main = async () => {
   });
 
   const app = express();
-  // app.use('/migrator', migrator);
+  app.use('/migrator', migrator);
 
   app.use(GQLPATH, cors());
 
