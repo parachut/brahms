@@ -73,9 +73,17 @@ export default class ProductResolver {
   ) {
     var lastIndex = sort.lastIndexOf('_');
 
-    const sortBy = {
-      [camelCase(sort.substr(0, lastIndex))]: camelCase(sort.substr(lastIndex)),
-    };
+    const sortBy: any = [
+      {
+        [camelCase(sort.substr(0, lastIndex))]: camelCase(
+          sort.substr(lastIndex),
+        ),
+      },
+    ];
+
+    if (!sort.startsWith('STOCK')) {
+      sortBy.push({ stock: { order: 'desc', mode: 'avg' } });
+    }
 
     const filtered = [];
 
@@ -129,7 +137,7 @@ export default class ProductResolver {
       body: {
         from,
         size,
-        sort: [sortBy, { stock: { order: 'desc', mode: 'avg' } }],
+        sort: sortBy,
         query: {
           bool: {
             must,
@@ -148,7 +156,9 @@ export default class ProductResolver {
         items.find((i) => i.id === hit._source.id),
       ),
       total: body.hits.total.value,
-      hasMore: body.hits === size,
+      hasMore: body.hits.total.value < from + size,
+      from,
+      size,
     };
   }
 

@@ -10,6 +10,12 @@ export function PaginatedResponse<TItem>(TItemClass: ClassType<TItem>) {
     @Field((type) => Int)
     total: number;
 
+    @Field((type) => Int)
+    from: number;
+
+    @Field((type) => Int)
+    size: number;
+
     @Field()
     hasMore: boolean;
   }
