@@ -35,6 +35,7 @@ import { UserIntegration } from './UserIntegration';
 import { UserMarketingSource } from './UserMarketingSource';
 import { UserSocialHandle } from './UserSocialHandle';
 import { UserVerification } from './UserVerification';
+import { UserTermAgreement } from './UserTermAgreement';
 
 const integrationQueue = createQueue('integration-queue');
 
@@ -197,6 +198,9 @@ export class User extends Model<User> {
 
   @HasMany(() => UserBankAccount, 'userId')
   public bankAccounts?: UserBankAccount[];
+
+  @HasMany(() => UserTermAgreement, 'userId')
+  public termAgreements?: UserTermAgreement[];
 
   @CreatedAt
   public createdAt!: Date;

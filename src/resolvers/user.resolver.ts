@@ -10,7 +10,7 @@ import {
   Root,
 } from 'type-graphql';
 
-import { InventoryStatus } from '../enums/inventoryStatus';
+import { UserTermAgreement } from '../models/UserTermAgreement';
 import { Inventory } from '../models/Inventory';
 import { Income } from '../models/Income';
 import { Deposit } from '../models/Deposit';
@@ -55,6 +55,13 @@ export default class UserResolver {
   @FieldResolver((type) => [Inventory])
   async inventory(@Root() user: User): Promise<Inventory[]> {
     return ((await user.$get<Inventory>('inventory')) as Inventory[])!;
+  }
+
+  @FieldResolver((type) => [UserTermAgreement])
+  async termAgreements(@Root() user: User): Promise<UserTermAgreement[]> {
+    return ((await user.$get<UserTermAgreement>(
+      'termAgreements',
+    )) as UserTermAgreement[])!;
   }
 
   @FieldResolver((type) => Funds)

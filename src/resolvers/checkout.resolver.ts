@@ -6,7 +6,6 @@ import { Authorized, Ctx, Mutation, Resolver } from 'type-graphql';
 import pMap from 'p-map';
 import Stripe from 'stripe';
 
-import { plans } from '../decorators/plans';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentType } from '../enums/shipmentType';

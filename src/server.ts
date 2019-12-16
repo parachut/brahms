@@ -44,6 +44,8 @@ const main = async () => {
 
   const dataloaderContext = createContext(sequelize);
 
+  sequelize.sync();
+
   const schema = await buildSchema({
     authChecker: customAuthChecker,
     resolvers: [
