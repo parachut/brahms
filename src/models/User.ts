@@ -140,7 +140,7 @@ export class User extends Model<User> {
   @Column
   public protectionPlan!: boolean;
 
-  @Field()
+  @Field({ nullable: true })
   @Column
   public additionalItems?: number;
 
