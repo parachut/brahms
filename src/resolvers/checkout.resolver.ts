@@ -375,7 +375,7 @@ export default class CheckoutResolver {
       await sendEmail({
         to: user.email,
         from: 'support@parachut.co',
-        id: 12931487,
+        id: 12932745,
         data: {
           purchase_date: new Date().toDateString(),
           name: user.parsedName.first,
