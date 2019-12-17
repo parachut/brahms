@@ -185,6 +185,12 @@ export default class AuthResolver {
       roles: filteredRoles,
     });
 
+    const agree = new UserTermAgreement({
+      type: roles.length > 1 ? 'EARN' : 'ACCESS',
+      agreed: true,
+      userId: user.get('id'),
+    });
+
     if (marketingSource) {
       await UserMarketingSource.create({
         ...marketingSource,
