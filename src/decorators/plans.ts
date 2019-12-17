@@ -10,6 +10,12 @@ export const plans = {
   'level-3': 499,
 };
 
+export const planName = {
+  'level-1': 'Level 1',
+  'level-2': 'Level 2',
+  'level-3': 'Level 3',
+};
+
 export interface Plans {
   '1500': number;
   '3500': number;

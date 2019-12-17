@@ -2,10 +2,11 @@ import { WebClient } from '@slack/client';
 import numeral from 'numeral';
 import Recurly from 'recurly';
 import { Op } from 'sequelize';
-import { Authorized, Ctx, Mutation, Resolver } from 'type-graphql';
+import { Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 import pMap from 'p-map';
-import Stripe from 'stripe';
 
+import { CheckoutPreview } from '../classes/checkoutPreview';
+import { plans, planName } from '../decorators/plans';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentType } from '../enums/shipmentType';
@@ -17,7 +18,7 @@ import { User } from '../models/User';
 import { Shipment } from '../models/Shipment';
 import { UserIntegration } from '../models/UserIntegration';
 import { createQueue } from '../redis';
-import { prorate, calcItemLevel } from '../utils/calc';
+import { calcItemLevel } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
 import { sendEmail } from '../utils/sendEmail';
 
@@ -29,22 +30,121 @@ if (!process.env.SLACK_TOKEN) {
   throw new Error('Missing environment variable SLACK_TOKEN');
 }
 
-const stripe = new Stripe(process.env.STRIPE);
-
 const recurly = new Recurly.Client(process.env.RECURLY, `subdomain-parachut`);
 const slack = new WebClient(process.env.SLACK_TOKEN);
 const internalQueue = createQueue('internal-queue');
 
-const plans = [
-  {
-    'level-1': 'Level 1',
-    'level-2': 'Level 2',
-    'level-3': 'Level 3',
-  },
-];
-
 @Resolver(Cart)
 export default class CheckoutResolver {
+  @Authorized([UserRole.MEMBER])
+  @Query(() => CheckoutPreview)
+  public async previewCheckout(@Ctx() ctx: IContext) {
+    if (ctx.user) {
+      const user = await User.findByPk(ctx.user.id, {
+        include: [
+          {
+            association: 'carts',
+            where: { completedAt: null },
+            order: [['createdAt', 'DESC']],
+            include: [
+              {
+                association: 'items',
+                include: ['product'],
+              },
+            ],
+          },
+          'integrations',
+          {
+            association: 'currentInventory',
+            include: ['product'],
+          },
+        ],
+      });
+
+      const [cart] = user.carts;
+
+      const itemsCount = cart.items.reduce((r, ii) => r + ii.quantity, 0);
+
+      const inUse = user.currentInventory.length;
+
+      let overageItems = itemsCount + inUse > 3 ? itemsCount + inUse - 3 : 0;
+
+      if (user.additionalItems > overageItems) {
+        overageItems = user.additionalItems;
+      }
+
+      const subscriptionReq: any = {
+        planCode: cart.planId,
+        addOns: [],
+      };
+
+      if (cart.protectionPlan) {
+        subscriptionReq.addOns.push({
+          code: 'protection',
+          quantity: 1,
+        });
+      }
+
+      if (user.additionalItems) {
+        subscriptionReq.addOns.push({
+          code: 'additional',
+          quantity: overageItems,
+        });
+      }
+
+      if (!subscriptionReq.addOns.length) {
+        delete subscriptionReq.addOns;
+      }
+
+      const recurlyId = user.integrations.find((int) => int.type === 'RECURLY');
+
+      const purchaseReq = {
+        currency: 'USD',
+        account: {
+          id: recurlyId.value,
+        },
+        subscriptions: [subscriptionReq],
+        couponCodes: [],
+        lineItems: [],
+      };
+
+      if (cart.couponCode) {
+        purchaseReq.couponCodes.push(cart.couponCode);
+      }
+
+      if (!purchaseReq.couponCodes.length) {
+        delete purchaseReq.couponCodes;
+      }
+
+      if (cart.service !== 'Ground') {
+        purchaseReq.lineItems = [
+          {
+            type: 'charge',
+            currency: 'USD',
+            unitAmount: 50,
+            quantity: 1,
+            description: 'Expedited Shipping',
+          },
+        ];
+      } else {
+        delete purchaseReq.lineItems;
+      }
+
+      try {
+        const purchase = await recurly.previewPurchase(purchaseReq);
+
+        console.log(purchase);
+
+        return {
+          ...purchase.chargeInvoice,
+        };
+      } catch (e) {
+        console.log(e);
+        throw new Error('There was a problem creating a preview checkout.');
+      }
+    }
+  }
+
   @Authorized([UserRole.MEMBER])
   @Mutation(() => Cart)
   public async checkout(@Ctx() ctx: IContext) {
@@ -68,6 +168,13 @@ export default class CheckoutResolver {
             include: ['product'],
           },
         ],
+      });
+
+      const completedCart = await Cart.findOne({
+        where: {
+          completedAt: { [Op.ne]: null },
+          userId: ctx.user.id,
+        },
       });
 
       const [cart] = user.carts;
@@ -162,6 +269,7 @@ export default class CheckoutResolver {
       }
 
       let _continue = false;
+      let subscriptionRes = null;
 
       try {
         if (!recurlySubscription) {
@@ -224,7 +332,7 @@ export default class CheckoutResolver {
           }
 
           try {
-            await recurly.createSubscriptionChange(
+            subscriptionRes = await recurly.createSubscriptionChange(
               recurlySubscription.value,
               subscriptionReq,
             );
@@ -375,7 +483,7 @@ export default class CheckoutResolver {
       await sendEmail({
         to: user.email,
         from: 'support@parachut.co',
-        id: 12932745,
+        id: !completedCart ? 12931487 : 12932745,
         data: {
           purchase_date: new Date().toDateString(),
           name: user.parsedName.first,
@@ -385,11 +493,14 @@ export default class CheckoutResolver {
               : '',
             name: item.product.name,
           })),
-          planId: plans[cart.planId],
+          extraSpots: {
+            additionalItems: user.additionalItems,
+            additionalCost: user.additionalItems * 99,
+          },
+          planId: planName[cart.planId],
           spotsUsed: user.additionalItems + 3,
           monthly: numeral(plans[cart.planId]).format('$0,0.00'),
           protectionPlan: cart.protectionPlan,
-          totalMonthly: numeral(plans[cart.planId]).format('$0,0.00'),
         },
       });
 
