@@ -556,5 +556,29 @@ export const migrator = async (req, res) => {
 
   */
 
+  const elasti = new Client({
+    node:
+      'https://avnadmin:dxceju1p3zefthxn@es-1c0c548d-parachut-222d.aivencloud.com:21267',
+  });
+
+  try {
+    await elasti.updateByQuery({
+      index: 'products',
+      body: {
+        query: {
+          match: { id: '5e4a15fb-4688-4f29-8f3b-41a15184d3a3' },
+        },
+        script: {
+          source: 'ctx._source.stock = params.newStock',
+          params: {
+            newStock: 0,
+          },
+        },
+      },
+    });
+  } catch (e) {
+    console.log(JSON.stringify(e));
+  }
+
   res.send(200);
 };

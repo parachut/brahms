@@ -181,16 +181,24 @@ export class Product extends Model<Product> {
   @AfterUpdate
   @AfterBulkUpdate
   static async updateAlgolia(instance: Product) {
-    await elasti.update({
+    await elasti.updateByQuery({
       index: 'products',
-      id: instance.id,
       body: {
-        stock: instance.stock,
-        points: instance.points,
-        images: instance.images,
-        popularity: instance.popularity,
-        demand: instance.demand,
-        lastInventoryCreated: instance.lastInventoryCreated,
+        query: {
+          match: { id: '5e4a15fb-4688-4f29-8f3b-41a15184d3a3' },
+        },
+        script: {
+          source:
+            'ctx._source.stock = params.stock; ctx._source.points = params.points; ctx._source.images = params.images; ctx._source.popularity = params.popularity; ctx._source.demand = params.demand; ctx._source.lastInventoryCreated = params.lastInventoryCreated;',
+          params: {
+            stock: instance.stock,
+            points: instance.points,
+            images: instance.images,
+            popularity: instance.popularity,
+            demand: instance.demand,
+            lastInventoryCreated: instance.lastInventoryCreated,
+          },
+        },
       },
     });
   }
