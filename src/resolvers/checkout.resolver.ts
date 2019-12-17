@@ -5,7 +5,6 @@ import { Op } from 'sequelize';
 import { Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 import pMap from 'p-map';
 
-import { CheckoutPreview } from '../classes/checkoutPreview';
 import { plans, planName } from '../decorators/plans';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { ShipmentDirection } from '../enums/shipmentDirection';
@@ -36,115 +35,6 @@ const internalQueue = createQueue('internal-queue');
 
 @Resolver(Cart)
 export default class CheckoutResolver {
-  @Authorized([UserRole.MEMBER])
-  @Query(() => CheckoutPreview)
-  public async previewCheckout(@Ctx() ctx: IContext) {
-    if (ctx.user) {
-      const user = await User.findByPk(ctx.user.id, {
-        include: [
-          {
-            association: 'carts',
-            where: { completedAt: null },
-            order: [['createdAt', 'DESC']],
-            include: [
-              {
-                association: 'items',
-                include: ['product'],
-              },
-            ],
-          },
-          'integrations',
-          {
-            association: 'currentInventory',
-            include: ['product'],
-          },
-        ],
-      });
-
-      const [cart] = user.carts;
-
-      const itemsCount = cart.items.reduce((r, ii) => r + ii.quantity, 0);
-
-      const inUse = user.currentInventory.length;
-
-      let overageItems = itemsCount + inUse > 3 ? itemsCount + inUse - 3 : 0;
-
-      if (user.additionalItems > overageItems) {
-        overageItems = user.additionalItems;
-      }
-
-      const subscriptionReq: any = {
-        planCode: cart.planId,
-        addOns: [],
-      };
-
-      if (cart.protectionPlan) {
-        subscriptionReq.addOns.push({
-          code: 'protection',
-          quantity: 1,
-        });
-      }
-
-      if (user.additionalItems) {
-        subscriptionReq.addOns.push({
-          code: 'additional',
-          quantity: overageItems,
-        });
-      }
-
-      if (!subscriptionReq.addOns.length) {
-        delete subscriptionReq.addOns;
-      }
-
-      const recurlyId = user.integrations.find((int) => int.type === 'RECURLY');
-
-      const purchaseReq = {
-        currency: 'USD',
-        account: {
-          id: recurlyId.value,
-        },
-        subscriptions: [subscriptionReq],
-        couponCodes: [],
-        lineItems: [],
-      };
-
-      if (cart.couponCode) {
-        purchaseReq.couponCodes.push(cart.couponCode);
-      }
-
-      if (!purchaseReq.couponCodes.length) {
-        delete purchaseReq.couponCodes;
-      }
-
-      if (cart.service !== 'Ground') {
-        purchaseReq.lineItems = [
-          {
-            type: 'charge',
-            currency: 'USD',
-            unitAmount: 50,
-            quantity: 1,
-            description: 'Expedited Shipping',
-          },
-        ];
-      } else {
-        delete purchaseReq.lineItems;
-      }
-
-      try {
-        const purchase = await recurly.previewPurchase(purchaseReq);
-
-        console.log(purchase);
-
-        return {
-          ...purchase.chargeInvoice,
-        };
-      } catch (e) {
-        console.log(e);
-        throw new Error('There was a problem creating a preview checkout.');
-      }
-    }
-  }
-
   @Authorized([UserRole.MEMBER])
   @Mutation(() => Cart)
   public async checkout(@Ctx() ctx: IContext) {

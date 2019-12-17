@@ -24,6 +24,7 @@ import { Inventory } from '../models/Inventory';
 import { Product } from '../models/Product';
 import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
+import { UserTermAgreement } from '../models/UserTermAgreement';
 import { UserMarketingSource } from '../models/UserMarketingSource';
 import { createQueue } from '../redis';
 import { calcDailyCommission } from '../utils/calc';
@@ -120,6 +121,27 @@ export default class AuthResolver {
     return { token, refreshToken };
   }
 
+  @Mutation(() => UserTermAgreement)
+  public async agreeToTerms(
+    @Arg('type')
+    type: String,
+    @Ctx() ctx: IContext,
+  ) {
+    if (ctx.user) {
+      const agree = new UserTermAgreement({
+        type,
+        agreed: true,
+        userId: ctx.user.id,
+      });
+
+      await agree.save();
+
+      return agree;
+    }
+
+    throw new Error('Unauthorized');
+  }
+
   @Mutation(() => Token)
   @Phone()
   public async register(
@@ -155,8 +177,6 @@ export default class AuthResolver {
             [UserRole.CONTRIBUTOR, UserRole.MEMBER].includes(role),
           )
         : [UserRole.MEMBER];
-
-    console.log(roles, filteredRoles);
 
     const user = await User.create({
       email,
