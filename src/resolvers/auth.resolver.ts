@@ -82,9 +82,22 @@ export default class AuthResolver {
           ).quantity;
         }
 
+        let protectionPlan = false;
+
+        if (
+          subscription.addOns.find(
+            (addon) => addon.addOn.name === 'Protection Plan',
+          )
+        ) {
+          protectionPlan = !!subscription.addOns.find(
+            (addon) => addon.addOn.name === 'Protection Plan',
+          ).quantity;
+        }
+
         return {
           planName: subscription.plan.name,
           subtotal: subscription.subtotal,
+          protectionPlan,
           nextBillingDate: new Date(subscription.currentPeriodEndsAt),
           additionalItems,
         };

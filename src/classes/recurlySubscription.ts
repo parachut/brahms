@@ -12,5 +12,8 @@ export class RecurlySubscription {
   public additionalItems!: number;
 
   @Field()
+  public protectionPlan!: boolean;
+
+  @Field()
   public nextBillingDate!: Date;
 }

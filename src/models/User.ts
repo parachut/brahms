@@ -142,7 +142,7 @@ export class User extends Model<User> {
 
   @Field({ nullable: true })
   @Column
-  public legacyPlan?: boolean;
+  public legacyPlan?: string;
 
   @Field({ nullable: true })
   @Column
