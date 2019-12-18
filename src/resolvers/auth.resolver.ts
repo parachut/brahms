@@ -74,11 +74,11 @@ export default class AuthResolver {
 
         if (
           subscription.addOns.find(
-            (addon) => addon.addOn.name === 'Additional Items',
+            (addon) => addon.addOn.name === 'Additional Item',
           )
         ) {
           additionalItems = subscription.addOns.find(
-            (addon) => addon.addOn.name === 'Additional Items',
+            (addon) => addon.addOn.name === 'Additional Item',
           ).quantity;
         }
 
