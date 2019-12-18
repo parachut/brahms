@@ -308,6 +308,7 @@ export class Shipment extends Model<Shipment> {
     if (!instance.warehouseId) {
       const warehouse = await Warehouse.findOne({
         where: {},
+        order: [['createdAt', 'desc']],
       });
 
       instance.warehouseId = warehouse.id;
