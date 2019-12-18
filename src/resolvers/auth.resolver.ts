@@ -1,5 +1,6 @@
 import { Client as Authy } from 'authy-client';
 import crypto from 'crypto';
+import Recurly from 'recurly';
 import stringify from 'csv-stringify';
 import { differenceInCalendarDays } from 'date-fns';
 import fs from 'fs';
@@ -13,9 +14,9 @@ import numeral from 'numeral';
 
 import { signOptions } from '../../certs';
 import { AuthenticateInput } from '../classes/authenticate.input';
-import { InventoryHistory } from '../classes/inventoryHistory';
 import { RegisterInput } from '../classes/register.input';
 import { Token } from '../classes/token.object';
+import { RecurlySubscription } from '../classes/recurlySubscription';
 import { Phone } from '../decorators/phone';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentType } from '../enums/shipmentType';
@@ -24,6 +25,7 @@ import { Inventory } from '../models/Inventory';
 import { Product } from '../models/Product';
 import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
+import { UserIntegration } from '../models/UserIntegration';
 import { UserTermAgreement } from '../models/UserTermAgreement';
 import { UserMarketingSource } from '../models/UserMarketingSource';
 import { createQueue } from '../redis';
@@ -36,6 +38,7 @@ const authy = new Authy({ key: process.env.AUTHY });
 
 const integrationQueue = createQueue('integration-queue');
 const communicationQueue = createQueue('communication-queue');
+const recurly = new Recurly.Client(process.env.RECURLY, `subdomain-parachut`);
 
 @Resolver(User)
 export default class AuthResolver {
@@ -52,6 +55,44 @@ export default class AuthResolver {
       return user;
     }
     throw new Error('User not found');
+  }
+
+  @Authorized([UserRole.MEMBER])
+  @Query((returns) => RecurlySubscription, { nullable: true })
+  public async subscription(@Ctx() ctx: IContext) {
+    if (ctx.user) {
+      try {
+        const userIntegration = await UserIntegration.findOne({
+          where: { key: 'RECURLY_SUBSCRIPTION' },
+        });
+
+        const subscription = await recurly.getSubscription(
+          userIntegration.value,
+        );
+
+        let additionalItems = 0;
+
+        if (
+          subscription.addOns.find(
+            (addon) => addon.addOn.name === 'Additional Items',
+          )
+        ) {
+          additionalItems = subscription.addOns.find(
+            (addon) => addon.addOn.name === 'Additional Items',
+          ).quantity;
+        }
+
+        return {
+          planName: subscription.plan.name,
+          subtotal: subscription.subtotal,
+          nextBillingDate: new Date(subscription.current_period_ends_at),
+          additionalItems,
+        };
+      } catch (e) {
+        return null;
+      }
+    }
+    throw new Error('Not authorised');
   }
 
   @Mutation(() => Token)

@@ -1,16 +1,16 @@
 import { Field, ObjectType } from 'type-graphql';
 
 @ObjectType()
-export class CheckoutPreview {
+export class RecurlySubscription {
   @Field()
-  public discount!: number;
+  public planName!: string;
 
   @Field()
   public subtotal!: number;
 
   @Field()
-  public tax!: number;
+  public additionalItems!: number;
 
   @Field()
-  public total!: number;
+  public nextBillingDate!: Date;
 }
