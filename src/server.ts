@@ -136,6 +136,22 @@ const main = async () => {
   app.use('/hooks', hooks);
   // app.use('/cron', cron);
 
+  app.use(
+    require('forest-express-sequelize').init({
+      authSecret: process.env.FOREST_AUTH_SECRET,
+      configDir: __dirname + '/forest',
+      envSecret: process.env.FOREST_ENV_SECRET,
+      modelsDir: __dirname + '/models',
+      sequelize,
+    }),
+  );
+
+  fs.readdirSync(__dirname + '/routes').forEach((file) => {
+    if (file[0] !== '.') {
+      app.use('/forest', require('./routes/' + file));
+    }
+  });
+
   app.listen(PORT, () => {
     // Instantiates a client.
     console.log(`Listening on ${PORT}`);
