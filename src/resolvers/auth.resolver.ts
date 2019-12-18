@@ -63,7 +63,7 @@ export default class AuthResolver {
     if (ctx.user) {
       try {
         const userIntegration = await UserIntegration.findOne({
-          where: { type: 'RECURLY_SUBSCRIPTION' },
+          where: { type: 'RECURLY_SUBSCRIPTION', userId: ctx.user.id },
         });
 
         const subscription = await recurly.getSubscription(
