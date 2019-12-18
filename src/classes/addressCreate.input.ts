@@ -21,7 +21,10 @@ export class AddressCreateInput {
   public state!: string;
 
   @Field()
-  public street!: string;
+  public street1!: string;
+
+  @Field({ nullable: true })
+  public street2?: string;
 
   @Field()
   public zip!: string;

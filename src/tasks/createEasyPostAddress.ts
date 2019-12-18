@@ -17,7 +17,8 @@ async function createEasyPostAddress(job) {
       phone: address.phone,
       name: address.name,
       state: address.state,
-      street1: address.formattedStreet,
+      street1: address.street,
+      street2: address.street2,
       zip: address.zip,
     });
 

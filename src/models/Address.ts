@@ -57,6 +57,10 @@ export class Address extends Model<Address> {
   @Column
   public street!: string;
 
+  @Field({ nullable: true })
+  @Column
+  public street2?: string;
+
   @Field()
   @Column
   public suffix!: string;
