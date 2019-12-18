@@ -142,6 +142,10 @@ export class User extends Model<User> {
 
   @Field({ nullable: true })
   @Column
+  public legacyPlan?: boolean;
+
+  @Field({ nullable: true })
+  @Column
   public additionalItems?: number;
 
   @Field()

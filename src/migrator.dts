@@ -429,7 +429,6 @@ export const migrator = async (req, res) => {
 
   */
 
-  /*
   const categories = await Category.findAll({});
 
   function findBreadCrumbs(cat: Category): Category[] {
@@ -453,14 +452,6 @@ export const migrator = async (req, res) => {
     return _categories;
   }
 
-  for (const category of categories) {
-    console.log(category.id);
-    findBreadCrumbs(category);
-  }
-
-  */
-
-  /*
   console.log('start');
 
   const elasti = new Client({
@@ -503,24 +494,35 @@ export const migrator = async (req, res) => {
     { ignore: [400] },
   );
 
-  const dataset = products.map((product) => ({
-    id: product.id,
-    name: product.name,
-    brand: product.brand
-      ? {
-          name: product.brand.name,
-          id: product.brand.id,
-          slug: product.brand.slug,
-        }
-      : null,
-    slug: product.slug,
-    stock: product.stock,
-    points: product.points,
-    images: product.images,
-    popularity: product.popularity,
-    demand: product.demand,
-    lastInventoryCreated: product.lastInventoryCreated,
-  }));
+  const dataset = products.map((product) => {
+    const categories = findBreadCrumbs(product.category);
+
+    return {
+      id: product.id,
+      name: product.name,
+      camera: !!categories.find(
+        (category) => category.name.search(/camera/i) !== -1,
+      ),
+      lens: !!categories.find(
+        (category) => category.name.search(/lens/i) !== -1,
+      ),
+      categories,
+      brand: product.brand
+        ? {
+            name: product.brand.name,
+            id: product.brand.id,
+            slug: product.brand.slug,
+          }
+        : null,
+      slug: product.slug,
+      stock: product.stock,
+      points: product.points,
+      images: product.images,
+      popularity: product.popularity,
+      demand: product.demand,
+      lastInventoryCreated: product.lastInventoryCreated,
+    };
+  });
 
   const body = dataset.flatMap((doc) => [
     { index: { _index: 'products' } },
@@ -554,31 +556,45 @@ export const migrator = async (req, res) => {
   const { body: count } = await elasti.count({ index: 'products' });
   console.log(count);
 
-  */
-
-  const elasti = new Client({
+  /* const elasti = new Client({
     node:
       'https://avnadmin:dxceju1p3zefthxn@es-1c0c548d-parachut-222d.aivencloud.com:21267',
   });
 
   try {
-    await elasti.updateByQuery({
+    const { body: lensBody } = await elasti.search({
       index: 'products',
       body: {
         query: {
-          match: { id: '5e4a15fb-4688-4f29-8f3b-41a15184d3a3' },
-        },
-        script: {
-          source: 'ctx._source.stock = params.newStock',
-          params: {
-            newStock: 0,
+          bool: {
+            should: [
+              {
+                match: {
+                  name: {
+                    query: 'nikon d7100',
+                    operator: 'or',
+                    fuzziness: 3,
+                    analyzer: 'standard',
+                  },
+                },
+              },
+              {
+                match: {
+                  name: {
+                    query: 'nikon d7100',
+                    operator: 'and',
+                    boost: 2,
+                  },
+                },
+              },
+            ],
           },
         },
       },
     });
+
+    res.send(lensBody.hits.hits);
   } catch (e) {
     console.log(JSON.stringify(e));
-  }
-
-  res.send(200);
+  } */
 };
