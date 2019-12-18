@@ -221,21 +221,25 @@ export default class CheckoutResolver {
             });
           }
 
-          try {
-            subscriptionRes = await recurly.createSubscriptionChange(
-              recurlySubscription.value,
-              subscriptionReq,
-            );
-            _continue = true;
-          } catch (e) {
-            if (
-              e.message ===
-              'The submitted values match the current subscriptions values.'
-            ) {
+          if (!user.legacyPlan) {
+            try {
+              subscriptionRes = await recurly.createSubscriptionChange(
+                recurlySubscription.value,
+                subscriptionReq,
+              );
               _continue = true;
-            } else {
-              throw e;
+            } catch (e) {
+              if (
+                e.message ===
+                'The submitted values match the current subscriptions values.'
+              ) {
+                _continue = true;
+              } else {
+                throw e;
+              }
             }
+          } else {
+            _continue = true;
           }
         }
       } catch (e) {
