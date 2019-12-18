@@ -63,7 +63,7 @@ export default class AuthResolver {
     if (ctx.user) {
       try {
         const userIntegration = await UserIntegration.findOne({
-          where: { key: 'RECURLY_SUBSCRIPTION' },
+          where: { type: 'RECURLY_SUBSCRIPTION' },
         });
 
         const subscription = await recurly.getSubscription(
@@ -85,7 +85,7 @@ export default class AuthResolver {
         return {
           planName: subscription.plan.name,
           subtotal: subscription.subtotal,
-          nextBillingDate: new Date(subscription.current_period_ends_at),
+          nextBillingDate: new Date(subscription.currentPeriodEndsAt),
           additionalItems,
         };
       } catch (e) {
