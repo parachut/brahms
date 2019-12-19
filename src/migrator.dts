@@ -463,6 +463,8 @@ export const migrator = async (req, res) => {
     include: ['brand', 'category'],
   });
 
+  await elasti.indices.delete({ index: 'products' });
+
   await elasti.indices.create(
     {
       index: 'products',
@@ -479,9 +481,19 @@ export const migrator = async (req, res) => {
                 slug: { type: 'text' },
               },
             },
+            category: {
+              type: 'object',
+              properties: {
+                name: { type: 'text' },
+                id: { type: 'text' },
+                slug: { type: 'text' },
+              },
+            },
             slug: { type: 'text' },
             popularity: { type: 'integer' },
             images: { type: 'text' },
+            camera: { type: 'boolean' },
+            lens: { type: 'boolean' },
             demand: { type: 'integer' },
             points: { type: 'integer' },
             stock: { type: 'integer' },
@@ -495,18 +507,27 @@ export const migrator = async (req, res) => {
   );
 
   const dataset = products.map((product) => {
-    const categories = findBreadCrumbs(product.category);
+    let cats = null;
+    if (product.category) {
+      cats = findBreadCrumbs(product.category);
+    }
 
     return {
       id: product.id,
       name: product.name,
-      camera: !!categories.find(
-        (category) => category.name.search(/camera/i) !== -1,
-      ),
-      lens: !!categories.find(
-        (category) => category.name.search(/lens/i) !== -1,
-      ),
-      categories,
+      camera: cats
+        ? !!cats.find((category) => category.name.search('Cameras') !== -1)
+        : false,
+      lens: cats
+        ? !!cats.find((category) => category.name.search('Lenses') !== -1)
+        : false,
+      category: product.category
+        ? {
+            name: product.category.name,
+            id: product.category.id,
+            slug: product.category.slug,
+          }
+        : null,
       brand: product.brand
         ? {
             name: product.brand.name,
@@ -523,6 +544,9 @@ export const migrator = async (req, res) => {
       lastInventoryCreated: product.lastInventoryCreated,
     };
   });
+
+  console.log(dataset.find((i) => i.camera));
+  console.log(dataset.find((i) => i.lens));
 
   const body = dataset.flatMap((doc) => [
     { index: { _index: 'products' } },
@@ -554,7 +578,7 @@ export const migrator = async (req, res) => {
   }
 
   const { body: count } = await elasti.count({ index: 'products' });
-  console.log(count);
+  res.send(count);
 
   /* const elasti = new Client({
     node:

@@ -326,6 +326,7 @@ export class Shipment extends Model<Shipment> {
         Address.findByPk(instance.addressId),
         Warehouse.findOne({
           where: {},
+          order: [['createdAt', 'desc']],
         }),
       ]);
 
