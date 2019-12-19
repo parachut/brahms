@@ -1,6 +1,7 @@
 import Queue from 'bull';
 import Sequelize from 'sequelize';
 import {
+  AfterUpdate,
   AfterCreate,
   BeforeCreate,
   BelongsTo,
@@ -190,6 +191,13 @@ export class Address extends Model<Address> {
       addressId: instance.get('id'),
     });
     integrationQueue.add('update-address-census-data', {
+      addressId: instance.get('id'),
+    });
+  }
+
+  @AfterUpdate
+  static async udpateEasyPostId(instance: Address) {
+    integrationQueue.add('create-easypost-address', {
       addressId: instance.get('id'),
     });
   }
