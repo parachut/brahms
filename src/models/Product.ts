@@ -106,6 +106,10 @@ export class Product extends Model<Product> {
   @Column
   public slug!: string;
 
+  @Field({ nullable: true })
+  @Column
+  public aliases?: string;
+
   @Field((type) => Int)
   @Default(0)
   @Column
