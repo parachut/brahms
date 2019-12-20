@@ -1,31 +1,31 @@
-import { InputType, Field } from 'type-graphql';
+import { InputType, Field } from 'type-graphql'
 
 @InputType()
 export class AddressCreateInput {
   @Field()
-  public city!: string;
+  public city!: string
 
   @Field({ nullable: true })
-  public primary?: boolean;
+  public primary?: boolean
 
   @Field({ nullable: true })
-  public country?: string;
+  public country?: string
 
   @Field({ nullable: true })
-  public email?: string;
+  public email?: string
 
   @Field({ nullable: true })
-  public phone?: string;
+  public phone?: string
 
   @Field()
-  public state!: string;
+  public state!: string
 
   @Field()
-  public street1!: string;
+  public street!: string
 
   @Field({ nullable: true })
-  public street2?: string;
+  public street2?: string
 
   @Field()
-  public zip!: string;
+  public zip!: string
 }
