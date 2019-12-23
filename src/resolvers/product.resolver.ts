@@ -199,6 +199,11 @@ export default class ProductResolver {
     return Math.round(25 * calcDailyCommission(product.points));
   }
 
+  @FieldResolver()
+  estimatedCommissionLegacy(@Root() product: Product): number {
+    return Math.round(25 * calcDailyCommission(product.points, true));
+  }
+
   @FieldResolver((type) => [Category])
   async breadcrumbs(@Root() product: Product): Promise<Category[]> {
     const [productWithCategory, categories] = await Promise.all([
