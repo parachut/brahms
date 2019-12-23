@@ -363,7 +363,12 @@ export default class InventoryResolver {
           final.out,
         );
         final.amount =
-          calcDailyCommission(inventory.product.points) * final.days;
+          calcDailyCommission(
+            inventory.product.points,
+            new Date(inventory.createdAt).getTime() > 1576404000000
+              ? false
+              : true,
+          ) * final.days;
       }
     });
 
