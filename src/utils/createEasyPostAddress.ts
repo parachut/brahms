@@ -10,9 +10,9 @@ export const createEasyPostAddress = async (address) => {
     phone: address.phone,
     name: address.name,
     state: address.state,
-    street1: address.formattedStreet || address.street1,
+    street1: address.street,
+    street2: address.street2,
     zip: address.zip,
-    company: !address.formattedStreet ? 'Parachut Inc' : null,
   });
 
   await easyPostAddress.save();
