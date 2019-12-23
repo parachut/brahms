@@ -168,11 +168,8 @@ export default class AuthResolver {
     };
 
     const token = jsonwebtoken.sign(payload, privateKEY, signOptions);
-    const refreshToken = crypto.randomBytes(128).toString('hex');
 
-    await ctx.redis.set(`refreshToken:${user.id}`, refreshToken);
-
-    return { token, refreshToken };
+    return { token, refreshToken: '' };
   }
 
   @Mutation(() => UserTermAgreement)
@@ -288,11 +285,7 @@ export default class AuthResolver {
     };
 
     const token = jsonwebtoken.sign(payload, privateKEY, signOptions);
-    const refreshToken = crypto.randomBytes(128).toString('hex');
-
-    await ctx.redis.set(`refreshToken:${user.id}`, refreshToken);
-
-    return { token, refreshToken };
+    return { token, refreshToken: '' };
   }
 
   @Mutation(() => Boolean)

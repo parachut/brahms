@@ -90,47 +90,6 @@ const main = async () => {
     }),
   );
 
-  app.use(GQLPATH, (err, req, res, next) => {
-    if (
-      (err.name === 'UnauthorizedError' || err.name === 'TokenExpiredError') &&
-      req.method === 'POST'
-    ) {
-      console.log(err);
-      if (req.header('refresh-token')) {
-        jwt.verify(
-          req.headers.authorization,
-          fs.readFileSync('./certs/public.key', 'utf8'),
-          { ignoreExpiration: true, algorithms: ['RS256'] },
-          async function(err, decoded: any) {
-            if (err || typeof decoded === 'string' || !decoded) {
-              return res.status(401).send('invalid_refresh_token');
-            }
-
-            const id = await redis.get(`re:${req.header('refresh-token')}`);
-            if (id === decoded.payload.id) {
-              const token = jwt.sign(decoded.payload, jwtSecret, signOptions);
-              const refreshToken = crypto.randomBytes(128).toString('hex');
-
-              await redis.set(
-                `refreshToken:${refreshToken}`,
-                decoded.payload.id,
-              );
-
-              res.setHeader('authorization', token);
-              res.setHeader('refresh-token', refreshToken);
-
-              return next(req, res);
-            } else {
-              return res.status(401).send('invalid_refresh_token');
-            }
-          },
-        );
-      } else {
-        return res.status(401).send('no_refresh_token');
-      }
-    }
-  });
-
   server.applyMiddleware({ app, path: GQLPATH });
 
   app.use('/hooks', hooks);
