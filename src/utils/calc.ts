@@ -20,7 +20,10 @@ export function calcDailyRate(points: number): number {
   return Math.ceil((points * (dailyRatePercent / 100)) / 30.1);
 }
 
-export function calcDailyCommission(points: number, legacy: boolean): number {
+export function calcDailyCommission(
+  points: number,
+  legacy: boolean = false,
+): number {
   if (!process.env.CONTRIBUTOR_PERCENT) {
     throw new Error('Missing environment variable CONTRIBUTOR_PERCENT');
   }
