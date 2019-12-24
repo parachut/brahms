@@ -20,14 +20,12 @@ const geocodioPromise = util.promisify(geocodio.get).bind(geocodio);
 
 export async function easypost(req, res) {
   if (!req.body) {
-    console.log(req.body);
     return res.send('OK');
   }
 
   const { result, description } = req.body;
 
   if (!result || !description) {
-    console.log(req.body);
     return res.send('OK');
   }
 
