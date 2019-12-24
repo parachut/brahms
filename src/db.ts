@@ -1,8 +1,8 @@
-import { Sequelize } from 'sequelize-typescript';
-import parseDbUrl from 'parse-database-url';
+import { Sequelize } from 'sequelize-typescript'
+import parseDbUrl from 'parse-database-url'
 
-const dbConfig = parseDbUrl(process.env['DATABASE_URL']);
-const dbRead = parseDbUrl(process.env['HEROKU_POSTGRESQL_BRONZE_URL']);
+const dbConfig = parseDbUrl(process.env['DATABASE_URL'])
+const dbRead = parseDbUrl(process.env['HEROKU_POSTGRESQL_COPPER'])
 
 export const sequelize = new Sequelize(
   dbConfig.database,
@@ -32,4 +32,4 @@ export const sequelize = new Sequelize(
       idle: 30000,
     },
   },
-);
+)
