@@ -1,30 +1,30 @@
-import Analytics from 'analytics-node';
-import { ApolloServer } from 'apollo-server-express';
-import cors from 'cors';
-import crypto from 'crypto';
-import { createContext } from 'dataloader-sequelize';
-import express from 'express';
-import expressJwt from 'express-jwt';
-import fs from 'fs';
-import jwt from 'jsonwebtoken';
-import requestIp from 'request-ip';
-import { buildSchema } from 'type-graphql';
+import Analytics from 'analytics-node'
+import { ApolloServer } from 'apollo-server-express'
+import cors from 'cors'
+import crypto from 'crypto'
+import { createContext } from 'dataloader-sequelize'
+import express from 'express'
+import expressJwt from 'express-jwt'
+import fs from 'fs'
+import jwt from 'jsonwebtoken'
+import requestIp from 'request-ip'
+import { buildSchema } from 'type-graphql'
 // import jsonwebtoken from 'jsonwebtoken';
 
-require('dotenv').config();
+require('dotenv').config()
 
-import { signOptions } from '../certs';
-import { sequelize } from './db';
-import hooks from './hooks';
-import { redis } from './redis';
-import { customAuthChecker } from './utils/customAuthChecker';
+import { signOptions } from '../certs'
+import { sequelize } from './db'
+import hooks from './hooks'
+import { redis } from './redis'
+import { customAuthChecker } from './utils/customAuthChecker'
 
 // import { migrator } from './migrator';
-const PORT = process.env.PORT || 4000;
-const GQLPATH = '/graphql';
+const PORT = process.env.PORT || 4000
+const GQLPATH = '/graphql'
 
-const analytics = new Analytics(process.env.SEGMENT);
-const jwtSecret = fs.readFileSync('./certs/private.key', 'utf8');
+const analytics = new Analytics(process.env.SEGMENT)
+const jwtSecret = fs.readFileSync('./certs/private.key', 'utf8')
 
 const main = async () => {
   /**
@@ -42,9 +42,7 @@ const main = async () => {
 
    */
 
-  const dataloaderContext = createContext(sequelize);
-
-  sequelize.sync();
+  const dataloaderContext = createContext(sequelize)
 
   const schema = await buildSchema({
     authChecker: customAuthChecker,
@@ -52,12 +50,12 @@ const main = async () => {
       __dirname + '/resolvers/*.resolver.ts',
       __dirname + '/resolvers/*.resolver.js',
     ],
-  });
+  })
 
-  const app = express();
+  const app = express()
   // app.use('/migrator', migrator);
 
-  app.use(GQLPATH, cors());
+  app.use(GQLPATH, cors())
 
   const server = new ApolloServer({
     introspection: true,
@@ -65,7 +63,7 @@ const main = async () => {
     schema,
     context: ({ req, connection }: any) => {
       if (!req || !req.headers) {
-        return connection.context;
+        return connection.context
       }
 
       const context = {
@@ -76,10 +74,10 @@ const main = async () => {
         req,
         sequelize,
         user: req.user,
-      };
-      return context;
+      }
+      return context
     },
-  });
+  })
 
   app.use(
     GQLPATH,
@@ -88,11 +86,11 @@ const main = async () => {
       credentialsRequired: false,
       secret: fs.readFileSync('./certs/public.key', 'utf8'),
     }),
-  );
+  )
 
-  server.applyMiddleware({ app, path: GQLPATH });
+  server.applyMiddleware({ app, path: GQLPATH })
 
-  app.use('/hooks', hooks);
+  app.use('/hooks', hooks)
   // app.use('/cron', cron);
 
   app.use(
@@ -103,18 +101,18 @@ const main = async () => {
       modelsDir: __dirname + '/models',
       sequelize,
     }),
-  );
+  )
 
   fs.readdirSync(__dirname + '/routes').forEach((file) => {
     if (file[0] !== '.') {
-      app.use('/forest', require('./routes/' + file));
+      app.use('/forest', require('./routes/' + file))
     }
-  });
+  })
 
   app.listen(PORT, () => {
     // Instantiates a client.
-    console.log(`Listening on ${PORT}`);
-  });
-};
+    console.log(`Listening on ${PORT}`)
+  })
+}
 
-main();
+main()
