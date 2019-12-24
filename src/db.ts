@@ -2,7 +2,7 @@ import { Sequelize } from 'sequelize-typescript'
 import parseDbUrl from 'parse-database-url'
 
 const dbConfig = parseDbUrl(process.env['DATABASE_URL'])
-const dbRead = parseDbUrl(process.env['HEROKU_POSTGRESQL_COPPER'])
+const dbRead = parseDbUrl(process.env['HEROKU_POSTGRESQL_COPPER_URL'])
 
 export const sequelize = new Sequelize(
   dbConfig.database,
