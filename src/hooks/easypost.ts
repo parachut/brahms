@@ -1,22 +1,12 @@
-import Geocodio from 'geocodio';
-import pick from 'lodash/pick';
-import util from 'util';
 import { Op } from 'sequelize';
 
 import { Inventory } from '../models/Inventory';
 import { Shipment } from '../models/Shipment';
-import { ShipmentEvent } from '../models/ShipmentEvent';
 import { User } from '../models/User';
 import { ShipmentStatus } from '../enums/shipmentStatus';
 import { ShipmentType } from '../enums/shipmentType';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { InventoryStatus } from '../enums/inventoryStatus';
-
-const geocodio = new Geocodio({
-  api_key: process.env.GEOCODIO,
-});
-
-const geocodioPromise = util.promisify(geocodio.get).bind(geocodio);
 
 export async function easypost(req, res) {
   if (!req.body) {
@@ -61,12 +51,6 @@ export async function easypost(req, res) {
     shipment.signedBy = result.signed_by;
     shipment.estDeliveryDate = new Date(result.est_delivery_date);
     shipment.weight = result.weight;
-
-    for (const detail of result.tracking_details) {
-      const exists = await ShipmentEvent.findOne({
-        where: { shipmentId: shipment.id, datetime: detail.datetime },
-      });
-    }
 
     await shipment.save();
 
