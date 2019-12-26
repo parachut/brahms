@@ -66,33 +66,6 @@ export async function easypost(req, res) {
       const exists = await ShipmentEvent.findOne({
         where: { shipmentId: shipment.id, datetime: detail.datetime },
       });
-
-      if (
-        !exists &&
-        detail.tracking_location &&
-        detail.tracking_location.city
-      ) {
-        try {
-          const response = await geocodioPromise('geocode', {
-            q: `${detail.tracking_location.city}, ${detail.tracking_location.state}`,
-          });
-
-          let { results } = JSON.parse(response);
-          let [result] = results;
-
-          await ShipmentEvent.create({
-            ...pick(detail, ['message', 'source']),
-            datetime: new Date(detail.datetime),
-            status: <ShipmentStatus>ShipmentStatus[detail.status.toUpperCase()],
-            cordinates: {
-              type: 'Point',
-              coordinates: [result.location.lat, result.location.lng],
-            },
-          });
-        } catch (e) {
-          console.log(e);
-        }
-      }
     }
 
     await shipment.save();
