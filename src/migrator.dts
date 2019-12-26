@@ -1,13 +1,14 @@
-import algoliasearch from 'algoliasearch';
 import { addDays, differenceInCalendarDays } from 'date-fns';
 import last from 'lodash/last';
 import sortBy from 'lodash/sortBy';
 import { Op, Sequelize } from 'sequelize';
 const { Client } = require('@elastic/elasticsearch');
+import EasyPost from '@easypost/api';
 
 import { InventoryCondition } from './enums/inventoryCondition';
 import { InventoryStatus } from './enums/inventoryStatus';
-import { ShipmentDirection } from './enums/shipmentDirection';
+import { ShipmentStatus } from './enums/shipmentStatus';
+import { Shipment } from './models/Shipment';
 import { ShipmentType } from './enums/shipmentType';
 import { Income } from './models/Income';
 import { Inventory } from './models/Inventory';
@@ -18,6 +19,8 @@ import { Product } from './models/Product';
 
 // Database Name
 const dbName = 'parachut';
+
+const easyPost = new EasyPost(process.env.EASYPOST);
 
 // Create a new MongoClient
 // const client = new MongoClient(process.env.MONGO_URI);
@@ -269,7 +272,6 @@ export const migrator = async (req, res) => {
     });
   });
 */
-
   /* var stripe = require('stripe')(process.env.STRIPE);
 
   const users = await User.findAll({
@@ -310,7 +312,6 @@ export const migrator = async (req, res) => {
       }, i * 10000);
     }
   } */
-
   /** const inventory = await Inventory.findAll({
     where: {
       userId: { [Op.ne]: '367c7df6-3f36-4df6-abf3-5ea7c2418878' },
@@ -426,8 +427,6 @@ export const migrator = async (req, res) => {
       );
     }
   }
-
-  */
 
   const categories = await Category.findAll({});
 
@@ -578,7 +577,7 @@ export const migrator = async (req, res) => {
   }
 
   const { body: count } = await elasti.count({ index: 'products' });
-  res.send(count);
+  res.send(count); 
 
   /* const elasti = new Client({
     node:
@@ -621,4 +620,59 @@ export const migrator = async (req, res) => {
   } catch (e) {
     console.log(JSON.stringify(e));
   } */
+
+  const shipments = await Shipment.findAll({
+    where: {},
+    order: [['createdAt', 'desc']],
+  });
+
+  for (const shipment of shipments) {
+    try {
+      if (shipment.easyPostId) {
+        const eShipment = await easyPost.Shipment.retrieve(shipment.easyPostId);
+
+        if (eShipment.status !== 'pre_transit') {
+          shipment.status = <ShipmentStatus>(
+            ShipmentStatus[eShipment.status.toUpperCase().replace(/_/g, '')]
+          );
+
+          const carrierRecieved = eShipment.tracker.tracking_details.find(
+            (x: any) => x.status === 'in_transit',
+          );
+          const carrierDelivered = eShipment.tracker.tracking_details.find(
+            (x: any) => x.status === 'delivered',
+          );
+
+          if (!shipment.carrierDeliveredAt && carrierDelivered) {
+            shipment.carrierDeliveredAt = new Date(carrierDelivered.datetime);
+          }
+
+          if (!shipment.carrierReceivedAt && carrierRecieved) {
+            shipment.carrierReceivedAt = new Date(carrierRecieved.datetime);
+          }
+
+          if (!shipment.signedBy) {
+            shipment.signedBy = eShipment.tracker.signed_by;
+          }
+
+          if (
+            !shipment.estDeliveryDate &&
+            eShipment.tracker.est_delivery_date
+          ) {
+            shipment.estDeliveryDate = new Date(
+              eShipment.tracker.est_delivery_date,
+            );
+          }
+
+          if (!shipment.weight && eShipment.tracker.weight) {
+            shipment.weight = eShipment.tracker.weight;
+          }
+        }
+
+        await shipment.save();
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  }
 };
