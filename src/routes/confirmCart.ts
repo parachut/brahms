@@ -29,9 +29,16 @@ router.post(
     );
 
     for (const id of ids) {
-      communicationQueue.add('send-outbound-access-confirmation-email', {
-        cartId: id,
-      });
+      communicationQueue.add(
+        'send-outbound-access-confirmation-email',
+        {
+          cartId: id,
+        },
+        {
+          removeOnComplete: true,
+          retry: 2,
+        },
+      );
 
       const cart = await Cart.findByPk(id, {
         include: ['inventory'],
@@ -43,7 +50,10 @@ router.post(
         cartId: id,
       });
 
-      await shipment.$set('inventory', cart.inventory.map((item) => item.id));
+      await shipment.$set(
+        'inventory',
+        cart.inventory.map((item) => item.id),
+      );
     }
 
     await res.send({ success: 'Cart(s) are confirmed!' });

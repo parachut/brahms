@@ -80,7 +80,10 @@ export class ShipKit extends Model<ShipKit> {
   @HasMany(() => Shipment, 'shipKitId')
   public shipments: Shipment[];
 
-  @BelongsToMany(() => Inventory, () => ShipKitInventory)
+  @BelongsToMany(
+    () => Inventory,
+    () => ShipKitInventory,
+  )
   public inventory: Inventory[];
 
   @CreatedAt
@@ -138,7 +141,11 @@ export class ShipKit extends Model<ShipKit> {
 
       await pMap(
         shipments,
-        (s) => s.$set('inventory', inventory.map((i) => i.id)),
+        (s) =>
+          s.$set(
+            'inventory',
+            inventory.map((i) => i.id),
+          ),
         {
           concurrency: 2,
         },
@@ -152,24 +159,34 @@ export class ShipKit extends Model<ShipKit> {
         concurrency: 2,
       });
 
-      await instance.$set('inventory', inventory.map((i) => i.id));
+      await instance.$set(
+        'inventory',
+        inventory.map((i) => i.id),
+      );
 
       instance.confirmedAt = new Date();
 
-      communicationQueue.add('send-simple-email', {
-        to: user.email,
-        id: instance.airbox ? 13493488 : 13394094,
-        data: {
-          name: user.parsedName.first,
-          labelUrl: instance.airbox
-            ? airboxShipment.labelUrl
-            : returnShipment.labelUrl,
-          trackerUrl: instance.airbox
-            ? airboxShipment.publicUrl
-            : returnShipment.publicUrl,
-          chutItems: inventory,
+      communicationQueue.add(
+        'send-simple-email',
+        {
+          to: user.email,
+          id: instance.airbox ? 13493488 : 13394094,
+          data: {
+            name: user.parsedName.first,
+            labelUrl: instance.airbox
+              ? airboxShipment.labelUrl
+              : returnShipment.labelUrl,
+            trackerUrl: instance.airbox
+              ? airboxShipment.publicUrl
+              : returnShipment.publicUrl,
+            chutItems: inventory,
+          },
         },
-      });
+        {
+          removeOnComplete: true,
+          retry: 2,
+        },
+      );
 
       await instance.save();
     }

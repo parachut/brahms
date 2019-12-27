@@ -114,10 +114,17 @@ export default class AddressResolver {
         userId: ctx.user.id,
       });
 
-      fraudQueue.add('check-clearbit-fraud', {
-        userId: ctx.user.id,
-        ipAddress: ctx.clientIp,
-      });
+      fraudQueue.add(
+        'check-clearbit-fraud',
+        {
+          userId: ctx.user.id,
+          ipAddress: ctx.clientIp,
+        },
+        {
+          removeOnComplete: true,
+          retry: 2,
+        },
+      );
 
       return newAddress;
     }
@@ -144,10 +151,17 @@ export default class AddressResolver {
         userId: ctx.user.id,
       });
 
-      fraudQueue.add('check-clearbit-fraud', {
-        userId: ctx.user.id,
-        ipAddress: ctx.clientIp,
-      });
+      fraudQueue.add(
+        'check-clearbit-fraud',
+        {
+          userId: ctx.user.id,
+          ipAddress: ctx.clientIp,
+        },
+        {
+          removeOnComplete: true,
+          retry: 2,
+        },
+      );
 
       await address.destroy();
       return newAddress;

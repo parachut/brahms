@@ -222,21 +222,56 @@ export class User extends Model<User> {
 
   @AfterCreate
   static async linkAccounts(instance: User) {
-    integrationQueue.add('create-recurly-user', {
-      userId: instance.get('id'),
-    });
-    integrationQueue.add('create-authy-user', {
-      userId: instance.get('id'),
-    });
-    integrationQueue.add('create-front-contact', {
-      userId: instance.get('id'),
-    });
-    integrationQueue.add('create-active-campaign-contact', {
-      userId: instance.get('id'),
-    });
-    integrationQueue.add('check-clearbit', {
-      userId: instance.get('id'),
-    });
+    integrationQueue.add(
+      'create-recurly-user',
+      {
+        userId: instance.get('id'),
+      },
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
+    integrationQueue.add(
+      'create-authy-user',
+      {
+        userId: instance.get('id'),
+      },
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
+    integrationQueue.add(
+      'create-front-contact',
+      {
+        userId: instance.get('id'),
+      },
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
+    integrationQueue.add(
+      'create-active-campaign-contact',
+      {
+        userId: instance.get('id'),
+      },
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
+    integrationQueue.add(
+      'check-clearbit',
+      {
+        userId: instance.get('id'),
+      },
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
   }
 
   @AfterUpdate
@@ -248,9 +283,16 @@ export class User extends Model<User> {
           type: 'AUTHY',
         },
       });
-      integrationQueue.add('create-authy-user', {
-        userId: instance.get('id'),
-      });
+      integrationQueue.add(
+        'create-authy-user',
+        {
+          userId: instance.get('id'),
+        },
+        {
+          removeOnComplete: true,
+          retry: 2,
+        },
+      );
     }
   }
 }

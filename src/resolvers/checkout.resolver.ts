@@ -430,9 +430,16 @@ export default class CheckoutResolver {
       });
 
       for (const item of cart.items) {
-        internalQueue.add('update-product-stock', {
-          productId: item.productId,
-        });
+        internalQueue.add(
+          'update-product-stock',
+          {
+            productId: item.productId,
+          },
+          {
+            removeOnComplete: true,
+            retry: 2,
+          },
+        );
       }
 
       return cart;

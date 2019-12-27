@@ -240,9 +240,16 @@ export class Shipment extends Model<Shipment> {
         instance.direction === ShipmentDirection.OUTBOUND &&
         instance.type === ShipmentType.ACCESS
       ) {
-        communicationQueue.add('send-delivery-email', {
-          shipmentId: instance.id,
-        });
+        communicationQueue.add(
+          'send-delivery-email',
+          {
+            shipmentId: instance.id,
+          },
+          {
+            removeOnComplete: true,
+            retry: 2,
+          },
+        );
 
         if (!user.billingDay) {
           user.billingDay = new Date().getDate();
@@ -265,17 +272,24 @@ export class Shipment extends Model<Shipment> {
         instance.direction === ShipmentDirection.OUTBOUND &&
         instance.type === ShipmentType.ACCESS
       ) {
-        communicationQueue.add('send-simple-email', {
-          to: user.email,
-          id: 13494640,
-          data: {
-            name: user.parsedName.first,
-            date: new Date().toLocaleDateString(),
-            formattedAddress: address.formattedAddress,
-            trackerUrl: instance.publicUrl,
-            chutItems: inventory.map((i) => i.product.name),
+        communicationQueue.add(
+          'send-simple-email',
+          {
+            to: user.email,
+            id: 13494640,
+            data: {
+              name: user.parsedName.first,
+              date: new Date().toLocaleDateString(),
+              formattedAddress: address.formattedAddress,
+              trackerUrl: instance.publicUrl,
+              chutItems: inventory.map((i) => i.product.name),
+            },
           },
-        });
+          {
+            removeOnComplete: true,
+            retry: 2,
+          },
+        );
       }
     }
   }
@@ -430,9 +444,16 @@ export class Shipment extends Model<Shipment> {
       instance.labelUrl = easyPostShipment.postage_label.label_url;
 
       if (instance.cartId && instance.type === ShipmentType.ACCESS) {
-        await communicationQueue.add('send-outbound-access-shipment-email', {
-          shipmentId: shipment.id,
-        });
+        await communicationQueue.add(
+          'send-outbound-access-shipment-email',
+          {
+            shipmentId: shipment.id,
+          },
+          {
+            removeOnComplete: true,
+            retry: 2,
+          },
+        );
       }
     }
   }

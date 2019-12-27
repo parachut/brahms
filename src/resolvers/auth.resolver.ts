@@ -157,10 +157,17 @@ export default class AuthResolver {
       },
     });
 
-    integrationQueue.add('update-user-geolocation', {
-      userId: user.get('id'),
-      ipAddress: ctx.clientIp,
-    });
+    integrationQueue.add(
+      'update-user-geolocation',
+      {
+        userId: user.get('id'),
+        ipAddress: ctx.clientIp,
+      },
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
 
     const payload: IJWTPayLoad = {
       id: user.id,
@@ -251,10 +258,17 @@ export default class AuthResolver {
       });
     }
 
-    integrationQueue.add('update-user-geolocation', {
-      userId: user.get('id'),
-      ipAddress: ctx.clientIp,
-    });
+    integrationQueue.add(
+      'update-user-geolocation',
+      {
+        userId: user.get('id'),
+        ipAddress: ctx.clientIp,
+      },
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
 
     ctx.analytics.identify({
       traits: {
@@ -271,13 +285,20 @@ export default class AuthResolver {
       },
     });
 
-    communicationQueue.add('send-simple-email', {
-      to: user.email,
-      id: filteredRoles.includes(UserRole.CONTRIBUTOR) ? 13193333 : 13136612,
-      data: {
-        name: user.parsedName.first,
+    communicationQueue.add(
+      'send-simple-email',
+      {
+        to: user.email,
+        id: filteredRoles.includes(UserRole.CONTRIBUTOR) ? 13193333 : 13136612,
+        data: {
+          name: user.parsedName.first,
+        },
       },
-    });
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
 
     const payload: IJWTPayLoad = {
       id: user.get('id'),

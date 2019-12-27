@@ -187,18 +187,39 @@ export class Address extends Model<Address> {
 
   @AfterCreate
   static async createEasyPostId(instance: Address) {
-    integrationQueue.add('create-easypost-address', {
-      addressId: instance.get('id'),
-    });
-    integrationQueue.add('update-address-census-data', {
-      addressId: instance.get('id'),
-    });
+    integrationQueue.add(
+      'create-easypost-address',
+      {
+        addressId: instance.get('id'),
+      },
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
+    integrationQueue.add(
+      'update-address-census-data',
+      {
+        addressId: instance.get('id'),
+      },
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
   }
 
   @AfterUpdate
   static async udpateEasyPostId(instance: Address) {
-    integrationQueue.add('create-easypost-address', {
-      addressId: instance.get('id'),
-    });
+    integrationQueue.add(
+      'create-easypost-address',
+      {
+        addressId: instance.get('id'),
+      },
+      {
+        removeOnComplete: true,
+        retry: 2,
+      },
+    );
   }
 }
