@@ -1,11 +1,13 @@
-import { sendEmail } from '../utils/sendEmail';
+import { sendEmail } from '../utils/sendEmail'
 
-async function sendSimpleEmail(job) {
-  const email = await sendEmail(job.data);
+async function sendSimpleEmail (job) {
+  try {
+    await sendEmail(job.data)
+  } catch (e) {
+    console.log(e)
+  }
 
-  console.log(email);
-
-  return job.data;
+  return 'sent'
 }
 
-export default sendSimpleEmail;
+export default sendSimpleEmail
