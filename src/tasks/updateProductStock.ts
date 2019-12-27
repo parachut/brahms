@@ -4,7 +4,11 @@ async function updateProductStock(job) {
   const { productId } = job.data || job;
 
   if (productId) {
-    await updateProductStockUtil(productId);
+    try {
+      await updateProductStockUtil(productId);
+    } catch (e) {
+      console.log(e);
+    }
     return productId;
   }
 }
