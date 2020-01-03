@@ -123,7 +123,7 @@ export default class BankAccountResolver {
                   })
                   .then((res) => res.headers.get('location'));
 
-                userBankAccount = await UserBankAccount.update(
+                await UserBankAccount.update(
                   {
                     primary: false,
                   },
@@ -134,7 +134,7 @@ export default class BankAccountResolver {
                   },
                 );
 
-                await UserBankAccount.create({
+                userBankAccount = await UserBankAccount.create({
                   accountId: account.account_id,
                   primary: true,
                   name: account.name,
