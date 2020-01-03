@@ -99,14 +99,14 @@ export default class BankAccountResolver {
           userId: ctx.user.id,
         } as UserIntegration);
 
-        const { accounts } = await plaidClient.getBalance(accessToken);
-
+        let fundingSource = null;
         let userBankAccount = null;
+
+        const { accounts } = await plaidClient.getAccounts(accessToken);
 
         if (accounts) {
           for (const account of accounts) {
             if (account.account_id === accountId) {
-              let fundingSource = null;
               try {
                 const {
                   processor_token: plaidToken,
@@ -122,45 +122,57 @@ export default class BankAccountResolver {
                     name: account.name,
                   })
                   .then((res) => res.headers.get('location'));
+
+                userBankAccount = await UserBankAccount.update(
+                  {
+                    primary: false,
+                  },
+                  {
+                    where: {
+                      userId: ctx.user.id,
+                    },
+                  },
+                );
+
+                await UserBankAccount.create({
+                  accountId: account.account_id,
+                  primary: true,
+                  name: account.name,
+                  mask: account.mask,
+                  subtype: account.subtype,
+                  userId: ctx.user.id,
+                  plaidUrl: fundingSource,
+                } as UserBankAccount);
               } catch (e) {
                 console.log(e);
                 fundingSource = JSON.parse(e)._links.about.href;
               }
-
-              userBankAccount = await UserBankAccount.create({
-                accountId: account.account_id,
-                primary: account.account_id === accountId,
-                name: account.name,
-                mask: account.mask,
-                subtype: account.subtype,
-                userId: ctx.user.id,
-                plaidUrl: fundingSource,
-              } as UserBankAccount);
             }
-
-            await UserBankBalance.update(
-              {
-                primary: false,
-              },
-              {
-                where: {
-                  userId: ctx.user.id,
-                },
-              },
-            );
-
-            await UserBankBalance.create({
-              available: account.balances.available
-                ? Math.round(account.balances.available * 100)
-                : null,
-              name: account.name,
-              limit: account.balances.limit
-                ? Math.round(account.balances.limit * 100)
-                : null,
-              current: Math.round(account.balances.current * 100),
-              userId: ctx.user.id,
-            } as UserBankBalance);
           }
+        }
+
+        try {
+          const { accounts: accountBalances } = await plaidClient.getBalance(
+            accessToken,
+          );
+
+          if (accountBalances) {
+            for (const account of accountBalances) {
+              await UserBankBalance.create({
+                available: account.balances.available
+                  ? Math.round(account.balances.available * 100)
+                  : null,
+                name: account.name,
+                limit: account.balances.limit
+                  ? Math.round(account.balances.limit * 100)
+                  : null,
+                current: Math.round(account.balances.current * 100),
+                userId: ctx.user.id,
+              } as UserBankBalance);
+            }
+          }
+        } catch (e) {
+          console.log(e);
         }
 
         return userBankAccount;
