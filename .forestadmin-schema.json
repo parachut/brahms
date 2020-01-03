@@ -3068,6 +3068,20 @@
       "relationship": "HasMany",
       "validations": []
     }, {
+      "field": "releaseDate",
+      "type": "Date",
+      "defaultValue": null,
+      "enums": null,
+      "integration": null,
+      "isFilterable": true,
+      "isReadOnly": false,
+      "isRequired": false,
+      "isSortable": true,
+      "isVirtual": false,
+      "reference": null,
+      "inverseOf": null,
+      "validations": []
+    }, {
       "field": "shippingWeight",
       "type": "Number",
       "defaultValue": null,

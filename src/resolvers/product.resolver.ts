@@ -121,7 +121,7 @@ export default class ProductResolver {
             query: filterDefault.search.toLowerCase(),
             operator: 'and',
             fuzziness: 'AUTO',
-            analyzer: 'standard',
+            analyzer: 'pattern',
           },
         },
       });
