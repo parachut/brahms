@@ -184,6 +184,11 @@ export default class ProductResolver {
     return calcDailyCommission(product.points);
   }
 
+  @FieldResolver()
+  dailyCommissionLegacy(@Root() product: Product): number {
+    return calcDailyCommission(product.points, true);
+  }
+
   @FieldResolver((type) => Int)
   dailyRate(@Root() product: Product): number {
     return calcDailyRate(product.points);
