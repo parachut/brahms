@@ -88,6 +88,7 @@ export default class ProductResolver {
     }
 
     const filtered = []
+    const should = []
 
     if (sort.startsWith('LAST_INVENTORY_CREATED')) {
       filtered.push({
@@ -115,7 +116,7 @@ export default class ProductResolver {
     ]
 
     if (filterDefault.search) {
-      filtered.push({
+      should.push({
         match: {
           name: {
             query: filterDefault.search.toLowerCase(),
@@ -126,7 +127,7 @@ export default class ProductResolver {
         },
       })
 
-      filtered.push({
+      should.push({
         match: {
           name: {
             query: filterDefault.search.toLowerCase(),
@@ -159,6 +160,7 @@ export default class ProductResolver {
           bool: {
             must,
             filter: filtered,
+            should: should,
           },
         },
       },
