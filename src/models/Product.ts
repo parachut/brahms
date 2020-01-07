@@ -1,5 +1,5 @@
-import algoliasearch from 'algoliasearch';
-import Sequelize from 'sequelize';
+import algoliasearch from 'algoliasearch'
+import Sequelize from 'sequelize'
 import {
   AfterCreate,
   AfterUpdate,
@@ -17,23 +17,23 @@ import {
   Table,
   Unique,
   UpdatedAt,
-} from 'sequelize-typescript';
-import { Field, ID, Int, ObjectType } from 'type-graphql';
-import urlSlug from 'url-slug';
-import { Client } from '@elastic/elasticsearch';
+} from 'sequelize-typescript'
+import { Field, ID, Int, ObjectType } from 'type-graphql'
+import urlSlug from 'url-slug'
+import { Client } from '@elastic/elasticsearch'
 
-import { Brand } from './Brand';
-import { Category } from './Category';
-import { File } from './File';
-import { Inventory } from './Inventory';
-import { ProductAttributeValue } from './ProductAttributeValue';
-import { Queue } from './Queue';
-import { formatAlgoliaProduct } from '../utils/formatAlgoliaProduct';
+import { Brand } from './Brand'
+import { Category } from './Category'
+import { File } from './File'
+import { Inventory } from './Inventory'
+import { ProductAttributeValue } from './ProductAttributeValue'
+import { Queue } from './Queue'
+import { formatAlgoliaProduct } from '../utils/formatAlgoliaProduct'
 
 const elasti = new Client({
   node:
-    'https://avnadmin:dxceju1p3zefthxn@es-1c0c548d-parachut-222d.aivencloud.com:21267',
-});
+    'https://elastic:acNbgQRsl0OUznitAboYVss6@cb0a068fb8d64b3294ede898764e8f96.us-central1.gcp.cloud.es.io:9243',
+})
 
 @ObjectType()
 @Table({
@@ -45,131 +45,131 @@ export class Product extends Model<Product> {
   @PrimaryKey
   @Default(Sequelize.literal('uuid_generate_v4()'))
   @Column(DataType.UUID)
-  public id!: string;
+  public id!: string
 
   @Default(true)
   @Column
-  public active!: boolean;
+  public active!: boolean
 
   @Column(DataType.FLOAT)
-  public length?: number;
+  public length?: number
 
   @Field({ nullable: true })
   @Column(DataType.TEXT)
-  public description?: string;
+  public description?: string
 
   @Field((type) => [String], { nullable: true })
   @Column(DataType.ARRAY(DataType.STRING(1024)))
-  public features?: string[];
+  public features?: string[]
 
   @Column(DataType.FLOAT)
-  public height?: number;
+  public height?: number
 
   @Field((type) => [String])
   @Default([])
   @Column(DataType.ARRAY(DataType.STRING(1024)))
-  public images?: string[];
+  public images?: string[]
 
   @Field((type) => [String])
   @Default([])
   @Column(DataType.ARRAY(DataType.STRING(1024)))
-  public inTheBox?: string[];
+  public inTheBox?: string[]
 
   @Default(new Date())
   @Column
-  public lastInventoryCreated!: Date;
+  public lastInventoryCreated!: Date
 
   @Field({ nullable: true })
   @Column
-  public mfr?: string;
+  public mfr?: string
 
   @Field()
   @Unique
   @Column
-  public name!: string;
+  public name!: string
 
   @Field((type) => Int)
   @Default(0)
   @Column
-  public points!: number;
+  public points!: number
 
   @Field((type) => Int)
   @Default(0)
   @Column
-  public popularity!: number;
+  public popularity!: number
 
   @Field((type) => Int, { nullable: true })
   @Column
-  public shippingWeight?: number;
+  public shippingWeight?: number
 
   @Field()
   @Column
-  public slug!: string;
+  public slug!: string
 
   @Field({ nullable: true })
   @Column
-  public aliases?: string;
+  public aliases?: string
 
   @Field((type) => Int)
   @Default(0)
   @Column
-  public stock!: number;
+  public stock!: number
 
   @Field((type) => Int)
   @Default(0)
   @Column
-  public demand!: number;
+  public demand!: number
 
   @Column
-  public weight?: number;
+  public weight?: number
 
   @Column
-  public width?: number;
+  public width?: number
 
   @Column
-  public releaseDate?: Date;
+  public releaseDate?: Date
 
   @HasMany(() => File, 'productId')
-  public files?: File[];
+  public files?: File[]
 
   @HasMany(() => Inventory, 'productId')
-  public inventory?: Inventory[];
+  public inventory?: Inventory[]
 
   @HasMany(() => Queue, 'productId')
-  public queues?: Queue[];
+  public queues?: Queue[]
 
   @HasMany(() => ProductAttributeValue, 'productId')
-  public attributesValues?: ProductAttributeValue[];
+  public attributesValues?: ProductAttributeValue[]
 
   @Field((type) => Brand, { nullable: true })
   @BelongsTo(() => Brand)
-  brand: Brand;
+  brand: Brand
 
   @ForeignKey(() => Brand)
   @Column(DataType.UUID)
-  public brandId!: string;
+  public brandId!: string
 
   @BelongsTo(() => Category)
-  category: Category;
+  category: Category
 
   @ForeignKey(() => Category)
   @Column(DataType.UUID)
-  public categoryId?: string;
+  public categoryId?: string
 
   @CreatedAt
-  public createdAt!: Date;
+  public createdAt!: Date
 
   @UpdatedAt
-  public updatedAt!: Date;
+  public updatedAt!: Date
 
   @BeforeCreate
-  static createSlug(instance: Product) {
-    instance.slug = urlSlug(instance.name);
+  static createSlug (instance: Product) {
+    instance.slug = urlSlug(instance.name)
   }
 
   @AfterCreate
-  static async createAlgolia(instance: Product) {
-    const productMap = await formatAlgoliaProduct(instance);
+  static async createAlgolia (instance: Product) {
+    const productMap = await formatAlgoliaProduct(instance)
 
     for (const product of productMap) {
       await elasti.index({
@@ -177,14 +177,14 @@ export class Product extends Model<Product> {
         body: {
           product,
         },
-      });
+      })
     }
   }
 
   @AfterUpdate
   @AfterBulkUpdate
-  static async updateAlgolia(instance: Product) {
-    const productMap = await formatAlgoliaProduct(instance);
+  static async updateAlgolia (instance: Product) {
+    const productMap = await formatAlgoliaProduct(instance)
 
     for (const product of productMap) {
       await elasti.updateByQuery({
@@ -206,7 +206,7 @@ export class Product extends Model<Product> {
             },
           },
         },
-      });
+      })
     }
   }
 }
