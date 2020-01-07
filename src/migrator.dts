@@ -1,26 +1,26 @@
-import { addDays, differenceInCalendarDays } from 'date-fns';
-import last from 'lodash/last';
-import sortBy from 'lodash/sortBy';
-import { Op, Sequelize } from 'sequelize';
-const { Client } = require('@elastic/elasticsearch');
-import EasyPost from '@easypost/api';
+import { addDays, differenceInCalendarDays } from 'date-fns'
+import last from 'lodash/last'
+import sortBy from 'lodash/sortBy'
+import { Op, Sequelize } from 'sequelize'
+const { Client } = require('@elastic/elasticsearch')
+import EasyPost from '@easypost/api'
 
-import { InventoryCondition } from './enums/inventoryCondition';
-import { InventoryStatus } from './enums/inventoryStatus';
-import { ShipmentStatus } from './enums/shipmentStatus';
-import { Shipment } from './models/Shipment';
-import { ShipmentType } from './enums/shipmentType';
-import { Income } from './models/Income';
-import { Inventory } from './models/Inventory';
-import { calcDailyCommission, calcDailyRate } from './utils/calc';
-import { User } from './models/User';
-import { Category } from './models/Category';
-import { Product } from './models/Product';
+import { InventoryCondition } from './enums/inventoryCondition'
+import { InventoryStatus } from './enums/inventoryStatus'
+import { ShipmentStatus } from './enums/shipmentStatus'
+import { Shipment } from './models/Shipment'
+import { ShipmentType } from './enums/shipmentType'
+import { Income } from './models/Income'
+import { Inventory } from './models/Inventory'
+import { calcDailyCommission, calcDailyRate } from './utils/calc'
+import { User } from './models/User'
+import { Category } from './models/Category'
+import { Product } from './models/Product'
 
 // Database Name
-const dbName = 'parachut';
+const dbName = 'parachut'
 
-const easyPost = new EasyPost(process.env.EASYPOST);
+const easyPost = new EasyPost(process.env.EASYPOST)
 
 // Create a new MongoClient
 // const client = new MongoClient(process.env.MONGO_URI);
@@ -31,7 +31,7 @@ const inventoryConditionMap = {
   Excellent: InventoryCondition.EXCELLENT,
   Used: InventoryCondition.USED,
   Damaged: InventoryCondition.DAMAGED,
-};
+}
 
 const inventoryStatusMap = {
   Queue: InventoryStatus.NEW,
@@ -45,7 +45,7 @@ const inventoryStatusMap = {
   Sold: InventoryStatus.RETURNED,
   'Not Approved': InventoryStatus.PENDING,
   Damaged: InventoryStatus.OUTOFSERVICE,
-};
+}
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
@@ -53,7 +53,7 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialectOptions: {
     ssl: true,
   },
-});
+})
 
 export const migrator = async (req, res) => {
   /**
@@ -428,41 +428,43 @@ export const migrator = async (req, res) => {
     }
   }
 
-  const categories = await Category.findAll({});
+  */
 
-  function findBreadCrumbs(cat: Category): Category[] {
-    const _categories = [cat];
+  const categories = await Category.findAll({})
+
+  function findBreadCrumbs (cat: Category): Category[] {
+    const _categories = [cat]
 
     const getParent = async (child: Category) => {
       if (child.parentId) {
-        const parent = categories.find((cate) => cate.id === child.parentId);
+        const parent = categories.find((cate) => cate.id === child.parentId)
 
         if (parent) {
-          _categories.push(parent);
+          _categories.push(parent)
 
           if (parent.parentId) {
-            getParent(parent);
+            getParent(parent)
           }
         }
       }
-    };
+    }
 
-    getParent(cat);
-    return _categories;
+    getParent(cat)
+    return _categories
   }
 
-  console.log('start');
+  console.log('start')
 
   const elasti = new Client({
     node:
-      'https://avnadmin:dxceju1p3zefthxn@es-1c0c548d-parachut-222d.aivencloud.com:21267',
-  });
+      'https://elastic:acNbgQRsl0OUznitAboYVss6@cb0a068fb8d64b3294ede898764e8f96.us-central1.gcp.cloud.es.io:9243',
+  })
 
   const products = await Product.findAll({
     include: ['brand', 'category'],
-  });
+  })
 
-  await elasti.indices.delete({ index: 'products' });
+  await elasti.indices.delete({ index: 'products' })
 
   await elasti.indices.create(
     {
@@ -503,12 +505,12 @@ export const migrator = async (req, res) => {
       },
     },
     { ignore: [400] },
-  );
+  )
 
   const dataset = products.map((product) => {
-    let cats = null;
+    let cats = null
     if (product.category) {
-      cats = findBreadCrumbs(product.category);
+      cats = findBreadCrumbs(product.category)
     }
 
     return {
@@ -541,26 +543,23 @@ export const migrator = async (req, res) => {
       popularity: product.popularity,
       demand: product.demand,
       lastInventoryCreated: product.lastInventoryCreated,
-    };
-  });
-
-  console.log(dataset.find((i) => i.camera));
-  console.log(dataset.find((i) => i.lens));
+    }
+  })
 
   const body = dataset.flatMap((doc) => [
     { index: { _index: 'products' } },
     doc,
-  ]);
+  ])
 
-  const { body: bulkResponse } = await elasti.bulk({ refresh: true, body });
+  const { body: bulkResponse } = await elasti.bulk({ refresh: true, body })
 
   if (bulkResponse.errors) {
-    const erroredDocuments = [];
+    const erroredDocuments = []
     // The items array has the same order of the dataset we just indexed.
     // The presence of the `error` key indicates that the operation
     // that we did for the document has failed.
     bulkResponse.items.forEach((action, i) => {
-      const operation = Object.keys(action)[0];
+      const operation = Object.keys(action)[0]
       if (action[operation].error) {
         erroredDocuments.push({
           // If the status is 429 it means that you can retry the document,
@@ -570,14 +569,14 @@ export const migrator = async (req, res) => {
           error: action[operation].error,
           operation: body[i * 2],
           document: body[i * 2 + 1],
-        });
+        })
       }
-    });
-    console.log(erroredDocuments);
+    })
+    console.log(erroredDocuments)
   }
 
-  const { body: count } = await elasti.count({ index: 'products' });
-  res.send(count); 
+  const { body: count } = await elasti.count({ index: 'products' })
+  res.send(count)
 
   /* const elasti = new Client({
     node:
@@ -619,7 +618,9 @@ export const migrator = async (req, res) => {
     res.send(lensBody.hits.hits);
   } catch (e) {
     console.log(JSON.stringify(e));
-  } */
+  }
+
+  /*
 
   const shipments = await Shipment.findAll({
     where: {},
@@ -675,4 +676,6 @@ export const migrator = async (req, res) => {
       console.log(e);
     }
   }
-};
+
+   */
+}
