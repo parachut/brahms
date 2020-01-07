@@ -87,7 +87,15 @@ export default class ProductResolver {
       sortBy.push({ popularity: { order: 'desc', mode: 'avg' } })
     }
 
-    const should = []
+    const filtered = []
+
+    if (sort.startsWith('LAST_INVENTORY_CREATED')) {
+      filtered.push({
+        exists: {
+          field: 'lastInventoryCreated',
+        },
+      })
+    }
 
     const filterDefault = {
       minPoints: 0,
@@ -106,32 +114,14 @@ export default class ProductResolver {
       },
     ]
 
-    if (sort.startsWith('LAST_INVENTORY_CREATED')) {
-      must.push({
-        exists: {
-          field: 'lastInventoryCreated',
-        },
-      })
-    }
-
     if (filterDefault.search) {
-      should.push({
-        match: {
-          name: {
-            query: filterDefault.search.toLowerCase(),
-            operator: 'or',
-            fuzziness: 'AUTO',
-            analyzer: 'pattern',
-          },
-        },
-      })
-
-      should.push({
+      filtered.push({
         match: {
           name: {
             query: filterDefault.search.toLowerCase(),
             operator: 'and',
-            boost: 2,
+            fuzziness: 'AUTO',
+            analyzer: 'pattern',
           },
         },
       })
@@ -158,7 +148,7 @@ export default class ProductResolver {
         query: {
           bool: {
             must,
-            should: should,
+            filter: filtered,
           },
         },
       },
