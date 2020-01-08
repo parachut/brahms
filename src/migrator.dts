@@ -4,6 +4,7 @@ import sortBy from 'lodash/sortBy'
 import { Op, Sequelize } from 'sequelize'
 const { Client } = require('@elastic/elasticsearch')
 import EasyPost from '@easypost/api'
+import pMap from 'p-map'
 
 import { InventoryCondition } from './enums/inventoryCondition'
 import { InventoryStatus } from './enums/inventoryStatus'
@@ -473,7 +474,7 @@ export const migrator = async (req, res) => {
         mappings: {
           properties: {
             id: { type: 'text' },
-            name: { type: 'text' },
+            name: { type: 'search_as_you_type' },
             brand: {
               type: 'object',
               properties: {
@@ -546,6 +547,8 @@ export const migrator = async (req, res) => {
     }
   })
 
+  console.log(dataset.find((d) => d.name === 'Hasselblad H5D-50c Multi-Shot'))
+
   const body = dataset.flatMap((doc) => [
     { index: { _index: 'products' } },
     doc,
@@ -577,48 +580,6 @@ export const migrator = async (req, res) => {
 
   const { body: count } = await elasti.count({ index: 'products' })
   res.send(count)
-
-  /* const elasti = new Client({
-    node:
-      'https://avnadmin:dxceju1p3zefthxn@es-1c0c548d-parachut-222d.aivencloud.com:21267',
-  });
-
-  try {
-    const { body: lensBody } = await elasti.search({
-      index: 'products',
-      body: {
-        query: {
-          bool: {
-            should: [
-              {
-                match: {
-                  name: {
-                    query: 'nikon d7100',
-                    operator: 'or',
-                    fuzziness: 3,
-                    analyzer: 'standard',
-                  },
-                },
-              },
-              {
-                match: {
-                  name: {
-                    query: 'nikon d7100',
-                    operator: 'and',
-                    boost: 2,
-                  },
-                },
-              },
-            ],
-          },
-        },
-      },
-    });
-
-    res.send(lensBody.hits.hits);
-  } catch (e) {
-    console.log(JSON.stringify(e));
-  }
 
   /*
 

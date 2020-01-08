@@ -71,9 +71,10 @@ export default class ProductResolver {
     @Ctx() ctx: IContext,
     @Info() info: any,
   ) {
-    var lastIndex = sort.lastIndexOf('_')
+    const lastIndex = sort.lastIndexOf('_')
 
     const sortBy: any = [
+      '_score',
       {
         [camelCase(sort.substr(0, lastIndex))]: camelCase(
           sort.substr(lastIndex),
@@ -116,13 +117,10 @@ export default class ProductResolver {
 
     if (filterDefault.search) {
       filtered.push({
-        match: {
-          name: {
-            query: filterDefault.search.toLowerCase(),
-            operator: 'and',
-            fuzziness: 'AUTO',
-            analyzer: 'pattern',
-          },
+        multi_match: {
+          fields: ['name', 'name._2gram', 'name._3gram'],
+          query: filterDefault.search.toLowerCase(),
+          type: 'bool_prefix',
         },
       })
     }
@@ -147,16 +145,19 @@ export default class ProductResolver {
         sort: sortBy,
         query: {
           bool: {
-            must,
-            filter: filtered,
+            must: [...must, ...filtered],
           },
         },
       },
     })
 
+    console.log(body.hits)
+
     const items = await Product.findAll({
       where: { id: { [Op.in]: body.hits.hits.map((hit) => hit._source.id) } },
     })
+
+    console.log(items)
 
     return {
       items: body.hits.hits.map((hit) =>
