@@ -118,9 +118,17 @@ export default class ProductResolver {
     if (filterDefault.search) {
       filtered.push({
         multi_match: {
-          fields: ['name', 'name._2gram', 'name._3gram'],
+          fields: [
+            'name',
+            'aliases',
+            'name._2gram',
+            'name._3gram',
+            'aliases._2gram',
+            'aliases._3gram',
+          ],
           query: filterDefault.search.toLowerCase(),
-          type: 'bool_prefix',
+          type: 'best_fields',
+          tie_breaker: 0.3,
         },
       })
     }

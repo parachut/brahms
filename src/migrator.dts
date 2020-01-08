@@ -475,6 +475,7 @@ export const migrator = async (req, res) => {
           properties: {
             id: { type: 'text' },
             name: { type: 'search_as_you_type' },
+            aliases: { type: 'search_as_you_type' },
             brand: {
               type: 'object',
               properties: {
@@ -538,6 +539,9 @@ export const migrator = async (req, res) => {
           }
         : null,
       slug: product.slug,
+      aliases: product.aliases
+        ? product.aliases.split(',').map((a) => a.trim())
+        : null,
       stock: product.stock,
       points: product.points,
       images: product.images,
