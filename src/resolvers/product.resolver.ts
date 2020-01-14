@@ -75,18 +75,12 @@ export default class ProductResolver {
 
     const sortBy: any = [
       {
-        [camelCase(sort.substr(0, lastIndex))]: camelCase(
-          sort.substr(lastIndex),
-        ),
+        [camelCase(sort.substr(0, lastIndex))]: {
+          order: camelCase(sort.substr(lastIndex)),
+          mode: 'avg',
+        },
       },
     ];
-
-    if (sort.startsWith('STOCK')) {
-      sortBy.push({ stock: { order: 'desc' } });
-    } else {
-      sortBy.push({ popularity: { order: 'desc' } });
-      sortBy.push({ stock: { order: 'desc' } });
-    }
 
     const filtered = [];
 
@@ -97,6 +91,26 @@ export default class ProductResolver {
         },
       });
     }
+
+    if (sort.startsWith('POPULAR')) {
+      sortBy.unshift({
+        _script: {
+          type: 'number',
+          script: {
+            lang: 'painless',
+            source: 'doc.stock.value * params.factor + doc.popularity.value',
+            params: {
+              factor: 100,
+            },
+          },
+          order: 'desc',
+        },
+      });
+
+      sortBy.push('_score');
+    }
+
+    console.log(sortBy);
 
     const filterDefault = {
       minPoints: 0,
@@ -150,6 +164,7 @@ export default class ProductResolver {
     const { body } = await elasti.search({
       index: 'products',
       body: {
+        track_scores: true,
         from,
         size,
         sort: sortBy,
@@ -160,8 +175,6 @@ export default class ProductResolver {
         },
       },
     });
-
-    console.log(JSON.stringify(body.hits.hits));
 
     const items = await Product.findAll({
       where: { id: { [Op.in]: body.hits.hits.map((hit) => hit._source.id) } },
