@@ -6772,7 +6772,7 @@
     "liana": "forest-express-sequelize",
     "liana_version": "5.4.0",
     "engine": "nodejs",
-    "engine_version": "10.16.0",
+    "engine_version": "13.6.0",
     "framework": "express",
     "framework_version": "^4.16.4",
     "orm_version": "5.21.2"
