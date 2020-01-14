@@ -85,6 +85,7 @@ export default class ProductResolver {
       sortBy.push({ stock: { order: 'desc' } });
     } else {
       sortBy.push({ popularity: { order: 'desc' } });
+      sortBy.push({ stock: { order: 'desc' } });
     }
 
     const filtered = [];
