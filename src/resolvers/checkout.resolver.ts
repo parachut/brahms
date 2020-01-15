@@ -80,11 +80,6 @@ export default class CheckoutResolver {
       for (const item of cart.items) {
         const itemLevel = calcItemLevel(item.points);
 
-        if (item.points > 5500) {
-          throw new Error(
-            `${item.product.name} has over 5500 points. Please contact support@parachut.co.`,
-          );
-        }
         if (item.points > 2500 && itemLevel !== 'level-3') {
           throw new Error(
             `${item.product.name} requires a level-3 membership.`,
