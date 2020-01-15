@@ -65,7 +65,7 @@ export function calcItemLevel(total: number): string {
     return 'level-1';
   } else if (total > 1000 && total <= 2500) {
     return 'level-2';
-  } else if (total > 2500 && total <= 5500) {
+  } else if (total > 2500) {
     return 'level-3';
   } else {
     return 'error';
