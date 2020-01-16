@@ -70,7 +70,7 @@ export class Product extends Model<Product> {
   @Column(DataType.ARRAY(DataType.STRING(1024)))
   public images?: string[];
 
-  @Field((type) => [String])
+  @Field((type) => [String], { nullable: true })
   @Default([])
   @Column(DataType.ARRAY(DataType.STRING(1024)))
   public inTheBox?: string[];
