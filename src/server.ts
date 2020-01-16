@@ -1,7 +1,7 @@
 import Analytics from 'analytics-node';
 import { ApolloServer } from 'apollo-server-express';
 import cors from 'cors';
-import crypto from 'crypto';
+import bodyParser from 'body-parser';
 import { createContext } from 'dataloader-sequelize';
 import express from 'express';
 import expressJwt from 'express-jwt';
@@ -81,6 +81,8 @@ const main = async () => {
 
   app.use(
     GQLPATH,
+    bodyParser.json(),
+    bodyParser.text({ type: 'application/graphql' }),
     expressJwt({
       algorithms: ['RS256'],
       credentialsRequired: false,
@@ -94,6 +96,7 @@ const main = async () => {
   // app.use('/cron', cron);
 
   app.use(
+    '/forest',
     require('forest-express-sequelize').init({
       authSecret: process.env.FOREST_AUTH_SECRET,
       configDir: __dirname + '/forest',

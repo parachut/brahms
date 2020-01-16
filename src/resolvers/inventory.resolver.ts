@@ -349,16 +349,12 @@ export default class InventoryResolver {
 
         groups.push(access);
       } else {
-        console.log(last(groups), shipment.id);
-
         if (groups.length) {
           last(groups).in = shipment.carrierReceivedAt;
         }
       }
 
       const final = last(groups);
-
-      console.log(final, shipment.id);
 
       if (
         final &&
