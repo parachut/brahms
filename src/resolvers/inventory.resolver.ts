@@ -42,6 +42,7 @@ export default class InventoryResolver {
     @Ctx() ctx: IContext,
   ) {
     if (ctx.user) {
+      console.log(where);
       if (where && where.status) {
         where.status = { [Op.in]: where.status } as any;
       }
@@ -348,15 +349,20 @@ export default class InventoryResolver {
 
         groups.push(access);
       } else {
-        last(groups).in = shipment.carrierReceivedAt;
+        console.log(last(groups), shipment.id);
+
+        if (groups.length) {
+          last(groups).in = shipment.carrierReceivedAt;
+        }
       }
 
       const final = last(groups);
 
+      console.log(final, shipment.id);
+
       if (
-        final.in ||
-        i === inventory.shipments.length - 1 ||
-        final.in === null
+        final &&
+        (final.in || i === inventory.shipments.length - 1 || final.in === null)
       ) {
         final.days = differenceInCalendarDays(
           final.in || new Date(),
