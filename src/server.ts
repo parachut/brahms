@@ -96,7 +96,6 @@ const main = async () => {
   // app.use('/cron', cron);
 
   app.use(
-    '/forest',
     require('forest-express-sequelize').init({
       authSecret: process.env.FOREST_AUTH_SECRET,
       configDir: __dirname + '/forest',
