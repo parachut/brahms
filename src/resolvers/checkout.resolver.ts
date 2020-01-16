@@ -69,6 +69,12 @@ export default class CheckoutResolver {
 
       const [cart] = user.carts;
 
+      if (!cart.completedAt && user.status === UserStatus.BLACKLISTED) {
+        cart.completedAt = new Date();
+        cart.canceledAt = new Date();
+        return cart.save();
+      }
+
       const inventory = [];
       const availableInventory = await Inventory.findAll({
         where: {
@@ -102,12 +108,6 @@ export default class CheckoutResolver {
         for (let i = 0; i < item.quantity; i++) {
           inventory.push(itemInventory[i].id);
         }
-      }
-
-      if (!cart.completedAt && user.status === UserStatus.BLACKLISTED) {
-        cart.completedAt = new Date();
-        cart.canceledAt = new Date();
-        return cart.save();
       }
 
       if (cart.completedAt) {
