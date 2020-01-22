@@ -61,11 +61,6 @@ function start() {
       createAuthyUser,
     );
     integrationQueue.process(
-      'create-easypost-address',
-      maxJobsPerWorker,
-      createEasyPostAddress,
-    );
-    integrationQueue.process(
       'create-front-contact',
       maxJobsPerWorker,
       createFrontContact,

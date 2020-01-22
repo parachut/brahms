@@ -17,6 +17,9 @@ import {
   Table,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
+import EasyPost from '@easypost/api';
+
+const easyPost = new EasyPost(process.env.EASYPOST);
 
 import { Cart } from './Cart';
 import { CensusData } from './CensusData';
@@ -177,42 +180,37 @@ export class Address extends Model<Address> {
         },
       );
     }
+
     instance.country = instance.country || 'US';
     instance.email = user.email;
     instance.phone = user.phone;
     instance.name = user.name;
     instance.formattedStreet = instance.street;
     instance.formattedAddress = `${instance.street}, ${instance.city}, ${instance.state} ${instance.zip}`;
+
+    const easyPostAddress = new easyPost.Address({
+      city: instance.city,
+      country: instance.country,
+      email: instance.email,
+      phone: instance.phone,
+      name: instance.name,
+      state: instance.state,
+      street1: instance.street,
+      street2: instance.street2,
+      zip: instance.zip,
+    });
+
+    await easyPostAddress.save();
+
+    instance.residential = easyPostAddress.residential;
+    instance.zip = easyPostAddress.zip;
+    instance.easyPostId = easyPostAddress.id;
   }
 
   @AfterCreate
-  static async createEasyPostId(instance: Address) {
-    integrationQueue.add(
-      'create-easypost-address',
-      {
-        addressId: instance.get('id'),
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    );
+  static async updateCensusData(instance: Address) {
     integrationQueue.add(
       'update-address-census-data',
-      {
-        addressId: instance.get('id'),
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    );
-  }
-
-  @AfterUpdate
-  static async udpateEasyPostId(instance: Address) {
-    integrationQueue.add(
-      'create-easypost-address',
       {
         addressId: instance.get('id'),
       },
