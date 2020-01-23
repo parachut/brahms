@@ -7,7 +7,6 @@ import { createQueue } from './redis';
 import checkClearbit from './tasks/checkClearbit';
 import checkClearbitFraud from './tasks/checkClearbitFraud';
 import createAuthyUser from './tasks/createAuthyUser';
-import createEasyPostAddress from './tasks/createEasyPostAddress';
 import createFrontContact from './tasks/createFrontContact';
 import createRecurlyUser from './tasks/createRecurlyUser';
 import createActiveCampaignContent from './tasks/createActiveCampaignContact';
