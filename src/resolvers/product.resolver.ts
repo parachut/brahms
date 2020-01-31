@@ -152,7 +152,21 @@ export default class ProductResolver {
         },
       });
 
-      sortBy.unshift('_score');
+      sortBy.unshift({
+        _script: {
+          type: 'number',
+          script: {
+            lang: 'painless',
+            source: 'doc.stock.value * params.factor + doc.popularity.value',
+            params: {
+              factor: 100,
+            },
+          },
+          order: 'desc',
+        },
+      });
+
+      sortBy.push('_score');
     }
 
     if (filterDefault.brand) {

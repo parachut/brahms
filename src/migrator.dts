@@ -467,8 +467,25 @@ export const migrator = async (req, res) => {
   });
 
   const products = await Product.findAll({
-    include: ['brand', 'category'],
+    include: ['brand', 'category', 'inventory'],
   });
+
+  for (const product of products) {
+    const stock = product.inventory.filter((i) => i.status === 'INWAREHOUSE')
+      .length;
+    if (stock !== product.stock) {
+      await Product.update(
+        {
+          stock,
+        },
+        {
+          where: {
+            id: product.id,
+          },
+        },
+      );
+    }
+  }
 
   await elasti.indices.delete({ index: 'products' });
 
@@ -547,7 +564,7 @@ export const migrator = async (req, res) => {
       aliases: product.aliases
         ? product.aliases.split(',').map((a) => a.trim())
         : null,
-      stock: product.stock,
+      stock: product.inventory.filter((i) => i.status === 'INWAREHOUSE').length,
       points: product.points,
       images: product.images,
       popularity: product.popularity,
