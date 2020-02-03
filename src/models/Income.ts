@@ -1,4 +1,4 @@
-import Sequelize from 'sequelize'
+import Sequelize from 'sequelize';
 import {
   BelongsTo,
   Column,
@@ -10,11 +10,11 @@ import {
   PrimaryKey,
   Table,
   UpdatedAt,
-} from 'sequelize-typescript'
-import { Field, ID, ObjectType } from 'type-graphql'
+} from 'sequelize-typescript';
+import { Field, ID, ObjectType } from 'type-graphql';
 
-import { User } from './User'
-import { Inventory } from './Inventory'
+import { User } from './User';
+import { Inventory } from './Inventory';
 
 @ObjectType()
 @Table({
@@ -26,59 +26,59 @@ export class Income extends Model<Income> {
   @PrimaryKey
   @Default(Sequelize.literal('uuid_generate_v4()'))
   @Column(DataType.UUID)
-  public id!: string
+  public id!: string;
 
   @Field()
   @Default(0)
   @Column
-  public commission!: number
+  public commission!: number;
 
   @Field()
   @Default(0)
   @Column
-  public dailyRate!: number
+  public dailyRate!: number;
 
   @Field()
   @Default(false)
   @Column
-  public membership!: boolean
+  public membership!: boolean;
 
   @Field({ nullable: true })
   @Column
-  public planId?: string
+  public planId?: string;
 
   @Field({ nullable: true })
   @Column
-  public notes?: string
+  public notes?: string;
 
   @Field({ nullable: true })
   @Column
-  public transferId?: string
+  public transferId?: string;
 
   @BelongsTo(() => User, 'userId')
-  public user!: User
+  public user!: User;
 
   @ForeignKey(() => User)
   @Column(DataType.UUID)
-  public userId!: string
+  public userId!: string;
 
   @BelongsTo(() => User, 'memberId')
-  public member!: User
+  public member!: User;
 
   @ForeignKey(() => User)
   @Column(DataType.UUID)
-  public memberId!: string
+  public memberId!: string;
 
   @BelongsTo(() => Inventory, 'inventoryId')
-  public inventory!: Inventory
+  public inventory!: Inventory;
 
   @ForeignKey(() => Inventory)
   @Column(DataType.UUID)
-  public inventoryId!: string
+  public inventoryId!: string;
 
   @Column
-  public createdAt!: Date
+  public createdAt!: Date;
 
   @Column
-  public updatedAt!: Date
+  public updatedAt!: Date;
 }

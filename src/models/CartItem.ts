@@ -11,9 +11,8 @@ import {
   PrimaryKey,
   Table,
   UpdatedAt,
-  AfterUpdate,
 } from 'sequelize-typescript';
-import { Field, ID, Int, ObjectType, Root } from 'type-graphql';
+import { Field, ID, Int, ObjectType } from 'type-graphql';
 
 import { Cart } from './Cart';
 import { Product } from './Product';

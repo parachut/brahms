@@ -1,7 +1,6 @@
-import Queue from 'bull';
+import EasyPost from '@easypost/api';
 import Sequelize from 'sequelize';
 import {
-  AfterUpdate,
   AfterCreate,
   BeforeCreate,
   BelongsTo,
@@ -17,17 +16,13 @@ import {
   Table,
 } from 'sequelize-typescript';
 import { Field, ID, ObjectType } from 'type-graphql';
-import EasyPost from '@easypost/api';
-
-const easyPost = new EasyPost(process.env.EASYPOST);
 
 import { Cart } from './Cart';
 import { CensusData } from './CensusData';
 import { Shipment } from './Shipment';
 import { User } from './User';
-import { createQueue } from '../redis';
 
-const integrationQueue = createQueue('integration-queue');
+const easyPost = new EasyPost(process.env.EASYPOST);
 
 @ObjectType()
 @Table({
@@ -209,7 +204,7 @@ export class Address extends Model<Address> {
 
   @AfterCreate
   static async updateCensusData(instance: Address) {
-    integrationQueue.add(
+    /* integrationQueue.add(
       'update-address-census-data',
       {
         addressId: instance.get('id'),
@@ -218,6 +213,6 @@ export class Address extends Model<Address> {
         removeOnComplete: true,
         retry: 2,
       },
-    );
+    ); */
   }
 }

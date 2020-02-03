@@ -20,7 +20,6 @@ import { Field, ID, Int, ObjectType } from 'type-graphql';
 
 import { UserRole } from '../enums/userRole';
 import { UserStatus } from '../enums/userStatus';
-import { createQueue } from '../redis';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Deposit } from './Deposit';
@@ -36,8 +35,6 @@ import { UserMarketingSource } from './UserMarketingSource';
 import { UserSocialHandle } from './UserSocialHandle';
 import { UserVerification } from './UserVerification';
 import { UserTermAgreement } from './UserTermAgreement';
-
-const integrationQueue = createQueue('integration-queue');
 
 @ObjectType()
 @Table({
@@ -222,7 +219,7 @@ export class User extends Model<User> {
 
   @AfterCreate
   static async linkAccounts(instance: User) {
-    integrationQueue.add(
+    /* integrationQueue.add(
       'create-recurly-user',
       {
         userId: instance.get('id'),
@@ -271,12 +268,12 @@ export class User extends Model<User> {
         removeOnComplete: true,
         retry: 2,
       },
-    );
+    ); */
   }
 
   @AfterUpdate
   static async updateAuthy(instance: User) {
-    if (instance.changed('phone')) {
+    /* if (instance.changed('phone')) {
       await UserIntegration.destroy({
         where: {
           userId: instance.id,
@@ -293,6 +290,6 @@ export class User extends Model<User> {
           retry: 2,
         },
       );
-    }
+    } */
   }
 }

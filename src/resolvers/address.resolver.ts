@@ -19,9 +19,6 @@ import { Phone } from '../decorators/phone';
 import { UserRole } from '../enums/userRole';
 import { Address } from '../models/Address';
 import { IContext } from '../utils/context.interface';
-import { createQueue } from '../redis';
-
-const fraudQueue = createQueue('fraud-queue');
 
 @Resolver(Address)
 export default class AddressResolver {
@@ -114,18 +111,6 @@ export default class AddressResolver {
         userId: ctx.user.id,
       });
 
-      fraudQueue.add(
-        'check-clearbit-fraud',
-        {
-          userId: ctx.user.id,
-          ipAddress: ctx.clientIp,
-        },
-        {
-          removeOnComplete: true,
-          retry: 2,
-        },
-      );
-
       return newAddress;
     }
 
@@ -150,7 +135,6 @@ export default class AddressResolver {
         ...input,
         userId: ctx.user.id,
       });
-
 
       await address.destroy();
       return newAddress;

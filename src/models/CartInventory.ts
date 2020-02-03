@@ -10,8 +10,8 @@ import {
 } from 'sequelize-typescript';
 import { Field, ID } from 'type-graphql';
 
-import { Inventory } from './Inventory';
 import { Cart } from './Cart';
+import { Inventory } from './Inventory';
 
 @Table({
   tableName: 'cart_inventories',

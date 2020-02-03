@@ -16,7 +16,6 @@ import { Inventory } from '../models/Inventory';
 import { User } from '../models/User';
 import { Shipment } from '../models/Shipment';
 import { UserIntegration } from '../models/UserIntegration';
-import { createQueue } from '../redis';
 import { calcItemLevel } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
 import { sendEmail } from '../utils/sendEmail';
@@ -31,7 +30,6 @@ if (!process.env.SLACK_TOKEN) {
 
 const recurly = new Recurly.Client(process.env.RECURLY, `subdomain-parachut`);
 const slack = new WebClient(process.env.SLACK_TOKEN);
-const internalQueue = createQueue('internal-queue');
 
 @Resolver(Cart)
 export default class CheckoutResolver {
@@ -423,19 +421,6 @@ export default class CheckoutResolver {
         },
         userId: ctx.user.id,
       });
-
-      for (const item of cart.items) {
-        internalQueue.add(
-          'update-product-stock',
-          {
-            productId: item.productId,
-          },
-          {
-            removeOnComplete: true,
-            retry: 2,
-          },
-        );
-      }
 
       return cart;
     }

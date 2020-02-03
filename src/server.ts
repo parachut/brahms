@@ -9,10 +9,10 @@ import fs from 'fs';
 import requestIp from 'request-ip';
 import { buildSchema } from 'type-graphql';
 
+require('dotenv').config();
+
 import { sequelize } from './db';
 import { customAuthChecker } from './utils/customAuthChecker';
-
-require('dotenv').config();
 
 const PORT = process.env.PORT || 4000;
 const GQLPATH = '/graphql';

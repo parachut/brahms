@@ -31,10 +31,7 @@ import { ShipmentInspection } from './ShipmentInspection';
 import { ShipmentInventory } from './ShipmentInventory';
 import { User } from './User';
 import { Warehouse } from './Warehouse';
-import { createQueue } from '../redis';
 import { getParentCategories } from '../utils/getParentCategories';
-
-const internalQueue = createQueue('internal-queue');
 
 @ObjectType()
 @Table({
@@ -266,15 +263,24 @@ export class Inventory extends Model<Inventory> {
   @AfterUpdate
   @AfterCreate
   static async updateProductStock(instance: Inventory) {
-    await internalQueue.add(
-      'update-product-stock',
-      {
-        productId: instance.productId,
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    );
+    if (instance.changed('status')) {
+      const stock = await Inventory.count({
+        where: {
+          productId: instance.productId,
+          status: InventoryStatus.INWAREHOUSE,
+        },
+      });
+
+      await Product.update(
+        {
+          stock,
+        },
+        {
+          where: {
+            id: instance.productId,
+          },
+        },
+      );
+    }
   }
 }

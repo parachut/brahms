@@ -22,22 +22,19 @@ import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentType } from '../enums/shipmentType';
 import { UserRole } from '../enums/userRole';
 import { Inventory } from '../models/Inventory';
-import { Product } from '../models/Product';
 import { Shipment } from '../models/Shipment';
 import { User } from '../models/User';
 import { UserIntegration } from '../models/UserIntegration';
 import { UserTermAgreement } from '../models/UserTermAgreement';
 import { UserMarketingSource } from '../models/UserMarketingSource';
-import { createQueue } from '../redis';
 import { calcDailyCommission } from '../utils/calc';
 import { IContext, IJWTPayLoad } from '../utils/context.interface';
 import { sendEmail } from '../utils/sendEmail';
+import { UserGeolocation } from '../models/UserGeolocation';
 
 const privateKEY = fs.readFileSync('./certs/private.key', 'utf8');
 const authy = new Authy({ key: process.env.AUTHY });
 
-const integrationQueue = createQueue('integration-queue');
-const communicationQueue = createQueue('communication-queue');
 const recurly = new Recurly.Client(process.env.RECURLY, `subdomain-parachut`);
 
 @Resolver(User)
@@ -142,32 +139,21 @@ export default class AuthResolver {
       token: passcode,
     });
 
-    ctx.analytics.identify({
-      traits: {
-        ...pick(user, ['name', 'email', 'phone']),
-      },
-      userId: user.id,
-    });
+    const coordinates = ctx.req.header('X-AppEngine-CityLatLong').split(',');
 
-    ctx.analytics.track({
+    await UserGeolocation.create({
       userId: user.id,
-      event: 'Authenticate',
-      properties: {
-        ...pick(user, ['name', 'email', 'phone']),
+      countryCode: ctx.req.header('X-AppEngine-Country'),
+      regionCode: ctx.req.header('X-AppEngine-Region'),
+      city: ctx.req.header('X-AppEngine-City'),
+      coordinates: {
+        type: 'Point',
+        coordinates: [
+          parseInt(coordinates[1], 10),
+          parseInt(coordinates[0], 10),
+        ],
       },
-    });
-
-    integrationQueue.add(
-      'update-user-geolocation',
-      {
-        userId: user.get('id'),
-        ipAddress: ctx.clientIp,
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    );
+    } as UserGeolocation);
 
     const payload: IJWTPayLoad = {
       id: user.id,
@@ -258,47 +244,29 @@ export default class AuthResolver {
       });
     }
 
-    integrationQueue.add(
-      'update-user-geolocation',
-      {
-        userId: user.get('id'),
-        ipAddress: ctx.clientIp,
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    );
+    const coordinates = ctx.req.header('X-AppEngine-CityLatLong').split(',');
 
-    ctx.analytics.identify({
-      traits: {
-        ...pick(user, ['name', 'email', 'phone']),
+    await UserGeolocation.create({
+      userId: user.id,
+      countryCode: ctx.req.header('X-AppEngine-Country'),
+      regionCode: ctx.req.header('X-AppEngine-Region'),
+      city: ctx.req.header('X-AppEngine-City'),
+      coordinates: {
+        type: 'Point',
+        coordinates: [
+          parseInt(coordinates[1], 10),
+          parseInt(coordinates[0], 10),
+        ],
       },
-      userId: user.get('id'),
-    });
+    } as UserGeolocation);
 
-    ctx.analytics.track({
-      userId: user.get('id'),
-      event: 'Register',
-      properties: {
-        ...pick(user, ['name', 'email', 'phone']),
+    await sendEmail({
+      to: user.email,
+      id: filteredRoles.includes(UserRole.CONTRIBUTOR) ? 13193333 : 13136612,
+      data: {
+        name: user.parsedName.first,
       },
     });
-
-    communicationQueue.add(
-      'send-simple-email',
-      {
-        to: user.email,
-        id: filteredRoles.includes(UserRole.CONTRIBUTOR) ? 13193333 : 13136612,
-        data: {
-          name: user.parsedName.first,
-        },
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    );
 
     const payload: IJWTPayLoad = {
       id: user.get('id'),

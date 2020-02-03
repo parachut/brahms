@@ -20,14 +20,12 @@ import { Field, ID, ObjectType } from 'type-graphql';
 import { InventoryStatus } from '../enums/inventoryStatus';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentType } from '../enums/shipmentType';
-import { createQueue } from '../redis';
 import { Address } from './Address';
 import { Inventory } from './Inventory';
 import { ShipKitInventory } from './ShipKitInventory';
 import { Shipment } from './Shipment';
 import { User } from './User';
-
-const communicationQueue = createQueue('communication-queue');
+import { sendEmail } from '../utils/sendEmail';
 
 @ObjectType()
 @Table({
@@ -166,27 +164,20 @@ export class ShipKit extends Model<ShipKit> {
 
       instance.confirmedAt = new Date();
 
-      communicationQueue.add(
-        'send-simple-email',
-        {
-          to: user.email,
-          id: instance.airbox ? 13493488 : 13394094,
-          data: {
-            name: user.parsedName.first,
-            labelUrl: instance.airbox
-              ? airboxShipment.labelUrl
-              : returnShipment.labelUrl,
-            trackerUrl: instance.airbox
-              ? airboxShipment.publicUrl
-              : returnShipment.publicUrl,
-            chutItems: inventory,
-          },
+      sendEmail({
+        to: user.email,
+        id: instance.airbox ? 13493488 : 13394094,
+        data: {
+          name: user.parsedName.first,
+          labelUrl: instance.airbox
+            ? airboxShipment.labelUrl
+            : returnShipment.labelUrl,
+          trackerUrl: instance.airbox
+            ? airboxShipment.publicUrl
+            : returnShipment.publicUrl,
+          chutItems: inventory,
         },
-        {
-          removeOnComplete: true,
-          retry: 2,
-        },
-      );
+      });
 
       await instance.save();
     }

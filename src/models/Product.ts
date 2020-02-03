@@ -3,7 +3,6 @@ import Sequelize from 'sequelize';
 import {
   AfterCreate,
   AfterUpdate,
-  AfterBulkUpdate,
   BeforeCreate,
   BelongsTo,
   Column,
@@ -28,7 +27,7 @@ import { File } from './File';
 import { Inventory } from './Inventory';
 import { ProductAttributeValue } from './ProductAttributeValue';
 import { Queue } from './Queue';
-import { formatAlgoliaProduct } from '../utils/formatAlgoliaProduct';
+import { formatElasticRecord } from '../utils/formatElasticRecord';
 
 const elasti = new Client({
   node:
@@ -87,6 +86,10 @@ export class Product extends Model<Product> {
   @Unique
   @Column
   public name!: string;
+
+  @Field()
+  @Column
+  public elasticId?: string;
 
   @Field((type) => Int)
   @Default(0)
@@ -169,7 +172,7 @@ export class Product extends Model<Product> {
 
   @AfterCreate
   static async createAlgolia(instance: Product) {
-    const productMap = await formatAlgoliaProduct(instance);
+    const productMap = await formatElasticRecord(instance);
 
     for (const product of productMap) {
       await elasti.index({

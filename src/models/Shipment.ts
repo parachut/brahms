@@ -26,20 +26,18 @@ import { InventoryStatus } from '../enums/inventoryStatus';
 import { ShipmentDirection } from '../enums/shipmentDirection';
 import { ShipmentStatus } from '../enums/shipmentStatus';
 import { ShipmentType } from '../enums/shipmentType';
-import { createQueue } from '../redis';
 import { Address } from './Address';
 import { Cart } from './Cart';
 import { Inventory } from './Inventory';
 import { ShipKit } from './ShipKit';
-import { ShipmentEvent } from './ShipmentEvent';
 import { ShipmentInspection } from './ShipmentInspection';
 import { ShipmentInventory } from './ShipmentInventory';
 import { User } from './User';
 import { Warehouse } from './Warehouse';
 import { createEasyPostAddress } from '../utils/createEasyPostAddress';
+import { sendEmail } from '../utils/sendEmail';
 
 const easyPost = new EasyPost(process.env.EASYPOST);
-const communicationQueue = createQueue('communication-queue');
 
 @ObjectType()
 @Table({
@@ -207,12 +205,6 @@ export class Shipment extends Model<Shipment> {
   )
   inventory: Inventory[];
 
-  @HasMany(() => ShipmentInspection, 'shipmentId')
-  public inspections?: ShipmentInspection[];
-
-  @HasMany(() => ShipmentEvent, 'shipmentId')
-  public events?: ShipmentEvent[];
-
   @Field()
   @CreatedAt
   public createdAt!: Date;
@@ -240,16 +232,23 @@ export class Shipment extends Model<Shipment> {
         instance.direction === ShipmentDirection.OUTBOUND &&
         instance.type === ShipmentType.ACCESS
       ) {
-        communicationQueue.add(
-          'send-delivery-email',
-          {
-            shipmentId: instance.id,
+        const cart = await Cart.findByPk(instance.cartId);
+
+        await sendEmail({
+          to: cart.user.email,
+          id: 12952495,
+          data: {
+            purchase_date: new Date(cart.completedAt).toLocaleDateString(),
+            name: cart.user.name,
+            chutItems: cart.items.map((item) => ({
+              image: item.product.images.length
+                ? `https://parachut.imgix.net/${item.product.images[0]}`
+                : '',
+              name: item.product.name,
+              points: item.product.points,
+            })),
           },
-          {
-            removeOnComplete: true,
-            retry: 2,
-          },
-        );
+        });
 
         if (!user.billingDay) {
           user.billingDay = new Date().getDate();
@@ -272,32 +271,27 @@ export class Shipment extends Model<Shipment> {
         instance.direction === ShipmentDirection.OUTBOUND &&
         instance.type === ShipmentType.ACCESS
       ) {
-        communicationQueue.add(
-          'send-simple-email',
-          {
-            to: user.email,
-            id: 13494640,
-            data: {
-              name: user.parsedName.first,
-              date: new Date().toLocaleDateString(),
-              formattedAddress: address.formattedAddress,
-              trackerUrl: instance.publicUrl,
-              chutItems: inventory.map((i) => i.product.name),
-            },
+        sendEmail({
+          to: user.email,
+          id: 13494640,
+          data: {
+            name: user.parsedName.first,
+            date: new Date().toLocaleDateString(),
+            formattedAddress: address.formattedAddress,
+            trackerUrl: instance.publicUrl,
+            chutItems: inventory.map((i) => i.product.name),
           },
-          {
-            removeOnComplete: true,
-            retry: 2,
-          },
-        );
+        });
       }
     }
   }
 
   @BeforeCreate
   static async createEasyPostShipment(instance: Shipment) {
+    let cart: Cart;
+
     if (instance.cartId) {
-      const cart = await Cart.findByPk(instance.cartId);
+      cart = await Cart.findByPk(instance.cartId);
 
       if (!instance.addressId) {
         instance.addressId = cart.addressId;
@@ -444,16 +438,26 @@ export class Shipment extends Model<Shipment> {
       instance.labelUrl = easyPostShipment.postage_label.label_url;
 
       if (instance.cartId && instance.type === ShipmentType.ACCESS) {
-        await communicationQueue.add(
-          'send-outbound-access-shipment-email',
-          {
-            shipmentId: shipment.id,
+        sendEmail({
+          to: cart.user.email,
+          id: 12950070,
+          data: {
+            purchase_date: new Date(cart.completedAt).toLocaleDateString(),
+            name: cart.user.name,
+            chutItems: cart.items.map((item) => ({
+              image: item.product.images.length
+                ? `https://parachut.imgix.net/${item.product.images[0]}`
+                : '',
+              name: item.product.name,
+            })),
+            address: shipment.address.formattedAddress,
+            estDeliveryDate: new Date(
+              shipment.estDeliveryDate,
+            ).toLocaleDateString(),
+            publicUrl: shipment.publicUrl,
+            trackingCode: shipment.trackingCode,
           },
-          {
-            removeOnComplete: true,
-            retry: 2,
-          },
-        );
+        });
       }
     }
   }
