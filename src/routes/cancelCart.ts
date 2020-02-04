@@ -34,6 +34,7 @@ router.post(
                 .map((i) => i.id),
             },
           },
+          individualHooks: true,
         },
       );
 

@@ -26,29 +26,20 @@ export default class QueueResolver {
     { id }: QueueWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      return Queue.findOne({
-        where: {
-          id,
-          user: ctx.user.id,
-        },
-      });
-    }
-
-    throw new Error('Unauthorised.');
+    return Queue.findOne({
+      where: {
+        id,
+        user: ctx.user.id,
+      },
+    });
   }
 
   @Authorized([UserRole.MEMBER])
   @Query((returns) => [Queue])
   public async queues(@Ctx() ctx: IContext) {
-    if (ctx.user) {
-      const queues = await Queue.findAll({
-        where: { userId: ctx.user.id },
-      });
-
-      return queues;
-    }
-    throw new Error('Unauthorised.');
+    return Queue.findAll({
+      where: { userId: ctx.user.id },
+    });
   }
 
   @Authorized([UserRole.MEMBER])
@@ -58,14 +49,10 @@ export default class QueueResolver {
     { productId }: QueueCreateInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      return Queue.create({
-        productId,
-        userId: ctx.user.id,
-      });
-    }
-
-    throw new Error('Unauthorized');
+    return Queue.create({
+      productId,
+      userId: ctx.user.id,
+    });
   }
 
   @Authorized([UserRole.MEMBER])
@@ -75,29 +62,25 @@ export default class QueueResolver {
     { id }: QueueWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const queue = await Queue.findOne({
-        where: {
-          id,
-          userId: ctx.user.id,
-        },
-      });
+    const queue = await Queue.findOne({
+      where: {
+        id,
+        userId: ctx.user.id,
+      },
+    });
 
-      await Queue.destroy({
-        where: {
-          id,
-          userId: ctx.user.id,
-        },
-      });
+    await Queue.destroy({
+      where: {
+        id,
+        userId: ctx.user.id,
+      },
+    });
 
-      return queue;
-    }
-
-    throw new Error('Unauthorized');
+    return queue;
   }
 
   @FieldResolver((type) => Product)
   async product(@Root() queue: Queue): Promise<Product> {
-    return ((await queue.$get<Product>('product')) as Product)!;
+    return queue.$get<Product>('product') as Promise<Product>;
   }
 }

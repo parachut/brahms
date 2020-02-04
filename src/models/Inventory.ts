@@ -279,6 +279,7 @@ export class Inventory extends Model<Inventory> {
           where: {
             id: instance.productId,
           },
+          individualHooks: true,
         },
       );
     }

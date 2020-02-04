@@ -482,6 +482,7 @@ export const migrator = async (req, res) => {
           where: {
             id: product.id,
           },
+          
         },
       );
     }

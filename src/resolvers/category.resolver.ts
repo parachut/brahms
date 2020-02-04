@@ -6,6 +6,6 @@ import { Category } from '../models/Category';
 export default class CategoryResolver {
   @FieldResolver((type) => Category)
   async parent(@Root() category: Category): Promise<Category> {
-    return ((await category.$get<Category>('parent')) as Category)!;
+    return category.$get<Category>('parent') as Promise<Category>;
   }
 }

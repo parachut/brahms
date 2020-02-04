@@ -33,17 +33,13 @@ export default class BankAccountResolver {
     where: BankAccountWhereInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      return UserBankAccount.findAll({
-        where: {
-          ...where,
-          userId: ctx.user.id,
-        },
-        order: [['created_at', 'DESC']],
-      });
-    }
-
-    throw new Error('Unauthorised');
+    return UserBankAccount.findAll({
+      where: {
+        ...where,
+        userId: ctx.user?.id,
+      },
+      order: [['created_at', 'DESC']],
+    });
   }
 
   @Authorized([UserRole.MEMBER])
@@ -53,134 +49,131 @@ export default class BankAccountResolver {
     { token, accountId }: BankAccountCreateInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      try {
-        const appToken = await dwolla.auth.client();
+    try {
+      const appToken = await dwolla.auth.client();
 
-        const {
-          access_token: accessToken,
-        } = await plaidClient.exchangePublicToken(token);
+      const {
+        access_token: accessToken,
+      } = await plaidClient.exchangePublicToken(token);
 
-        const user = await User.findByPk(ctx.user.id, {
-          include: ['integrations'],
-        });
+      const user = await User.findByPk(ctx.user.id, {
+        include: ['integrations'],
+      });
 
-        let dwollaIntegration = user.integrations.find(
-          (i) => i.type === 'DWOLLA',
-        );
+      let dwollaIntegration = user.integrations.find(
+        (i) => i.type === 'DWOLLA',
+      );
 
-        if (!dwollaIntegration) {
-          const dwollaCustomerRequest: any = {
-            firstName: user.parsedName.first,
-            lastName: user.parsedName.last,
-            email: user.email,
-            type: 'receive-only',
-            ipAddress: ctx.clientIp,
-          };
+      if (!dwollaIntegration) {
+        const dwollaCustomerRequest: any = {
+          firstName: user.parsedName.first,
+          lastName: user.parsedName.last,
+          email: user.email,
+          type: 'receive-only',
+          ipAddress: ctx.clientIp,
+        };
 
-          if (user.businessName && user.businessName.length) {
-            dwollaCustomerRequest.businessName = user.businessName;
-          }
-
-          const userUrl = await appToken
-            .post('customers', dwollaCustomerRequest)
-            .then((res) => res.headers.get('location'));
-
-          dwollaIntegration = await UserIntegration.create({
-            type: 'DWOLLA',
-            value: userUrl,
-            userId: ctx.user.id,
-          } as UserIntegration);
+        if (user.businessName && user.businessName.length) {
+          dwollaCustomerRequest.businessName = user.businessName;
         }
 
-        await UserIntegration.create({
-          type: 'PLAID',
-          value: accessToken,
+        const userUrl = await appToken
+          .post('customers', dwollaCustomerRequest)
+          .then((res) => res.headers.get('location'));
+
+        dwollaIntegration = await UserIntegration.create({
+          type: 'DWOLLA',
+          value: userUrl,
           userId: ctx.user.id,
         } as UserIntegration);
+      }
 
-        let fundingSource = null;
-        let userBankAccount = null;
+      await UserIntegration.create({
+        type: 'PLAID',
+        value: accessToken,
+        userId: ctx.user.id,
+      } as UserIntegration);
 
-        const { accounts } = await plaidClient.getAccounts(accessToken);
+      let fundingSource = null;
+      let userBankAccount = null;
 
-        if (accounts) {
-          for (const account of accounts) {
-            if (account.account_id === accountId) {
-              try {
-                const {
-                  processor_token: plaidToken,
-                } = await plaidClient.createProcessorToken(
-                  accessToken,
-                  accountId,
-                  'dwolla',
-                );
+      const { accounts } = await plaidClient.getAccounts(accessToken);
 
-                fundingSource = await appToken
-                  .post(`${dwollaIntegration.value}/funding-sources`, {
-                    plaidToken,
-                    name: account.name,
-                  })
-                  .then((res) => res.headers.get('location'));
+      if (accounts) {
+        for (const account of accounts) {
+          if (account.account_id === accountId) {
+            try {
+              const {
+                processor_token: plaidToken,
+              } = await plaidClient.createProcessorToken(
+                accessToken,
+                accountId,
+                'dwolla',
+              );
 
-                await UserBankAccount.update(
-                  {
-                    primary: false,
-                  },
-                  {
-                    where: {
-                      userId: ctx.user.id,
-                    },
-                  },
-                );
-
-                userBankAccount = await UserBankAccount.create({
-                  accountId: account.account_id,
-                  primary: true,
+              fundingSource = await appToken
+                .post(`${dwollaIntegration.value}/funding-sources`, {
+                  plaidToken,
                   name: account.name,
-                  mask: account.mask,
-                  subtype: account.subtype,
-                  userId: ctx.user.id,
-                  plaidUrl: fundingSource,
-                } as UserBankAccount);
-              } catch (e) {
-                console.log(e);
-                fundingSource = JSON.parse(e)._links.about.href;
-              }
-            }
-          }
-        }
+                })
+                .then((res) => res.headers.get('location'));
 
-        try {
-          const { accounts: accountBalances } = await plaidClient.getBalance(
-            accessToken,
-          );
+              await UserBankAccount.update(
+                {
+                  primary: false,
+                },
+                {
+                  where: {
+                    userId: ctx.user.id,
+                  },
+                },
+              );
 
-          if (accountBalances) {
-            for (const account of accountBalances) {
-              await UserBankBalance.create({
-                available: account.balances.available
-                  ? Math.round(account.balances.available * 100)
-                  : null,
+              userBankAccount = await UserBankAccount.create({
+                accountId: account.account_id,
+                primary: true,
                 name: account.name,
-                limit: account.balances.limit
-                  ? Math.round(account.balances.limit * 100)
-                  : null,
-                current: Math.round(account.balances.current * 100),
+                mask: account.mask,
+                subtype: account.subtype,
                 userId: ctx.user.id,
-              } as UserBankBalance);
+                plaidUrl: fundingSource,
+              } as UserBankAccount);
+            } catch (e) {
+              console.log(e);
+              fundingSource = JSON.parse(e)._links.about.href;
             }
           }
-        } catch (e) {
-          console.log(e);
         }
+      }
 
-        return userBankAccount;
+      try {
+        const { accounts: accountBalances } = await plaidClient.getBalance(
+          accessToken,
+        );
+
+        if (accountBalances) {
+          for (const account of accountBalances) {
+            await UserBankBalance.create({
+              available: account.balances.available
+                ? Math.round(account.balances.available * 100)
+                : null,
+              name: account.name,
+              limit: account.balances.limit
+                ? Math.round(account.balances.limit * 100)
+                : null,
+              current: Math.round(account.balances.current * 100),
+              userId: ctx.user.id,
+            } as UserBankBalance);
+          }
+        }
       } catch (e) {
         console.log(e);
-        throw e;
       }
+
+      return userBankAccount;
+    } catch (e) {
+      console.log(e);
+      throw e;
     }
-    throw new Error('Unauthorised');
   }
 }

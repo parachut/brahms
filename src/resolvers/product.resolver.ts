@@ -110,8 +110,6 @@ export default class ProductResolver {
       sortBy.push('_score');
     }
 
-    console.log(sortBy);
-
     const filterDefault = {
       minPoints: 0,
       maxPoints: 100000,
@@ -207,12 +205,12 @@ export default class ProductResolver {
 
   @FieldResolver((type) => Brand)
   async brand(@Root() product: Product): Promise<Brand> {
-    return ((await product.$get<Brand>('brand')) as Brand)!;
+    return product.$get<Brand>('brand') as Promise<Brand>;
   }
 
   @FieldResolver((type) => Category, { nullable: true })
   async category(@Root() product: Product): Promise<Category> {
-    return (await product.$get<Category>('category')) as Category;
+    return product.$get<Category>('category') as Promise<Category>;
   }
 
   @FieldResolver()

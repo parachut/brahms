@@ -263,6 +263,7 @@ export class Shipment extends Model<Shipment> {
             where: {
               id: { [Op.in]: inventory.map((item) => item.id) },
             },
+            individualHooks: true,
           },
         );
       }

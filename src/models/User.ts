@@ -26,15 +26,19 @@ import { Deposit } from './Deposit';
 import { Income } from './Income';
 import { Inventory } from './Inventory';
 import { Queue } from './Queue';
-import { Shipment } from './Shipment';
 import { ShipKit } from './ShipKit';
-import { UserGeolocation } from './UserGeolocation';
+import { Shipment } from './Shipment';
 import { UserBankAccount } from './UserBankAccount';
+import { UserGeolocation } from './UserGeolocation';
 import { UserIntegration } from './UserIntegration';
 import { UserMarketingSource } from './UserMarketingSource';
 import { UserSocialHandle } from './UserSocialHandle';
-import { UserVerification } from './UserVerification';
 import { UserTermAgreement } from './UserTermAgreement';
+import { UserVerification } from './UserVerification';
+import { createAuthyUser } from '../utils/createAuthyUser';
+import { createRecurlyUser } from '../utils/createRecurlyUser';
+import { createFrontContact } from '../utils/createFrontContact';
+import checkClearbit from '../utils/checkClearbit';
 
 @ObjectType()
 @Table({
@@ -219,77 +223,30 @@ export class User extends Model<User> {
 
   @AfterCreate
   static async linkAccounts(instance: User) {
-    /* integrationQueue.add(
-      'create-recurly-user',
-      {
-        userId: instance.get('id'),
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    );
-    integrationQueue.add(
-      'create-authy-user',
-      {
-        userId: instance.get('id'),
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    );
-    integrationQueue.add(
-      'create-front-contact',
-      {
-        userId: instance.get('id'),
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    );
-    integrationQueue.add(
-      'create-active-campaign-contact',
-      {
-        userId: instance.get('id'),
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    );
-    integrationQueue.add(
-      'check-clearbit',
-      {
-        userId: instance.get('id'),
-      },
-      {
-        removeOnComplete: true,
-        retry: 2,
-      },
-    ); */
+    const integrations = await Promise.all([
+      createAuthyUser(instance),
+      createRecurlyUser(instance),
+      createFrontContact(instance),
+    ]);
+    await Promise.all([
+      UserIntegration.bulkCreate(integrations),
+      checkClearbit(instance),
+    ]);
   }
 
   @AfterUpdate
   static async updateAuthy(instance: User) {
-    /* if (instance.changed('phone')) {
-      await UserIntegration.destroy({
-        where: {
-          userId: instance.id,
-          type: 'AUTHY',
-        },
-      });
-      integrationQueue.add(
-        'create-authy-user',
-        {
-          userId: instance.get('id'),
-        },
-        {
-          removeOnComplete: true,
-          retry: 2,
-        },
-      );
-    } */
+    if (instance.changed('phone')) {
+      const newAuthy = await createAuthyUser(instance);
+      await Promise.all([
+        UserIntegration.destroy({
+          where: {
+            userId: instance.id,
+            type: 'AUTHY',
+          },
+        }),
+        UserIntegration.create(newAuthy),
+      ]);
+    }
   }
 }

@@ -45,23 +45,23 @@ export default class UserResolver {
 
   @FieldResolver((type) => [Inventory])
   async currentInventory(@Root() user: User): Promise<Inventory[]> {
-    return ((await user.$get<Inventory>('currentInventory', {
+    return user.$get<Inventory>('currentInventory', {
       where: {
         status: { [Op.ne]: 'INSPECTING' },
       },
-    })) as Inventory[])!;
+    }) as Promise<Inventory[]>;
   }
 
   @FieldResolver((type) => [Inventory])
   async inventory(@Root() user: User): Promise<Inventory[]> {
-    return ((await user.$get<Inventory>('inventory')) as Inventory[])!;
+    return user.$get<Inventory>('inventory') as Promise<Inventory[]>;
   }
 
   @FieldResolver((type) => [UserTermAgreement])
   async termAgreements(@Root() user: User): Promise<UserTermAgreement[]> {
-    return ((await user.$get<UserTermAgreement>(
-      'termAgreements',
-    )) as UserTermAgreement[])!;
+    return user.$get<UserTermAgreement>('termAgreements') as Promise<
+      UserTermAgreement[]
+    >;
   }
 
   @FieldResolver((type) => Funds)

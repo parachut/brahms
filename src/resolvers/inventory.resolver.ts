@@ -41,21 +41,16 @@ export default class InventoryResolver {
     where: InventoryWhereInput = {},
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      console.log(where);
-      if (where && where.status) {
-        where.status = { [Op.in]: where.status } as any;
-      }
-
-      return Inventory.findAll({
-        where: {
-          ...where,
-          userId: ctx.user.id,
-        },
-      });
+    if (where && where.status) {
+      where.status = { [Op.in]: where.status } as any;
     }
 
-    throw new Error('Unauthorised.');
+    return Inventory.findAll({
+      where: {
+        ...where,
+        userId: ctx.user.id,
+      },
+    });
   }
 
   @Authorized([UserRole.MEMBER])
@@ -65,33 +60,17 @@ export default class InventoryResolver {
     newInventory: InventoryCreateInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const inventory = await Inventory.create({
-        ...newInventory,
-        userId: ctx.user.id,
-      });
-
-      ctx.analytics.track({
-        userId: ctx.user.id,
-        event: 'Inventory Added',
-        properties: {
-          product_id: newInventory.productId,
-          condition: newInventory.condition,
-          missing_essentials: newInventory.missingEssentials,
-        },
-      });
-
-      return inventory;
-    }
-
-    throw new Error('Unauthorized');
+    return Inventory.create({
+      ...newInventory,
+      userId: ctx.user.id,
+    });
   }
 
   @Authorized([UserRole.MEMBER])
   @Mutation(() => Inventory)
   public async inventoryUpdate(
     @Arg('input', (type) => InventoryUpdateInput)
-    { condition, productId, missingEssentials }: InventoryUpdateInput,
+    inventoryInput: InventoryUpdateInput,
     @Arg('where', (type) => InventoryWhereUniqueInput)
     { id }: InventoryWhereUniqueInput,
     @Ctx() ctx: IContext,
@@ -104,31 +83,11 @@ export default class InventoryResolver {
         },
       });
 
-      if (productId) {
-        inventory.productId = productId;
-      }
-
-      if (condition) {
-        inventory.condition = condition;
-      }
-
-      if (missingEssentials) {
-        inventory.missingEssentials = missingEssentials;
-      }
-
       if (!inventory) {
         throw new Error('Inventory not found.');
       }
 
-      ctx.analytics.track({
-        userId: ctx.user.id,
-        event: 'Inventory Updated',
-        properties: {
-          product_id: productId,
-          condition: condition,
-          missing_essentials: missingEssentials,
-        },
-      });
+      Object.assign(inventory, inventoryInput);
 
       return inventory.save();
     }
@@ -143,34 +102,22 @@ export default class InventoryResolver {
     { id }: InventoryWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const inventory = await Inventory.findOne({
-        where: {
-          id,
-          userId: ctx.user.id,
-        },
-      });
-
-      if (inventory.status === InventoryStatus.INWAREHOUSE) {
-        inventory.status = InventoryStatus.RETURNING;
-        inventory.markedForReturn = true;
-      } else if (inventory.status === InventoryStatus.RETURNING) {
-        inventory.status = InventoryStatus.INWAREHOUSE;
-        inventory.markedForReturn = false;
-      }
-
-      ctx.analytics.track({
+    const inventory = await Inventory.findOne({
+      where: {
+        id,
         userId: ctx.user.id,
-        event: 'Inventory Return Request',
-        properties: {
-          id: inventory.id,
-        },
-      });
+      },
+    });
 
-      return inventory.save();
+    if (inventory.status === InventoryStatus.INWAREHOUSE) {
+      inventory.status = InventoryStatus.RETURNING;
+      inventory.markedForReturn = true;
+    } else if (inventory.status === InventoryStatus.RETURNING) {
+      inventory.status = InventoryStatus.INWAREHOUSE;
+      inventory.markedForReturn = false;
     }
 
-    throw new Error('Unauthorized');
+    return inventory.save();
   }
 
   @Authorized([UserRole.MEMBER])
@@ -180,39 +127,25 @@ export default class InventoryResolver {
     { id }: InventoryWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const inventory = await Inventory.findOne({
-        where: {
-          id,
-          userId: ctx.user.id,
-        },
-      });
-
-      if (!inventory) {
-        throw new Error('Unauthorized');
-      }
-
-      await inventory.destroy();
-
-      ctx.analytics.track({
+    const inventory = await Inventory.findOne({
+      where: {
+        id,
         userId: ctx.user.id,
-        event: 'Inventory Destroyed',
-        properties: {
-          product_id: inventory.productId,
-          condition: inventory.condition,
-          missing_essentials: inventory.missingEssentials,
-        },
-      });
+      },
+    });
 
-      return inventory;
+    if (!inventory) {
+      throw new Error('Unauthorized');
     }
 
-    throw new Error('Unauthorized');
+    await inventory.destroy();
+
+    return inventory;
   }
 
   @FieldResolver((type) => Product)
   async product(@Root() inventory: Inventory): Promise<Product> {
-    return ((await inventory.$get<Product>('product')) as Product)!;
+    return inventory.$get<Product>('product') as Promise<Product>;
   }
 
   @FieldResolver((type) => Cart, { nullable: true })
@@ -220,18 +153,15 @@ export default class InventoryResolver {
     @Root() inventory: Inventory,
     @Ctx() ctx: IContext,
   ): Promise<Cart> | null {
-    try {
-      const carts = await inventory.$get('carts', {
-        where: {
-          completedAt: { [Op.ne]: null },
-          userId: ctx.user.id,
+    return Cart.findOne({
+      where: {
+        completedAt: { [Op.ne]: null },
+        userId: ctx.user.id,
+        inventory: {
+          id: inventory.id,
         },
-      });
-
-      return carts[0];
-    } catch (e) {
-      console.log(e);
-    }
+      },
+    });
   }
 
   @FieldResolver((type) => Shipment, { nullable: true })
@@ -239,18 +169,16 @@ export default class InventoryResolver {
     @Root() inventory: Inventory,
     @Ctx() ctx: IContext,
   ): Promise<Shipment> | null {
-    try {
-      const shipments = await inventory.$get('shipments', {
-        where: {
-          direction: ShipmentDirection.OUTBOUND,
-          userId: ctx.user.id,
+    return Shipment.findOne({
+      where: {
+        direction: ShipmentDirection.OUTBOUND,
+        userId: ctx.user?.id,
+        inventory: {
+          id: inventory.id,
         },
-      });
-
-      return shipments[0];
-    } catch (e) {
-      console.log(e);
-    }
+      },
+      order: [['createdAt', 'DESC']],
+    });
   }
 
   @FieldResolver((type) => Shipment, { nullable: true })
@@ -258,18 +186,16 @@ export default class InventoryResolver {
     @Root() inventory: Inventory,
     @Ctx() ctx: IContext,
   ): Promise<Shipment> | null {
-    try {
-      const shipments = await inventory.$get('shipments', {
-        where: {
-          direction: ShipmentDirection.INBOUND,
-          userId: ctx.user.id,
+    return Shipment.findOne({
+      where: {
+        direction: ShipmentDirection.INBOUND,
+        userId: ctx.user?.id,
+        inventory: {
+          id: inventory.id,
         },
-      });
-
-      return shipments[0];
-    } catch (e) {
-      console.log(e);
-    }
+      },
+      order: [['createdAt', 'DESC']],
+    });
   }
 
   @FieldResolver((type) => InventoryTotalIncome, { nullable: true })

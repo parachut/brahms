@@ -12,7 +12,7 @@ import { Op } from 'sequelize';
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 import numeral from 'numeral';
 
-import { signOptions } from '../../certs';
+import { signOptions } from '../certs';
 import { AuthenticateInput } from '../classes/authenticate.input';
 import { RegisterInput } from '../classes/register.input';
 import { Token } from '../classes/token.object';

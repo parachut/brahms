@@ -26,46 +26,21 @@ export default class CartItemResolver {
     { productId, quantity }: CartItemCreateInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const cart = await Cart.findOne({
-        where: { userId: ctx.user.id, completedAt: null },
-        attributes: ['id'],
-      });
+    const cart = await Cart.findOne({
+      where: { userId: ctx.user?.id, completedAt: null },
+      attributes: ['id'],
+    });
 
-      const product = await Product.findByPk(productId);
-
-      if (!cart) {
-        throw new Error('Cart mismatch');
-      }
-
-      ctx.analytics.track({
-        userId: ctx.user.id,
-        event: 'Product Added',
-        properties: {
-          cart_id: cart.id,
-          product_id: productId,
-          sku: product.mfr,
-          category: product.categoryId,
-          name: product.name,
-          brand: product.brandId,
-          price: product.points,
-          quantity,
-          url: `https://www.parachut.co/warehouse/${product.slug}`,
-          image_url: product.images.length
-            ? `https://parachut.imgix.net/${product.images[0]}`
-            : undefined,
-        },
-      });
-
-      return CartItem.create({
-        productId,
-        quantity,
-        userId: ctx.user.id,
-        cartId: cart.id,
-      });
+    if (!cart) {
+      throw new Error('Cart mismatch');
     }
 
-    throw new Error('Unauthorized');
+    return CartItem.create({
+      productId,
+      quantity,
+      userId: ctx.user.id,
+      cartId: cart.id,
+    });
   }
 
   @Authorized([UserRole.MEMBER])
@@ -77,52 +52,23 @@ export default class CartItemResolver {
     { quantity }: CartItemUpdateInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const cart = await Cart.findOne({
-        where: { userId: ctx.user.id, completedAt: null },
-        attributes: ['id'],
-        include: [
-          {
-            association: 'items',
-            where: {
-              id,
-            },
-            include: ['product'],
-          },
-        ],
-      });
-
-      if (!cart || !cart.items.length) {
-        throw new Error('Cart mismatch');
-      }
-
-      const item = cart.items[0];
-
-      ctx.analytics.track({
-        userId: ctx.user.id,
-        event: item.quantity < quantity ? 'Product Added' : 'Product Removed',
-        properties: {
-          cart_id: cart.id,
-          product_id: item.product.id,
-          sku: item.product.mfr,
-          category: item.product.categoryId,
-          name: item.product.name,
-          brand: item.product.brandId,
-          price: item.product.points,
-          quantity,
-          url: `https://www.parachut.co/warehouse/${item.product.slug}`,
-          image_url: item.product.images.length
-            ? `https://parachut.imgix.net/${item.product.images[0]}`
-            : undefined,
+    const cartItem = await CartItem.findOne({
+      where: {
+        id,
+        cart: {
+          userId: ctx.user?.id,
+          completedAt: null,
         },
-      });
+      },
+    });
 
-      item.quantity = quantity;
-
-      return item.save();
+    if (!cartItem) {
+      throw new Error('Cart mismatch');
     }
 
-    throw new Error('Unauthorized');
+    cartItem.quantity = quantity;
+
+    return cartItem.save();
   }
 
   @Authorized([UserRole.MEMBER])
@@ -132,62 +78,32 @@ export default class CartItemResolver {
     { id }: CartItemWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const cart = await Cart.findOne({
-        where: { userId: ctx.user.id, completedAt: null },
-        attributes: ['id'],
-      });
-
-      if (!cart) {
-        throw new Error('Cart mismatch');
-      }
-
-      const item = await CartItem.findOne({
-        where: {
-          id,
-          cartId: cart.id,
+    const cartItem = await CartItem.findOne({
+      where: {
+        id,
+        cart: {
+          userId: ctx.user?.id,
+          completedAt: null,
         },
-        include: ['product'],
-      });
+      },
+      include: ['product'],
+    });
 
-      if (!item) {
-        throw new Error('Cart item not found.');
-      }
-
-      ctx.analytics.track({
-        userId: ctx.user.id,
-        event: 'Product Removed',
-        properties: {
-          cart_id: cart.id,
-          product_id: item.product.id,
-          sku: item.product.mfr,
-          category: item.product.categoryId,
-          name: item.product.name,
-          brand: item.product.brandId,
-          price: item.product.points,
-          quantity: item.quantity,
-          url: `https://www.parachut.co/warehouse/${item.product.slug}`,
-          image_url: item.product.images.length
-            ? `https://parachut.imgix.net/${item.product.images[0]}`
-            : undefined,
-        },
-      });
-
-      await CartItem.destroy({
-        where: {
-          id,
-          cartId: cart.id,
-        },
-      });
-
-      return item;
+    if (!cartItem) {
+      throw new Error('Cart mismatch');
     }
 
-    throw new Error('Unauthorized');
+    await CartItem.destroy({
+      where: {
+        id,
+      },
+    });
+
+    return cartItem;
   }
 
   @FieldResolver((type) => Product)
   async product(@Root() cartItem: CartItem): Promise<Product> {
-    return ((await cartItem.$get<Product>('product')) as Product)!;
+    return cartItem.$get<Product>('product') as Promise<Product>;
   }
 }

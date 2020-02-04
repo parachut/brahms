@@ -25,116 +25,81 @@ export default class ShipKitResolver {
   @Authorized([UserRole.MEMBER])
   @Query((returns) => ShipKit)
   public async shipKit(@Ctx() ctx: IContext) {
-    if (ctx.user) {
-      let shipKit = await ShipKit.findOne({
-        where: {
-          userId: ctx.user.id,
-          completedAt: null,
+    let shipKit = await ShipKit.findOne({
+      where: {
+        userId: ctx.user.id,
+        completedAt: null,
+      },
+      include: [
+        {
+          association: 'inventory',
+          include: ['product'],
         },
-        include: [
-          {
-            association: 'inventory',
-            include: ['product'],
-          },
-        ],
+      ],
+    });
+
+    if (!shipKit) {
+      const user = await User.findByPk(ctx.user.id, {
+        include: ['addresses'],
       });
 
-      if (!shipKit) {
-        const user = await User.findByPk(ctx.user.id, {
-          include: ['addresses'],
-        });
+      const address = user.addresses.length
+        ? user.addresses.find((address) => address.primary) || user.addresses[0]
+        : null;
 
+      shipKit = new ShipKit({
+        addressId: address ? address.id : null,
+        userId: ctx.user.id,
+      });
+
+      return shipKit.save();
+    }
+
+    if (!shipKit.address) {
+      const user = await User.findByPk(ctx.user.id, {
+        include: ['addresses'],
+      });
+
+      if (user.addresses.length) {
         const address = user.addresses.length
           ? user.addresses.find((address) => address.primary) ||
             user.addresses[0]
           : null;
 
-        shipKit = new ShipKit({
-          addressId: address ? address.id : null,
-          userId: ctx.user.id,
-        });
-
-        await shipKit.save();
+        shipKit.addressId = address.id;
       }
 
-      if (!shipKit.address) {
-        const user = await User.findByPk(ctx.user.id, {
-          include: ['addresses'],
-        });
-
-        if (user.addresses.length) {
-          const address = user.addresses.length
-            ? user.addresses.find((address) => address.primary) ||
-              user.addresses[0]
-            : null;
-
-          shipKit.addressId = address.id;
-        }
-      }
-
-      await shipKit.save();
-
-      return shipKit;
+      return shipKit.save();
     }
 
-    throw new Error('Unauthorised.');
+    return shipKit;
   }
 
   @Authorized([UserRole.MEMBER])
   @Query((returns) => [ShipKit])
   public async shipkits(@Ctx() ctx: IContext) {
-    if (ctx.user) {
-      const shipkits = await ShipKit.findAll({
-        where: {
-          userId: ctx.user.id,
-          completedAt: { [Op.ne]: null },
-        },
-      });
-
-      return shipkits;
-    }
-    throw new Error('Unauthorised.');
+    return ShipKit.findAll({
+      where: {
+        userId: ctx.user.id,
+        completedAt: { [Op.ne]: null },
+      },
+    });
   }
 
   @Authorized([UserRole.MEMBER])
   @Mutation(() => ShipKit)
   public async shipKitUpdate(
     @Arg('input', (type) => ShipKitUpdateInput)
-    { addressId, airbox }: ShipKitUpdateInput,
+    shipKitInput: ShipKitUpdateInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const shipKit = await ShipKit.findOne({
-        where: { userId: ctx.user.id, completedAt: null },
-      });
+    const shipKit = await ShipKit.findOne({
+      where: { userId: ctx.user.id, completedAt: null },
+    });
 
-      console.log(shipKit);
+    Object.assign(shipKit, shipKitInput);
 
-      const event: any = {
-        event: 'Contributor Step Completed',
-        properties: {
-          request_id: shipKit.id,
-          shipping_method: 'UPS',
-          step: 0,
-        },
-        userId: ctx.user.id,
-      };
-
-      if (!isUndefined(addressId)) {
-        shipKit.addressId = addressId;
-        event.properties.step = 3;
-      }
-
-      if (!isUndefined(airbox)) {
-        shipKit.airbox = airbox;
-        event.properties.step = 2;
-      }
-
-      ctx.analytics.track(event);
-      return shipKit.save();
-    }
-
-    throw new Error('Unauthorized');
+    return shipKit.save();
   }
 
   @Authorized([UserRole.MEMBER])
@@ -145,20 +110,8 @@ export default class ShipKitResolver {
         where: { userId: ctx.user.id, completedAt: null },
       });
 
-      const user = await User.findByPk(ctx.user.id);
-
-      const event: any = {
-        event: 'ShipKit Completed',
-        properties: {
-          request_id: shipKit.id,
-          step: 0,
-        },
-        userId: ctx.user.id,
-      };
-
       shipKit.completedAt = new Date();
 
-      ctx.analytics.track(event);
       return shipKit.save();
     }
 
@@ -167,16 +120,16 @@ export default class ShipKitResolver {
 
   @FieldResolver((type) => [Inventory])
   async inventory(@Root() shipKit: ShipKit): Promise<Inventory[]> {
-    return ((await shipKit.$get<Inventory>('inventory')) as Inventory[])!;
+    return shipKit.$get<Inventory>('inventory') as Promise<Inventory[]>;
   }
 
   @FieldResolver((type) => Address, { nullable: true })
   async address(@Root() shipKit: ShipKit): Promise<Address> {
-    return (await shipKit.$get<Address>('address')) as Address;
+    return shipKit.$get<Address>('address') as Promise<Address>;
   }
 
   @FieldResolver((type) => [Shipment], { nullable: true })
   async shipments(@Root() shipKit: ShipKit): Promise<Shipment[]> {
-    return (await shipKit.$get<Shipment>('shipments')) as Shipment[];
+    return shipKit.$get<Shipment>('shipments') as Promise<Shipment[]>;
   }
 }

@@ -27,28 +27,21 @@ export default class ShipmentResolver {
     { id }: ShipmentWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      return Shipment.findOne({
-        where: {
-          id,
-          user: ctx.user.id,
-        },
-      });
-    }
-
-    throw new Error('Unauthorised.');
+    return Shipment.findOne({
+      where: {
+        id,
+        user: ctx.user.id,
+      },
+    });
   }
 
   @Authorized([UserRole.MEMBER])
   @Query((returns) => [Shipment])
   public async shipments(@Ctx() ctx: IContext) {
-    if (ctx.user) {
-      return Shipment.findAll({
-        where: { userId: ctx.user.id },
-        order: [['createdAt', 'DESC']],
-      });
-    }
-    throw new Error('Unauthorised.');
+    return Shipment.findAll({
+      where: { userId: ctx.user.id },
+      order: [['createdAt', 'DESC']],
+    });
   }
 
   @Authorized([UserRole.MEMBER])
@@ -58,35 +51,32 @@ export default class ShipmentResolver {
     { inventoryIds, type }: ShipmentCreateInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const [shipment] = await Promise.all([
-        Shipment.create({
-          direction: ShipmentDirection.INBOUND,
-          type,
-          userId: ctx.user.id,
-        }),
-        Inventory.update(
-          {
-            status: 'RETURNING',
+    const [shipment] = await Promise.all([
+      Shipment.create({
+        direction: ShipmentDirection.INBOUND,
+        type,
+        userId: ctx.user.id,
+      }),
+      Inventory.update(
+        {
+          status: 'RETURNING',
+        },
+        {
+          where: {
+            id: { [Op.in]: inventoryIds },
           },
-          {
-            where: {
-              id: { [Op.in]: inventoryIds },
-            },
-          },
-        ),
-      ]);
+          individualHooks: true,
+        },
+      ),
+    ]);
 
-      await shipment.$set('inventory', inventoryIds);
+    await shipment.$set('inventory', inventoryIds);
 
-      return shipment;
-    }
-
-    throw new Error('Unauthorized');
+    return shipment;
   }
 
   @FieldResolver((type) => [Inventory])
   async inventory(@Root() shipment: Shipment): Promise<Inventory[]> {
-    return (await shipment.$get<Inventory>('inventory')) as Inventory[];
+    return shipment.$get<Inventory>('inventory') as Promise<Inventory[]>;
   }
 }

@@ -92,29 +92,10 @@ export default class AddressResolver {
     input: AddressCreateInput,
     @Ctx() ctx: IContext,
   ) {
-    if (input.primary) {
-      await Address.update(
-        {
-          primary: false,
-        },
-        {
-          where: {
-            userId: ctx.user.id,
-          },
-        },
-      );
-    }
-
-    if (ctx.user) {
-      const newAddress = await Address.create({
-        ...input,
-        userId: ctx.user.id,
-      });
-
-      return newAddress;
-    }
-
-    throw new Error('Unauthorized');
+    return Address.create({
+      ...input,
+      userId: ctx.user?.id,
+    });
   }
 
   @Authorized([UserRole.MEMBER])
@@ -127,20 +108,16 @@ export default class AddressResolver {
     where: AddressWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const address = await Address.findByPk(where.id);
+    const address = await Address.findByPk(where.id);
 
-      const newAddress = await Address.create({
-        ...address,
-        ...input,
-        userId: ctx.user.id,
-      });
+    const newAddress = await Address.create({
+      ...address,
+      ...input,
+      userId: ctx.user?.id,
+    });
 
-      await address.destroy();
-      return newAddress;
-    }
-
-    throw new Error('Unauthorized');
+    await address.destroy();
+    return newAddress;
   }
 
   @Authorized([UserRole.MEMBER])
@@ -150,20 +127,16 @@ export default class AddressResolver {
     { id }: AddressWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const address = await Address.findOne({
-        where: { id, userId: ctx.user.id },
-      });
+    const address = await Address.findOne({
+      where: { id, userId: ctx.user?.id },
+    });
 
-      if (!address) {
-        throw new Error('Address not found');
-      }
-
-      await address.destroy();
-
-      return address;
+    if (!address) {
+      throw new Error('Address not found');
     }
 
-    throw new Error('Unauthorized');
+    await address.destroy();
+
+    return address;
   }
 }

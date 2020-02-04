@@ -18,16 +18,12 @@ export default class DepositResolver {
   @Authorized([UserRole.MEMBER])
   @Query((returns) => [Deposit])
   public async deposits(@Ctx() ctx: IContext) {
-    if (ctx.user) {
-      return Deposit.findAll({
-        where: {
-          userId: ctx.user.id,
-        },
-        order: [['created_at', 'DESC']],
-      });
-    }
-
-    throw new Error('Unauthorised');
+    return Deposit.findAll({
+      where: {
+        userId: ctx.user.id,
+      },
+      order: [['created_at', 'DESC']],
+    });
   }
 
   @Authorized([UserRole.MEMBER])
@@ -37,82 +33,77 @@ export default class DepositResolver {
     { amount }: DepositCreateInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      try {
-        const user = await User.findByPk(ctx.user.id, {
-          include: ['bankAccounts', 'incomes', 'deposits'],
-        });
+    try {
+      const user = await User.findByPk(ctx.user.id, {
+        include: ['bankAccounts', 'incomes', 'deposits'],
+      });
 
-        const totalIncome = user.incomes.reduce((r, i) => r + i.commission, 0);
-        const totalDeposited = user.deposits.reduce((r, i) => r + i.amount, 0);
+      const totalIncome = user.incomes.reduce((r, i) => r + i.commission, 0);
+      const totalDeposited = user.deposits.reduce((r, i) => r + i.amount, 0);
 
-        const available = totalIncome - totalDeposited;
+      const available = totalIncome - totalDeposited;
 
-        if (available < amount) {
-          throw new Error(
-            'You are attempting to transfer more than is available.',
-          );
-        }
+      if (available < amount) {
+        throw new Error(
+          'You are attempting to transfer more than is available.',
+        );
+      }
 
-        const appToken = await dwolla.auth.client();
+      const appToken = await dwolla.auth.client();
 
-        const accountUrl = await appToken
-          .get('/')
-          .then((res) => res.body._links.account.href);
+      const accountUrl = await appToken
+        .get('/')
+        .then((res) => res.body._links.account.href);
 
-        const masterFundingSource = await appToken
-          .get(`${accountUrl}/funding-sources`)
-          .then(
-            (res) => res.body._embedded['funding-sources'][0]._links.self.href,
-          );
-
-        const bankAccount = user.bankAccounts.find(
-          (account) => account.primary,
+      const masterFundingSource = await appToken
+        .get(`${accountUrl}/funding-sources`)
+        .then(
+          (res) => res.body._embedded['funding-sources'][0]._links.self.href,
         );
 
-        const deposit = await Deposit.create({
-          amount,
-          userId: ctx.user.id,
-          userBankAccountId: bankAccount.id,
-        });
+      const bankAccount = user.bankAccounts.find((account) => account.primary);
 
-        var requestBody = {
-          _links: {
-            source: {
-              href: masterFundingSource,
-            },
-            destination: {
-              href: bankAccount.plaidUrl,
-            },
-          },
-          amount: {
-            currency: 'USD',
-            value: amount.toFixed(2),
-          },
-          metadata: {
-            paymentId: deposit.get('id'),
-            userId: user.get('id'),
-            note: 'Deposit initiated by contributor.',
-          },
-          clearing: {
-            destination: 'next-available',
-          },
-          correlationId: deposit.get('id'),
-        };
+      const deposit = await Deposit.create({
+        amount,
+        userId: ctx.user.id,
+        userBankAccountId: bankAccount.id,
+      });
 
-        const plaidUrl = await appToken
-          .post('transfers', requestBody)
-          .then((res) => res.headers.get('location'));
+      var requestBody = {
+        _links: {
+          source: {
+            href: masterFundingSource,
+          },
+          destination: {
+            href: bankAccount.plaidUrl,
+          },
+        },
+        amount: {
+          currency: 'USD',
+          value: amount.toFixed(2),
+        },
+        metadata: {
+          paymentId: deposit.get('id'),
+          userId: user.get('id'),
+          note: 'Deposit initiated by contributor.',
+        },
+        clearing: {
+          destination: 'next-available',
+        },
+        correlationId: deposit.get('id'),
+      };
 
-        deposit.plaidUrl = plaidUrl;
-        await deposit.save();
+      const plaidUrl = await appToken
+        .post('transfers', requestBody)
+        .then((res) => res.headers.get('location'));
 
-        return deposit;
-      } catch (e) {
-        console.log(e);
-        throw e;
-      }
+      deposit.plaidUrl = plaidUrl;
+      await deposit.save();
+
+      return deposit;
+    } catch (e) {
+      console.log(e);
+      throw e;
     }
-    throw new Error('Unauthorised');
   }
 }

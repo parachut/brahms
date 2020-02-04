@@ -89,6 +89,7 @@ export async function easypost(req, res) {
             where: {
               id: { [Op.in]: shipmentInventory.map((s) => s.id) },
             },
+            individualHooks: true,
           });
         }
       } else {
@@ -106,6 +107,7 @@ export async function easypost(req, res) {
             where: {
               id: { [Op.in]: shipmentInventory.map((s) => s.id) },
             },
+            individualHooks: true,
           });
         }
       }
