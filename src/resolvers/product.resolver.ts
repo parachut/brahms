@@ -73,11 +73,10 @@ export default class ProductResolver {
   ) {
     const lastIndex = sort.lastIndexOf('_');
 
-    const sortBy: any = [
+    let sortBy: any = [
       {
         [camelCase(sort.substr(0, lastIndex))]: {
           order: camelCase(sort.substr(lastIndex)),
-          mode: 'avg',
         },
       },
     ];
@@ -150,21 +149,23 @@ export default class ProductResolver {
         },
       });
 
-      sortBy.unshift({
-        _script: {
-          type: 'number',
-          script: {
-            lang: 'painless',
-            source: 'doc.stock.value * params.factor + doc.popularity.value',
-            params: {
-              factor: 100,
+      if (sort === 'DEMAND_DESC') {
+        sortBy = [
+          {
+            _script: {
+              type: 'number',
+              script: {
+                lang: 'painless',
+                source: '_score + (params.factor * doc.popularity.value)',
+                params: {
+                  factor: 0.01,
+                },
+              },
+              order: 'desc',
             },
           },
-          order: 'desc',
-        },
-      });
-
-      sortBy.push('_score');
+        ];
+      }
     }
 
     if (filterDefault.brand) {

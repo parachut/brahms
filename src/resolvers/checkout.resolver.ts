@@ -81,12 +81,10 @@ export default class CheckoutResolver {
     });
 
     for (const item of cart.items) {
-      const itemLevel = calcItemLevel(item.points);
-
-      if (item.points > 2500 && itemLevel !== 'level-3') {
+      if (item.points > 2500 && cart.planId !== 'level-3') {
         throw new Error(`${item.product.name} requires a level-3 membership.`);
       }
-      if (item.points > 1000 && itemLevel === 'level-1') {
+      if (item.points > 1000 && cart.planId === 'level-1') {
         throw new Error(
           `${item.product.name} requires at least a level-2 membership.`,
         );

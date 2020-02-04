@@ -32,7 +32,7 @@ import { IContext, IJWTPayLoad } from '../utils/context.interface';
 import { sendEmail } from '../utils/sendEmail';
 import { UserGeolocation } from '../models/UserGeolocation';
 
-const privateKEY = fs.readFileSync('./certs/private.key', 'utf8');
+const privateKEY = fs.readFileSync(__dirname + '/../certs/private.key', 'utf8');
 const authy = new Authy({ key: process.env.AUTHY });
 
 const recurly = new Recurly.Client(process.env.RECURLY, `subdomain-parachut`);
@@ -139,21 +139,23 @@ export default class AuthResolver {
       token: passcode,
     });
 
-    const coordinates = ctx.req.header('X-AppEngine-CityLatLong').split(',');
+    if (ctx.req.header('X-AppEngine-CityLatLong')) {
+      const coordinates = ctx.req.header('X-AppEngine-CityLatLong').split(',');
 
-    await UserGeolocation.create({
-      userId: user.id,
-      countryCode: ctx.req.header('X-AppEngine-Country'),
-      regionCode: ctx.req.header('X-AppEngine-Region'),
-      city: ctx.req.header('X-AppEngine-City'),
-      coordinates: {
-        type: 'Point',
-        coordinates: [
-          parseInt(coordinates[1], 10),
-          parseInt(coordinates[0], 10),
-        ],
-      },
-    } as UserGeolocation);
+      await UserGeolocation.create({
+        userId: user.id,
+        countryCode: ctx.req.header('X-AppEngine-Country'),
+        regionCode: ctx.req.header('X-AppEngine-Region'),
+        city: ctx.req.header('X-AppEngine-City'),
+        coordinates: {
+          type: 'Point',
+          coordinates: [
+            parseInt(coordinates[1], 10),
+            parseInt(coordinates[0], 10),
+          ],
+        },
+      } as UserGeolocation);
+    }
 
     const payload: IJWTPayLoad = {
       id: user.id,
@@ -244,21 +246,23 @@ export default class AuthResolver {
       });
     }
 
-    const coordinates = ctx.req.header('X-AppEngine-CityLatLong').split(',');
+    if (ctx.req.header('X-AppEngine-CityLatLong')) {
+      const coordinates = ctx.req.header('X-AppEngine-CityLatLong').split(',');
 
-    await UserGeolocation.create({
-      userId: user.id,
-      countryCode: ctx.req.header('X-AppEngine-Country'),
-      regionCode: ctx.req.header('X-AppEngine-Region'),
-      city: ctx.req.header('X-AppEngine-City'),
-      coordinates: {
-        type: 'Point',
-        coordinates: [
-          parseInt(coordinates[1], 10),
-          parseInt(coordinates[0], 10),
-        ],
-      },
-    } as UserGeolocation);
+      await UserGeolocation.create({
+        userId: user.id,
+        countryCode: ctx.req.header('X-AppEngine-Country'),
+        regionCode: ctx.req.header('X-AppEngine-Region'),
+        city: ctx.req.header('X-AppEngine-City'),
+        coordinates: {
+          type: 'Point',
+          coordinates: [
+            parseInt(coordinates[1], 10),
+            parseInt(coordinates[0], 10),
+          ],
+        },
+      } as UserGeolocation);
+    }
 
     await sendEmail({
       to: user.email,

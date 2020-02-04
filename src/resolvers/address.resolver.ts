@@ -7,18 +7,17 @@ import {
   Mutation,
   Query,
   Resolver,
-  Root,
-  Subscription,
 } from 'type-graphql';
 
 import { AddressCreateInput } from '../classes/addressCreate.input';
 import { AddressUpdateInput } from '../classes/addressUpdate.input';
 import { AddressWhereUniqueInput } from '../classes/addressWhereUnique.input';
-import { Notification, NotificationPayload } from '../classes/notification';
 import { Phone } from '../decorators/phone';
 import { UserRole } from '../enums/userRole';
 import { Address } from '../models/Address';
+import { UserVerification } from '../models/UserVerification';
 import { IContext } from '../utils/context.interface';
+import { checkClearbitFraud } from '../utils/checkClearbitFraud';
 
 @Resolver(Address)
 export default class AddressResolver {
@@ -28,32 +27,17 @@ export default class AddressResolver {
     @Arg('id', (type) => ID) id: string,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      const address = await Address.findOne({
-        where: { id, userId: ctx.user.id },
-      });
-
-      if (!address) {
-        throw new Error('Address not found');
-      }
-
-      return address;
-    }
-
-    throw new Error('Unauthorised.');
+    return Address.findOne({
+      where: { id, userId: ctx.user.id },
+    });
   }
 
   @Authorized([UserRole.MEMBER])
   @Query((returns) => [Address])
   public async addresses(@Ctx() ctx: IContext) {
-    if (ctx.user) {
-      const addresses = await Address.findAll({
-        where: { userId: ctx.user.id },
-      });
-
-      return addresses;
-    }
-    throw new Error('Unauthorised.');
+    return Address.findAll({
+      where: { userId: ctx.user.id },
+    });
   }
 
   @Authorized([UserRole.MEMBER])
@@ -63,25 +47,21 @@ export default class AddressResolver {
     where: AddressWhereUniqueInput,
     @Ctx() ctx: IContext,
   ) {
-    if (ctx.user) {
-      await Address.update(
-        {
-          primary: false,
+    await Address.update(
+      {
+        primary: false,
+      },
+      {
+        where: {
+          userId: ctx.user.id,
         },
-        {
-          where: {
-            userId: ctx.user.id,
-          },
-        },
-      );
+      },
+    );
 
-      const address = await Address.findByPk(where.id);
-      address.primary = true;
+    const address = await Address.findByPk(where.id);
+    address.primary = true;
 
-      return address.save();
-    }
-
-    throw new Error('Unauthorized');
+    return address.save();
   }
 
   @Authorized([UserRole.MEMBER])
@@ -92,6 +72,17 @@ export default class AddressResolver {
     input: AddressCreateInput,
     @Ctx() ctx: IContext,
   ) {
+    const clearbitVerification = await checkClearbitFraud(
+      ctx.user?.id,
+      input.zip,
+      input.country,
+      ctx.req.header('X-Forwarded-For'),
+    );
+
+    console.log(clearbitVerification);
+
+    await UserVerification.create(clearbitVerification);
+
     return Address.create({
       ...input,
       userId: ctx.user?.id,

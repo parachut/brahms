@@ -1,0 +1,5 @@
+dispatch:
+  - url: '*/graphql/*'
+    service: default
+  - url: '*/forest*'
+    service: forest

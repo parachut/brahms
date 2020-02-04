@@ -6,7 +6,6 @@ import { createContext } from 'dataloader-sequelize';
 import express from 'express';
 import expressJwt from 'express-jwt';
 import fs from 'fs';
-import requestIp from 'request-ip';
 import { buildSchema } from 'type-graphql';
 
 require('dotenv').config();
@@ -45,7 +44,6 @@ const main = async () => {
 
       const context = {
         analytics,
-        clientIp: requestIp.getClientIp(req),
         dataloaderContext,
         req,
         sequelize,
@@ -62,7 +60,7 @@ const main = async () => {
     expressJwt({
       algorithms: ['RS256'],
       credentialsRequired: false,
-      secret: fs.readFileSync('./certs/public.key', 'utf8'),
+      secret: fs.readFileSync(__dirname + '/certs/public.key', 'utf8'),
     }),
   );
 
