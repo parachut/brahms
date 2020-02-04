@@ -157,10 +157,15 @@ export default class InventoryResolver {
       where: {
         completedAt: { [Op.ne]: null },
         userId: ctx.user.id,
-        inventory: {
-          id: inventory.id,
-        },
       },
+      include: [
+        {
+          required: true,
+          model: Inventory,
+          through: { where: { id: inventory.id } },
+        },
+      ],
+      order: [['createdAt', 'DESC']],
     });
   }
 
@@ -169,16 +174,23 @@ export default class InventoryResolver {
     @Root() inventory: Inventory,
     @Ctx() ctx: IContext,
   ): Promise<Shipment> | null {
-    return Shipment.findOne({
+    const shipment = await Shipment.findOne({
       where: {
         direction: ShipmentDirection.OUTBOUND,
         userId: ctx.user?.id,
-        inventory: {
-          id: inventory.id,
-        },
       },
+      include: [
+        {
+          required: true,
+          model: Inventory,
+          through: { where: { id: inventory.id } },
+        },
+      ],
       order: [['createdAt', 'DESC']],
     });
+
+    console.log(shipment);
+    return shipment;
   }
 
   @FieldResolver((type) => Shipment, { nullable: true })
@@ -190,10 +202,14 @@ export default class InventoryResolver {
       where: {
         direction: ShipmentDirection.INBOUND,
         userId: ctx.user?.id,
-        inventory: {
-          id: inventory.id,
-        },
       },
+      include: [
+        {
+          required: true,
+          model: Inventory,
+          through: { where: { id: inventory.id } },
+        },
+      ],
       order: [['createdAt', 'DESC']],
     });
   }

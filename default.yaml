@@ -35,3 +35,14 @@ entrypoint: 'node dist/server.js'
 
 vpc_access_connector:
   name: 'projects/parachut-216816/locations/us-central1/connectors/stateless-vpc'
+
+handlers:
+  - url: /.*
+    script: auto
+    secure: always
+    redirect_http_response_code: 301
+
+automatic_scaling:
+  target_cpu_utilization: 0.65
+  min_instances: 1
+  max_instances: 4

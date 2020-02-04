@@ -33,6 +33,8 @@ const main = async () => {
 
   app.use(GQLPATH, cors());
 
+  await sequelize.sync();
+
   const server = new ApolloServer({
     introspection: true,
     playground: true,

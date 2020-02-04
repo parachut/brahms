@@ -55,11 +55,10 @@ export default class CartItemResolver {
     const cartItem = await CartItem.findOne({
       where: {
         id,
-        cart: {
-          userId: ctx.user?.id,
-          completedAt: null,
-        },
+        '$cart.user_id$': ctx.user?.id,
+        '$cart.completed_at$': null,
       },
+      include: ['cart'],
     });
 
     if (!cartItem) {
@@ -81,12 +80,10 @@ export default class CartItemResolver {
     const cartItem = await CartItem.findOne({
       where: {
         id,
-        cart: {
-          userId: ctx.user?.id,
-          completedAt: null,
-        },
+        '$cart.user_id$': ctx.user?.id,
+        '$cart.completed_at$': null,
       },
-      include: ['product'],
+      include: ['product', 'cart'],
     });
 
     if (!cartItem) {
