@@ -25,7 +25,7 @@ export class Invoice extends Model<Invoice> {
   id!: string;
 
   @Field({ nullable: true })
-  @Column
+  @Column(DataType.REAL)
   balance?: number;
 
   @Field()
@@ -57,7 +57,7 @@ export class Invoice extends Model<Invoice> {
   origin!: string;
 
   @Field()
-  @Column
+  @Column(DataType.REAL)
   paid!: number;
 
   @Field({ nullable: true })
@@ -69,7 +69,7 @@ export class Invoice extends Model<Invoice> {
   previousInvoiceId?: string;
 
   @Field({ nullable: true })
-  @Column
+  @Column(DataType.REAL)
   refundableAmount?: string;
 
   @Field()
@@ -77,15 +77,15 @@ export class Invoice extends Model<Invoice> {
   state!: string;
 
   @Field()
-  @Column
+  @Column(DataType.REAL)
   subtotal!: number;
 
   @Field({ nullable: true })
-  @Column
+  @Column(DataType.REAL)
   tax?: number;
 
   @Field()
-  @Column
+  @Column(DataType.REAL)
   total!: number;
 
   @Field({ nullable: true })

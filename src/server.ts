@@ -7,6 +7,8 @@ import express from 'express';
 import expressJwt from 'express-jwt';
 import fs from 'fs';
 import { buildSchema } from 'type-graphql';
+import bugsnag from '@bugsnag/js';
+import bugsnagExpress from '@bugsnag/plugin-express';
 
 require('dotenv').config();
 
@@ -33,7 +35,12 @@ const main = async () => {
 
   app.use(GQLPATH, cors());
 
-  await sequelize.sync();
+  const bugsnagClient = bugsnag(process.env.BUGSNAG);
+  bugsnagClient.use(bugsnagExpress);
+
+  const bugSnagMiddleware = bugsnagClient.getPlugin('express');
+
+  app.use(bugSnagMiddleware.errorHandler);
 
   const server = new ApolloServer({
     introspection: true,

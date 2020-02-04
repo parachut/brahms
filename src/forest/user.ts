@@ -61,13 +61,5 @@ Liana.collection('User', {
         return user;
       },
     },
-    {
-      field: 'walletAmount',
-      type: 'String',
-      get: async (user: User) => {
-        const pn = new PhoneNumber(user.phone);
-        return pn.getNumber('national');
-      },
-    },
   ],
 });
