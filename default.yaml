@@ -32,6 +32,7 @@ env_variables:
   DWOLLA_KEY: 8JQ1L7rVPR0IFq2YSdnvFAVCuClKKZntH3yaWpyueqcTmVpM0X
   DWOLLA_SECRET: L6etp1oATAcu7dN1MVHrVEAoOswkYSIGYcpy1JIYtM1Vbp6kUg
   BUGSNAG: 3e2b198d626a7d0e1cc6cfdea4f9653c
+  POSTGRES_HOST: '10.114.81.10'
 entrypoint: 'node dist/server.js'
 
 vpc_access_connector:

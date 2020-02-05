@@ -33,6 +33,7 @@ env_variables:
   ACTIVE_CAMPAIGN_URL: https://parachutco.api-us1.com
   DWOLLA_KEY: 8JQ1L7rVPR0IFq2YSdnvFAVCuClKKZntH3yaWpyueqcTmVpM0X
   DWOLLA_SECRET: L6etp1oATAcu7dN1MVHrVEAoOswkYSIGYcpy1JIYtM1Vbp6kUg
+  POSTGRES_HOST: '10.114.81.10'
 entrypoint: 'node dist/forest.js'
 
 vpc_access_connector:
