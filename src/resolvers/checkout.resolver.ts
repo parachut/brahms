@@ -16,7 +16,6 @@ import { Inventory } from '../models/Inventory';
 import { User } from '../models/User';
 import { Shipment } from '../models/Shipment';
 import { UserIntegration } from '../models/UserIntegration';
-import { calcItemLevel } from '../utils/calc';
 import { IContext } from '../utils/context.interface';
 import { sendEmail } from '../utils/sendEmail';
 
@@ -397,26 +396,6 @@ export default class CheckoutResolver {
     cart.completedAt = new Date();
     await cart.$set('inventory', inventory);
     await cart.save();
-
-    ctx.analytics.track({
-      event: 'Order Completed',
-      properties: {
-        checkout_id: cart.id,
-        currency: 'USD',
-        order_id: cart.id,
-        products: cart.items.map((item) => ({
-          image_url: item.product.images
-            ? `https://parachut.imgix.net/${item.product.images[0]}`
-            : undefined,
-          name: item.product.name,
-          price: item.product.points,
-          product_id: item.product.id,
-          quantity: item.quantity,
-        })),
-        shipping: cart.service !== 'Ground' ? 25 : 0,
-      },
-      userId: ctx.user.id,
-    });
 
     return cart;
   }
