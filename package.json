@@ -113,7 +113,7 @@
     "dev:forest": "ts-node-dev --respawn --transpileOnly --ignore-watch node_modules ./src/forest.ts",
     "lint": "tslint 'src/**/*.{ts,tsx}' --exclude 'src/**/*.d.ts'",
     "start": "node ./dist/src/server.js",
-    "start-worker": "node ./dist/src/worker.js",
+    "fix-elastic": "ts-node-dev --no-notify src/fix-elastic.ts",
     "test": "npm run lint"
   },
   "version": "0.1.0"

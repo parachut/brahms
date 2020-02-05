@@ -14,6 +14,7 @@ require('dotenv').config();
 
 import { sequelize } from './db';
 import { customAuthChecker } from './utils/customAuthChecker';
+import hooks from './hooks';
 
 const PORT = process.env.PORT || 4000;
 const GQLPATH = '/graphql';
@@ -41,6 +42,8 @@ const main = async () => {
   const bugSnagMiddleware = bugsnagClient.getPlugin('express');
 
   app.use(bugSnagMiddleware.errorHandler);
+
+  app.use('/hooks', hooks);
 
   const server = new ApolloServer({
     introspection: true,

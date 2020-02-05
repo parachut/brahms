@@ -12,3 +12,6 @@ codegen.yml
 # Docker
 Dockerfile
 docker-compose.yml
+src/sql/server-ca.pem
+src/sql/client.pem
+src/sql/client.key
